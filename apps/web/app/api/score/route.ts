@@ -9,6 +9,8 @@
 
 import { NextResponse } from 'next/server';
 import { analyse } from '@safegate/pipeline.js';
+import { PatternLoadError } from '@safegate/patterns/resolve.js';
+import { RegistryLoadError } from '@safegate/registry/lookup.js';
 import type { Chain } from '@safegate/types.js';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +52,15 @@ export async function GET(request: Request): Promise<NextResponse> {
       headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' },
     });
   } catch (err) {
+    // A missing dictionary or registry is a deployment fault on our side. It must
+    // never degrade to a 200 with an empty score, because an empty score reads as
+    // a clean bill of health.
+    if (err instanceof PatternLoadError || err instanceof RegistryLoadError) {
+      return NextResponse.json(
+        { error: `server data unavailable: ${(err as Error).message}` },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { error: `could not read the chain: ${(err as Error).message}` },
       { status: 502 }

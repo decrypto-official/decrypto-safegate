@@ -11,9 +11,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { mkdtemp, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { analyse } from '../src/pipeline.js';
-import { loadPatterns } from '../src/patterns/resolve.js';
-import { loadRegistry, findEntry } from '../src/registry/lookup.js';
+import { loadPatterns, PatternLoadError } from '../src/patterns/resolve.js';
+import { loadRegistry, findEntry, RegistryLoadError } from '../src/registry/lookup.js';
 
 const TIMEOUT = 60_000;
 
@@ -178,6 +181,76 @@ describe('reproducibility', () => {
     },
     TIMEOUT
   );
+});
+
+/**
+ * Data availability.
+ *
+ * The rest of this suite runs against a real filesystem, so it cannot see a
+ * packaging fault that leaves patterns/ or registry/ out of a deployment bundle.
+ * These tests point the loaders at directories that are missing or empty, which
+ * is the state a broken deploy produces.
+ *
+ * That state is dangerous rather than merely broken: with no patterns there are
+ * no signals, and a score with no signals reads 0 on every axis, which is the
+ * best-looking result the product can render.
+ */
+describe('data availability', () => {
+  it('throws when the pattern directory is missing', async () => {
+    const empty = await mkdtemp(join(tmpdir(), 'safegate-missing-'));
+    await expect(loadPatterns(join(empty, 'nope'))).rejects.toThrow(PatternLoadError);
+  });
+
+  it('throws when the pattern directory exists but holds nothing', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'safegate-bare-'));
+    await mkdir(join(base, 'evm'), { recursive: true });
+    await mkdir(join(base, 'solana'), { recursive: true });
+    await expect(loadPatterns(base)).rejects.toThrow(/no usable patterns/i);
+  });
+
+  it('throws when the registry directory is missing', async () => {
+    const empty = await mkdtemp(join(tmpdir(), 'safegate-missing-reg-'));
+    await expect(loadRegistry(join(empty, 'nope'))).rejects.toThrow(RegistryLoadError);
+  });
+
+  it('throws when the registry directory exists but holds nothing', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'safegate-bare-reg-'));
+    await mkdir(join(base, 'issuers', 'ethereum'), { recursive: true });
+    await mkdir(join(base, 'issuers', 'solana'), { recursive: true });
+    await expect(loadRegistry(base)).rejects.toThrow(/no usable entries/i);
+  });
+
+  it('names the likely deployment cause in the error', async () => {
+    // Whoever hits this in production should not have to guess why.
+    const empty = await mkdtemp(join(tmpdir(), 'safegate-msg-'));
+    await expect(loadPatterns(join(empty, 'nope'))).rejects.toThrow(/build output/i);
+    await expect(loadRegistry(join(empty, 'nope'))).rejects.toThrow(/build output/i);
+  });
+});
+
+describe('an unscored axis is never reported as zero', () => {
+  it('marks an axis with nothing resolved as unassessed rather than 0', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({
+      chain: 'ethereum',
+      address: '0xtest',
+      signals: [],
+      disagreements: [],
+      unverified: [],
+      registryEntry: null,
+      inputSnapshotHash: 'sha256:fixed',
+      computedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    // The number is 0 by arithmetic, so any consumer reading `value` alone would
+    // see a perfect score. `scored` is what tells them nothing was checked, and
+    // the CLI and the dashboard both render "n/a" on the strength of it.
+    for (const axis of ['control', 'transparency', 'exit'] as const) {
+      expect(result.axes[axis].coverage.scored).toBe(0);
+      expect(result.axes[axis].coverage.applicable).toBe(0);
+    }
+    expect(result.coverage.ratio).toBe(0);
+  });
 });
 
 describe('data integrity', () => {

@@ -86,23 +86,35 @@ export function ScoreResult({ score }: { score: Score }) {
             <div className="panel-body">
               {AXES.map((axis) => {
                 const a = score.axes[axis];
+
+                // Nothing resolved is not a score of zero. Rendering 0 here would
+                // make "we checked nothing" the best-looking result on the page.
+                const assessed = a.coverage.scored > 0;
+
                 return (
                   <div key={axis} style={{ marginBottom: 14 }}>
                     <div className="meter" style={{ marginBottom: 4 }}>
                       <span className="meter-label">{axis}</span>
                       <div className="meter-track">
-                        <div
-                          className="meter-fill"
-                          style={{ width: `${a.value}%`, background: severity(a.value) }}
-                        />
+                        {assessed && (
+                          <div
+                            className="meter-fill"
+                            style={{ width: `${a.value}%`, background: severity(a.value) }}
+                          />
+                        )}
                       </div>
-                      <span className="meter-value" style={{ color: severity(a.value) }}>
-                        {a.value}
+                      <span
+                        className="meter-value"
+                        style={{ color: assessed ? severity(a.value) : 'var(--unknown)' }}
+                      >
+                        {assessed ? a.value : 'n/a'}
                       </span>
                     </div>
                     {/* The coverage denominator is never separable from the value. */}
                     <div style={{ fontSize: 11, color: 'var(--text-faint)', paddingLeft: 106 }}>
-                      {a.coverage.scored}/{a.coverage.applicable} checks resolved
+                      {assessed
+                        ? `${a.coverage.scored}/${a.coverage.applicable} checks resolved`
+                        : 'nothing resolved on this axis'}
                     </div>
                   </div>
                 );

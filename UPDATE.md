@@ -14,6 +14,32 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.1, 2026-07-26
+
+Fixes a deployment fault that served empty data, and the code defects that let it pass unnoticed.
+
+### Fixed
+
+**Data files were missing from the deployed bundle.** The engine reads `patterns/` and `registry/` from disk at request time, on paths built from `import.meta.url`. Next's file tracing cannot see those statically, so the JSON was absent from the serverless output. Added `outputFileTracingIncludes` to `apps/web/next.config.mjs`. The globs resolve from `apps/web` rather than from `outputFileTracingRoot`, so they need a `../../` prefix to reach the repo root.
+
+**Both loaders swallowed a missing directory.** `loadPatterns` and `loadRegistry` wrapped `readdir` in `catch { continue }`, so `ENOENT` produced an empty array and a successful response instead of an error. They now throw `PatternLoadError` or `RegistryLoadError`, naming the directory and the likely cause, and also throw when a directory is readable but holds nothing usable.
+
+This is the failure that mattered. With no patterns loaded there are no signals at all, so every axis reported 0 and every route returned 200. Zero on every axis is the best-looking result the product can produce, which means a packaging fault rendered as a clean bill of health. The rule the scorer applies to token capabilities, that absence is never safety, was not being applied to the tool's own data.
+
+**An axis with nothing resolved reported 0.** Arithmetically correct and misleading, since it is indistinguishable from an axis that was checked and found clean. The CLI and the dashboard now show `n/a` and "nothing resolved on this axis" when `coverage.scored` is 0. This also affected valid tokens: UNI has no transparency-capability patterns and was showing a green 0.
+
+**A data-loading fault returned 502 as a chain read failure.** `/api/score` now returns 503 and identifies it as server data being unavailable, which is what it is.
+
+### Added
+
+**`apps/web/scripts/verify-trace.mjs`**, run automatically after `next build`. It reads the trace manifests under `.next/server/app` and fails if the routes that reach the engine do not carry every pattern and registry file. Neither `next build` nor `next start` catches this class of fault, because both run against the local filesystem.
+
+**Six tests covering data availability.** The suite runs on a real filesystem and so could not see this, which is why it passed while production was broken. The loaders now accept an optional base directory, and the new tests point them at missing and empty directories and assert they throw. One asserts the error text names the likely deployment cause.
+
+**CI now builds the web app** and runs `verify-trace`.
+
+---
+
 ## 0.1.0, 2026-07-26
 
 First release. Methodology 0.1.0.

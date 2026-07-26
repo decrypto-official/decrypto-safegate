@@ -47,24 +47,55 @@ export interface RegistryEntry {
 
 let cache: RegistryEntry[] | null = null;
 
-export async function loadRegistry(): Promise<RegistryEntry[]> {
-  if (cache) return cache;
+/**
+ * Thrown when the registry cannot be read at all.
+ *
+ * An empty registry does not fail safe. It silently strips every EXPECTED status,
+ * so a regulated stablecoin's mint and freeze authority stop being justified and
+ * start being unexplained findings. A deployment fault must not be able to
+ * change what a score means.
+ */
+export class RegistryLoadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RegistryLoadError';
+  }
+}
+
+/** `baseDir` is for tests. Passing it bypasses the cache. */
+export async function loadRegistry(baseDir?: string): Promise<RegistryEntry[]> {
+  if (!baseDir && cache) return cache;
+  const root = baseDir ?? REGISTRY_DIR;
 
   const out: RegistryEntry[] = [];
   for (const chain of ['ethereum', 'solana'] as const) {
-    const dir = join(REGISTRY_DIR, 'issuers', chain);
+    const dir = join(root, 'issuers', chain);
     let files: string[];
     try {
       files = await readdir(dir);
-    } catch {
-      continue;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT' || code === 'ENOTDIR') {
+        throw new RegistryLoadError(
+          `registry directory not found: ${dir}. In a bundled deployment this usually ` +
+            `means registry/**/*.json was not included in the build output.`
+        );
+      }
+      throw err;
     }
     for (const file of files.filter((f) => f.endsWith('.json'))) {
       out.push(JSON.parse(await readFile(join(dir, file), 'utf8')) as RegistryEntry);
     }
   }
 
-  cache = out;
+  if (out.length === 0) {
+    throw new RegistryLoadError(
+      `registry directory ${root} contains no usable entries. Every token would be ` +
+        `scored as if no capability were ever justified.`
+    );
+  }
+
+  if (!baseDir) cache = out;
   return out;
 }
 

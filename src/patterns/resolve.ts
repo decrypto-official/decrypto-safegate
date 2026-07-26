@@ -44,17 +44,41 @@ export interface Pattern {
 
 let cache: Pattern[] | null = null;
 
-export async function loadPatterns(): Promise<Pattern[]> {
-  if (cache) return cache;
+/**
+ * Thrown when the dictionary cannot be read at all.
+ *
+ * This has to be loud. A missing directory is a packaging or deployment fault,
+ * and an empty dictionary produces a score with no signals in it, which reads as
+ * a clean bill of health rather than as an error. "Absence is never safety"
+ * applies to our own data before it applies to anyone's token.
+ */
+export class PatternLoadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PatternLoadError';
+  }
+}
+
+/** `baseDir` is for tests. Passing it bypasses the cache. */
+export async function loadPatterns(baseDir?: string): Promise<Pattern[]> {
+  if (!baseDir && cache) return cache;
+  const root = baseDir ?? PATTERNS_DIR;
 
   const out: Pattern[] = [];
   for (const family of ['evm', 'solana'] as const) {
-    const dir = join(PATTERNS_DIR, family);
+    const dir = join(root, family);
     let files: string[];
     try {
       files = await readdir(dir);
-    } catch {
-      continue;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT' || code === 'ENOTDIR') {
+        throw new PatternLoadError(
+          `pattern directory not found: ${dir}. The dictionary is required, not optional. ` +
+            `In a bundled deployment this usually means patterns/**/*.json was not included in the build output.`
+        );
+      }
+      throw err;
     }
     for (const file of files.filter((f) => f.endsWith('.json'))) {
       const pattern = JSON.parse(await readFile(join(dir, file), 'utf8')) as Pattern;
@@ -68,7 +92,15 @@ export async function loadPatterns(): Promise<Pattern[]> {
     }
   }
 
-  cache = out;
+  // A readable but empty dictionary is the same outage with a different cause.
+  if (out.length === 0) {
+    throw new PatternLoadError(
+      `pattern directory ${root} contains no usable patterns. Scoring with an empty ` +
+        `dictionary produces no signals at all, which would render as a perfect score.`
+    );
+  }
+
+  if (!baseDir) cache = out;
   return out;
 }
 

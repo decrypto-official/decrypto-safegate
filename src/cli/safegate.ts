@@ -71,6 +71,17 @@ function render(s: Score): void {
   console.log(`\n${BOLD}AXES${RESET} ${DIM}(higher is worse)${RESET}`);
   for (const axis of ['control', 'transparency', 'exit'] as const) {
     const a = s.axes[axis];
+
+    // Nothing resolved is not a score of zero. A blank bar reading "0" would be
+    // the best-looking result on the page, produced by having checked nothing.
+    if (a.coverage.scored === 0) {
+      console.log(
+        `  ${axis.padEnd(13)} ${YELLOW}${'.'.repeat(20)}${RESET} ${YELLOW}n/a${RESET}` +
+          `   ${DIM}nothing resolved on this axis${RESET}`
+      );
+      continue;
+    }
+
     const colour = a.value >= 60 ? RED : a.value >= 30 ? YELLOW : GREEN;
     console.log(
       `  ${axis.padEnd(13)} ${colour}${bar(a.value)}${RESET} ${String(a.value).padStart(3)}` +

@@ -31,3 +31,16 @@ jobs:
       # test the mocks rather than our reading of the chain.
       - name: Test
         run: npm test
+
+      - name: Install web deps
+        run: npm ci
+        working-directory: apps/web
+
+      # `next build` succeeding is not enough. The engine reads patterns/ and
+      # registry/ from disk at request time, and if those are missing from the
+      # traced output every route still returns 200 while serving nothing. The
+      # build script runs verify-trace, which reads the trace manifests and fails
+      # if the data is absent.
+      - name: Build web and verify bundled data
+        run: npm run build
+        working-directory: apps/web
