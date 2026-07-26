@@ -1,0 +1,29 @@
+{
+  "id": "spl-update-authority",
+  "title": "Metaplex metadata update authority",
+  "chainFamily": "solana",
+  "capability": "metadata-mutability",
+  "method": {
+    "kind": "account-field",
+    "accountField": "tokenMeta.updateAuthority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "The address able to change the token's name, symbol and metadata URI after launch.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "This is a WEAK signal and must not be scored as a major risk. Mutable metadata was observed on RAY, JUP and BONK, three well established tokens. Scoring it heavily manufactures false positives on the majority of a blue-chip set. It is carried as context, not as a Control penalty.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+      "symbol": "RAY",
+      "observed": "mutable, and legitimate",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "Included so the signal is visible and explicitly de-weighted, rather than quietly omitted. Documenting why something does NOT count is part of a published methodology.",
+  "references": [
+    "https://developers.metaplex.com/token-metadata"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

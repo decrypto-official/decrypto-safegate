@@ -1,0 +1,42 @@
+{
+  "id": "ldo-ethereum",
+  "chain": "ethereum",
+  "address": "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",
+  "symbol": "LDO",
+  "name": "Lido DAO Token",
+  "decimals": 18,
+  "issuer": {
+    "name": "Lido DAO",
+    "jurisdiction": "Decentralised",
+    "website": "https://lido.fi",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "The DAO can mint LDO by governance vote to fund the treasury and incentives.",
+      "constrainedBy": "Aragon governance vote"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = LDO, decimals() = 18, 7440 bytes.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Lido documents DAO-controlled token minting.",
+      "url": "https://docs.lido.fi/"
+    }
+  ],
+  "caveats": [
+    "A live admin behind a timelock is still a live admin.",
+    "This entry does not assess governance capture or voting concentration."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

@@ -1,0 +1,52 @@
+{
+  "id": "wbtc-ethereum",
+  "chain": "ethereum",
+  "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+  "symbol": "WBTC",
+  "name": "Wrapped BTC",
+  "decimals": 8,
+  "issuer": {
+    "name": "BitGo",
+    "jurisdiction": "United States",
+    "website": "https://wbtc.network",
+    "regulated": true
+  },
+  "archetype": "wrapped-asset",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Mints only against custodied BTC deposits, so supply tracks reserves.",
+      "constrainedBy": "Merchant and custodian model with published proof of reserves"
+    },
+    {
+      "capability": "transfer-restriction",
+      "justification": "Pausable and blacklist capable, consistent with a regulated custodian.",
+      "constrainedBy": "Custodian policy"
+    },
+    {
+      "capability": "admin-authority",
+      "justification": "Owner-controlled minting and pausing.",
+      "constrainedBy": "BitGo custody arrangements"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = WBTC, decimals() = 8, 4582 bytes of code.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "BitGo publishes proof of reserves and the merchant custody model.",
+      "url": "https://wbtc.network/dashboard/order-book"
+    }
+  ],
+  "caveats": [
+    "This is a custodial asset. Its value depends entirely on the custodian holding real BTC.",
+    "Structural scoring cannot verify custody. Only the attestation can, and that is off-chain."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

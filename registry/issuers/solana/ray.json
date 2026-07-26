@@ -1,0 +1,37 @@
+{
+  "id": "ray-solana",
+  "chain": "solana",
+  "address": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+  "symbol": "RAY",
+  "name": "Raydium",
+  "decimals": 6,
+  "issuer": {
+    "name": "Raydium",
+    "jurisdiction": "Decentralised",
+    "website": "https://raydium.io",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 6. mintAuthority null and freezeAuthority null, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Raydium documents token supply and emissions.",
+      "url": "https://docs.raydium.io/"
+    }
+  ],
+  "caveats": [
+    "Third-party scanners flag this token for top-10 holder concentration around 47 percent held across two accounts.",
+    "The holding accounts are not tagged in any public label set we could verify, so concentration is reported as UNKNOWN from our side rather than cleared.",
+    "Being in this registry confirms identity and archetype. It does not clear the concentration question."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

@@ -1,0 +1,30 @@
+{
+  "id": "proxy-uups",
+  "title": "UUPS proxiableUUID",
+  "chainFamily": "evm",
+  "capability": "upgradeability",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x52d1902d",
+    "signature": "proxiableUUID() returns (bytes32)",
+    "returnType": "bytes32"
+  },
+  "detects": "A successful call indicates a UUPS-compatible implementation, where the upgrade entrypoint lives in the logic contract rather than the proxy.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "Calling this on the PROXY address may revert even when the implementation is UUPS, because the selector is often not exposed through the fallback. Read the implementation address first, then probe it there.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",
+      "symbol": "LDO",
+      "observed": "probed for UUPS entrypoint",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "UUPS is the current OpenZeppelin default. Upgrade authority sits in the logic contract, which changes where to look for admin power.",
+  "references": [
+    "https://eips.ethereum.org/EIPS/eip-1822"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

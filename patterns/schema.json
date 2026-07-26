@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/decrypto-official/decrypto-safegate/patterns/schema.json",
+  "title": "Safegate pattern",
+  "description": "A pattern describes HOW to read one capability from one contract shape. It is pure data. It never decides whether the result is good or bad, only where to look and how to interpret the raw bytes.",
+  "type": "object",
+  "required": ["id", "chainFamily", "capability", "method", "detects", "rationale", "addedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stable identifier. Must match the filename."
+    },
+    "title": { "type": "string" },
+    "chainFamily": { "enum": ["evm", "solana"] },
+    "capability": {
+      "enum": [
+        "upgradeability",
+        "mint-authority",
+        "freeze-authority",
+        "admin-authority",
+        "metadata-mutability",
+        "transfer-restriction",
+        "fee-control"
+      ],
+      "description": "Which capability this pattern reads. Signals map capabilities to axes; patterns never do."
+    },
+    "method": {
+      "type": "object",
+      "description": "The deterministic read. Exactly one of storageSlot, callSelector, or accountField.",
+      "properties": {
+        "kind": { "enum": ["storage-slot", "call-selector", "account-field"] },
+        "storageSlot": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$",
+          "description": "For kind=storage-slot. Read with eth_getStorageAt."
+        },
+        "slotDerivation": {
+          "type": "string",
+          "description": "Human-readable derivation of the slot constant, so a reviewer can recompute it."
+        },
+        "callSelector": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{8}$",
+          "description": "For kind=call-selector. First 4 bytes of keccak256 of the signature."
+        },
+        "signature": { "type": "string", "description": "Human-readable function signature." },
+        "accountField": {
+          "type": "string",
+          "description": "For kind=account-field. Dotted path into the parsed account data."
+        },
+        "returnType": { "enum": ["address", "bool", "uint256", "bytes32", "pubkey-or-null", "string"] }
+      },
+      "required": ["kind", "returnType"],
+      "additionalProperties": false
+    },
+    "detects": {
+      "type": "string",
+      "description": "Plain English: what a positive read means. No judgement language."
+    },
+    "nonEmptyMeans": {
+      "enum": ["capability-present", "capability-absent"],
+      "description": "Whether a non-empty read means the capability EXISTS or is explicitly disabled. Default capability-present."
+    },
+    "presenceIndicatedBy": {
+      "enum": ["non-empty-value", "call-success"],
+      "description": "How presence is determined. 'non-empty-value' means the RETURNED VALUE decides, so owner() returning the zero address means renounced. 'call-success' means the FUNCTION EXISTING decides, regardless of what it returns: paused() returning false still proves a pause mechanism exists, and capability is what gets scored, not current state. Defaults to non-empty-value."
+    },
+    "knownFalseNegative": {
+      "type": "string",
+      "description": "A documented case where relying on this pattern ALONE gives the wrong answer. This field is why the dictionary exists."
+    },
+    "supersededBy": { "type": "string" },
+    "coversExamples": {
+      "type": "array",
+      "description": "Real verified addresses this pattern correctly reads. Used as regression fixtures.",
+      "items": {
+        "type": "object",
+        "required": ["chain", "address", "symbol"],
+        "properties": {
+          "chain": { "type": "string" },
+          "address": { "type": "string" },
+          "symbol": { "type": "string" },
+          "observed": { "type": "string" },
+          "verifiedAt": { "type": "string", "format": "date" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Why this pattern is needed and what breaks without it."
+    },
+    "references": { "type": "array", "items": { "type": "string" } },
+    "addedAt": { "type": "string", "format": "date" },
+    "addedBy": { "type": "string" }
+  }
+}

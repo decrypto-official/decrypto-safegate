@@ -1,0 +1,30 @@
+{
+  "id": "admin-minter",
+  "title": "Governance token minter()",
+  "chainFamily": "evm",
+  "capability": "mint-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x07546172",
+    "signature": "minter() returns (address)",
+    "returnType": "address"
+  },
+  "detects": "The address permitted to mint new supply. Common in governance tokens that have no Ownable owner at all.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "Reading minter() alone tells you an address, not whether it is dangerous. A minter behind a governance timelock is a normal design. Resolve admin-timelock before scoring it.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "observed": "minter() = 0x1a9c8182c09f50c8318d769245bea52c32be35bc, live, while owner() reverts",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "The second canonical reason this dictionary exists. Without this pattern, UNI's live mint authority is invisible and the token reads as fully renounced.",
+  "references": [
+    "https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984#code"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

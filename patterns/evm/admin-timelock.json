@@ -1,0 +1,30 @@
+{
+  "id": "admin-timelock",
+  "title": "Timelock controller detection",
+  "chainFamily": "evm",
+  "capability": "admin-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x6a42b8f8",
+    "signature": "delay() returns (uint256)",
+    "returnType": "uint256"
+  },
+  "detects": "A successful call on an admin address means that admin is a timelock. Actions must be queued and cannot execute until the delay elapses.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "This is probed against the ADMIN address, not the token. A short delay is close to no delay at all, so the returned number matters as much as its presence.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x1a9C8182C09F50C8318d769245beA52c32BE35BC",
+      "symbol": "UNI-Timelock",
+      "observed": "the address UNI's minter() returns, probed for a timelock delay",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "This pattern is what stops legitimate governance being scored like a rug. A live admin behind a real timelock is a normal, healthy design, and without this check every governance token false-positives.",
+  "references": [
+    "https://docs.openzeppelin.com/contracts/5.x/api/governance#TimelockController"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

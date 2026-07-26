@@ -1,0 +1,42 @@
+{
+  "id": "msol-solana",
+  "chain": "solana",
+  "address": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+  "symbol": "mSOL",
+  "name": "Marinade Staked SOL",
+  "decimals": 9,
+  "issuer": {
+    "name": "Marinade Finance",
+    "jurisdiction": "Decentralised",
+    "website": "https://marinade.finance",
+    "regulated": false
+  },
+  "archetype": "liquid-staking",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Structurally required. mSOL is minted on SOL deposit and burned on unstake. Without this the token cannot exist.",
+      "constrainedBy": "The Marinade stake pool program. Mechanical, not discretionary."
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 9. mintAuthority ACTIVE, freezeAuthority null, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Marinade documents the liquid staking mint and burn mechanism.",
+      "url": "https://docs.marinade.finance/"
+    }
+  ],
+  "caveats": [
+    "Mint authority being expected does not remove validator, slashing or depeg risk.",
+    "This entry speaks only to token structure, never to yield or solvency."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

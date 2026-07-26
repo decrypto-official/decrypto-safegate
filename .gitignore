@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.vitest/
+
+# Next.js, apps/web
+apps/web/.next/
+apps/web/out/
+apps/web/node_modules/
+.vercel
+
+# cached source responses, never commit
+.cache/
+snapshots/*.raw.json
+
+# internal working documents, never published
+docs/internal/
+
+# local dev tooling, not project content
+.claude/

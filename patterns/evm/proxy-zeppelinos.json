@@ -1,0 +1,30 @@
+{
+  "id": "proxy-zeppelinos",
+  "title": "Legacy zeppelinos proxy implementation slot",
+  "chainFamily": "evm",
+  "capability": "upgradeability",
+  "method": {
+    "kind": "storage-slot",
+    "storageSlot": "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3",
+    "slotDerivation": "keccak256('org.zeppelinos.proxy.implementation')",
+    "returnType": "address"
+  },
+  "detects": "A non-zero value is the current logic contract of a pre-EIP-1967 OpenZeppelin proxy.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "This slot is empty on modern proxies. It complements proxy-eip1967 rather than replacing it. Both must be read.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "observed": "implementation 0x43506849d7c04f9138d1a2050bbf3a0c054402dd. EIP-1967 slot reads zero for this token.",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "THE canonical reason this dictionary exists. USDC, the most widely held stablecoin in crypto, is upgradeable and is invisible to an EIP-1967-only reader. Any scanner missing this slot reports the single most important token on Ethereum as non-upgradeable.",
+  "references": [
+    "https://docs.openzeppelin.com/upgrades/2.8/proxies"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

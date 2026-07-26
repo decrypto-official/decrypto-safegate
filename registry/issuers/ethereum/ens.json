@@ -1,0 +1,48 @@
+{
+  "id": "ens-ethereum",
+  "chain": "ethereum",
+  "address": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+  "symbol": "ENS",
+  "name": "Ethereum Name Service",
+  "decimals": 18,
+  "issuer": {
+    "name": "ENS DAO",
+    "jurisdiction": "Decentralised",
+    "website": "https://ens.domains",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Capped inflation of up to 2 percent per year is available to the DAO by design.",
+      "constrainedBy": "DAO governance plus the contract's hard cap and interval"
+    },
+    {
+      "capability": "admin-authority",
+      "justification": "Role-based access control rather than a single owner.",
+      "constrainedBy": "DAO timelock"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = ENS, decimals() = 18, 18709 bytes. Uses AccessControl roles, so an owner()-only reader finds nothing.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "ENS documents the capped inflation and DAO governance.",
+      "url": "https://docs.ens.domains/dao"
+    }
+  ],
+  "caveats": [
+    "A live admin behind a timelock is still a live admin.",
+    "This entry does not assess governance capture or voting concentration.",
+    "Role-based admin is invisible to owner() checks. See patterns/evm/admin-accesscontrol.json."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

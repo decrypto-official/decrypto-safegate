@@ -1,0 +1,36 @@
+{
+  "id": "spl-freeze-authority",
+  "title": "SPL freeze authority",
+  "chainFamily": "solana",
+  "capability": "freeze-authority",
+  "method": {
+    "kind": "account-field",
+    "accountField": "data.parsed.info.freezeAuthority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "A non-null pubkey can freeze any holder's token account, blocking that holder from transferring.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "For regulated stablecoin issuers, freeze is a legal requirement rather than a red flag. US permitted issuers are obliged to retain the ability to freeze and seize on lawful order, and Circle has exercised it. Verified on 2026-07-22: USDC and USDT carry active freeze authority. Notably JitoSOL, mSOL and ORCA carry mint authority but NOT freeze, which is a meaningfully different capability profile.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "symbol": "USDC",
+      "observed": "ACTIVE, sanctions compliance mechanism",
+      "verifiedAt": "2026-07-22"
+    },
+    {
+      "chain": "solana",
+      "address": "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+      "symbol": "JitoSOL",
+      "observed": "null, mint authority active but freeze is not",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "The strongest single capability a Solana token can hold against an individual holder. Also the clearest case where blanket rules fail and issuer context is required.",
+  "references": [
+    "https://spl.solana.com/token"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "proxy-eip1967",
+  "title": "EIP-1967 transparent proxy implementation slot",
+  "chainFamily": "evm",
+  "capability": "upgradeability",
+  "method": {
+    "kind": "storage-slot",
+    "storageSlot": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+    "slotDerivation": "keccak256('eip1967.proxy.implementation') - 1",
+    "returnType": "address"
+  },
+  "detects": "A non-zero value is the address of the logic contract this proxy currently delegates to. The logic can be swapped by whoever holds the admin slot.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "Contracts deployed before EIP-1967 was standardised do not use this slot. USDC reads zero here and IS still a proxy. Always evaluate proxy-zeppelinos and proxy-uups before concluding a contract is non-upgradeable.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+      "symbol": "AAVE",
+      "observed": "2491 bytes of code, evaluated for proxy slots",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "The dominant modern proxy standard. Without it, upgradeable tokens read as immutable.",
+  "references": [
+    "https://eips.ethereum.org/EIPS/eip-1967"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

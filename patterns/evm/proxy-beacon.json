@@ -1,0 +1,30 @@
+{
+  "id": "proxy-beacon",
+  "title": "EIP-1967 beacon slot",
+  "chainFamily": "evm",
+  "capability": "upgradeability",
+  "method": {
+    "kind": "storage-slot",
+    "storageSlot": "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50",
+    "slotDerivation": "keccak256('eip1967.proxy.beacon') - 1",
+    "returnType": "address"
+  },
+  "detects": "A non-zero value points to a beacon contract. The beacon holds the implementation address for potentially many proxies at once.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "Finding a beacon is only the first hop. The upgrade authority lives on the BEACON, not on the token, so stopping here understates who can change the code.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+      "symbol": "ENS",
+      "observed": "probed for beacon slot",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "Beacon proxies let one address upgrade many tokens simultaneously, which is a larger blast radius than a single proxy.",
+  "references": [
+    "https://eips.ethereum.org/EIPS/eip-1967"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

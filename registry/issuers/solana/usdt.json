@@ -1,0 +1,49 @@
+{
+  "id": "usdt-solana",
+  "chain": "solana",
+  "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+  "symbol": "USDT",
+  "name": "Tether USD",
+  "decimals": 6,
+  "issuer": {
+    "name": "Tether Limited",
+    "jurisdiction": "British Virgin Islands",
+    "website": "https://tether.to",
+    "regulated": false
+  },
+  "archetype": "fiat-stablecoin",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Issues and redeems against reserves.",
+      "constrainedBy": "Published attestations"
+    },
+    {
+      "capability": "freeze-authority",
+      "justification": "Used to comply with law enforcement freeze requests.",
+      "constrainedBy": "Issuer policy and law enforcement requests"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 6. mintAuthority ACTIVE and freezeAuthority ACTIVE, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Tether transparency and attestation reports.",
+      "url": "https://tether.to/en/transparency/"
+    }
+  ],
+  "caveats": [
+    "Being listed here does not mean the token cannot lose value or depeg.",
+    "It means the named capabilities are structurally expected, not that the issuer is beyond criticism.",
+    "An expected capability is still a capability. The issuer can use it.",
+    "Less regulatory supervision than Circle, with identical on-chain capabilities."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

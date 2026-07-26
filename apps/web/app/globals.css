@@ -1,0 +1,469 @@
+/*
+ * Safegate design system.
+ *
+ * Two rules from DESIGN.md are enforced structurally here rather than left to
+ * the discipline of whoever writes the next component:
+ *
+ *   1. The shell fills the viewport. There is no max-width on any container.
+ *      Narrow centred columns with dead margins either side are the single
+ *      clearest tell of a generated interface, and this is a dashboard.
+ *   2. State colour is semantic. The four state colours mean exactly one thing
+ *      each and are never reused for emphasis, branding or decoration.
+ */
+
+:root {
+  --bg: #06080d;
+  --surface: #0d111a;
+  --surface-raised: #141a26;
+  --border: #1e2635;
+  --border-strong: #2b3648;
+
+  --text: #e6ebf4;
+  --text-dim: #8a97ad;
+  --text-faint: #55627a;
+
+  /* Semantic states. Never used decoratively. */
+  --present: #ff5c5c;   /* capability exists, nothing justifies it */
+  --expected: #4d8dff;  /* exists, registry justifies it */
+  --absent: #2fd48a;    /* verified not present */
+  --unknown: #ffb340;   /* could not check. amber, not grey: a gap is a warning */
+
+  --accent: #4d8dff;
+  --grid: #141a26;
+
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  --row-h: 36px;
+  --pad: 16px;
+  --topbar-h: 48px;
+  --sidebar-w: 240px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Every number in this product is compared against another number. */
+[data-numeric],
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- shell: fills the viewport, only the content pane scrolls ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas:
+    'sidebar topbar'
+    'sidebar content';
+  height: 100dvh;
+  width: 100%;
+}
+
+.sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.topbar {
+  grid-area: topbar;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 var(--pad);
+  min-width: 0;
+}
+
+.content {
+  grid-area: content;
+  overflow-y: auto;
+  min-width: 0;
+  padding: var(--pad);
+}
+
+@media (max-width: 1024px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'topbar' 'content';
+  }
+  .sidebar {
+    display: none;
+  }
+}
+
+/* ---------- brand ---------- */
+
+.brand {
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--pad);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+.brand span {
+  color: var(--accent);
+}
+
+.nav {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 4px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12px;
+  transition: background 140ms, color 140ms;
+}
+.nav-item:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.nav-item[aria-current='page'] {
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.nav-label {
+  padding: 12px 10px 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---------- panels ---------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px var(--pad);
+  border-bottom: 1px solid var(--border);
+}
+.panel-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 0;
+}
+.panel-body {
+  padding: var(--pad);
+}
+
+/* Fluid grid: panels reflow instead of leaving dead space at any width. */
+.grid-fluid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--pad);
+}
+
+/* Result layout: fixed summary rail, signal table takes everything left.
+   Collapses at 1440px: below that the signal table's reasoning column gets too
+   narrow to read, and stacking beats cramming. */
+.result-layout {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: var(--pad);
+  align-items: start;
+}
+/* Stacked: the three summary panels flow across the width instead of each
+   stretching to 1400px with a tiny meter inside it. Filling the space is the
+   point, and a full-width panel holding one small number does not do that. */
+.summary-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pad);
+  min-width: 0;
+}
+@media (max-width: 1440px) {
+  .result-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .summary-rail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    align-items: start;
+  }
+}
+
+/* Master-detail: a scannable list beside a full record. The list is fixed width
+   so the detail pane takes everything else, which is what fills the screen. */
+.master-detail {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: var(--pad);
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .master-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- state chips ---------- */
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.state::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+/* Colour is never the only carrier of meaning: the text label is always present. */
+.state-PRESENT { color: var(--present); }
+.state-EXPECTED { color: var(--expected); }
+.state-ABSENT { color: var(--absent); }
+.state-UNKNOWN { color: var(--unknown); }
+
+/* ---------- table ---------- */
+
+/* Wide content scrolls inside its own container. The page body must never
+   scroll horizontally. */
+.table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.table col.c-state { width: 108px; }
+.table col.c-cap { width: 168px; }
+.table col.c-axis { width: 92px; }
+.table col.c-src { width: 152px; }
+.table th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 500;
+  padding: 8px var(--pad);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.table td {
+  padding: 10px var(--pad);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+.table tbody tr:hover {
+  background: var(--surface-raised);
+}
+.reason {
+  color: var(--text-dim);
+  font-size: 12px;
+  max-width: 70ch; /* the ONLY place a measure limit is allowed: prose */
+  /* Reasoning text embeds raw addresses, which have no break opportunities and
+     will otherwise push the column past its container. */
+  overflow-wrap: anywhere;
+}
+
+/* ---------- meters ---------- */
+
+.meter {
+  display: grid;
+  grid-template-columns: 96px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.meter-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+.meter-track {
+  height: 6px;
+  background: var(--surface-raised);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+.meter-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  text-align: right;
+}
+
+/* ---------- callouts ---------- */
+
+.callout {
+  border: 1px solid var(--border);
+  border-left-width: 2px;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--surface);
+}
+.callout-warn {
+  border-left-color: var(--unknown);
+}
+.callout-info {
+  border-left-color: var(--expected);
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.addr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+/* ---------- form ---------- */
+
+.field {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.input:focus-visible,
+.select:focus-visible,
+.btn:focus-visible,
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.select {
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.btn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--accent);
+  border: none;
+  border-radius: 4px;
+  color: #06080d;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-raised) 25%, var(--border) 50%, var(--surface-raised) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Motion explains a change. It never entertains. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

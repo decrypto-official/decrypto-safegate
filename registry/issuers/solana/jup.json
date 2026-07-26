@@ -1,0 +1,36 @@
+{
+  "id": "jup-solana",
+  "chain": "solana",
+  "address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+  "symbol": "JUP",
+  "name": "Jupiter",
+  "decimals": 6,
+  "issuer": {
+    "name": "Jupiter Exchange",
+    "jurisdiction": "Decentralised",
+    "website": "https://jup.ag",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 6. mintAuthority null and freezeAuthority null, both permanently revoked, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Jupiter documents its token supply and governance.",
+      "url": "https://station.jup.ag/"
+    }
+  ],
+  "caveats": [
+    "No capabilities are pre-approved. Both authorities are revoked, so none are needed.",
+    "High top-holder concentration on this token reflects treasury and locker accounts, which structural scoring alone cannot distinguish from a whale."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

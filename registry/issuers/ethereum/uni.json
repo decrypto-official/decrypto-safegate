@@ -1,0 +1,43 @@
+{
+  "id": "uni-ethereum",
+  "chain": "ethereum",
+  "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+  "symbol": "UNI",
+  "name": "Uniswap",
+  "decimals": 18,
+  "issuer": {
+    "name": "Uniswap Governance",
+    "jurisdiction": "Decentralised",
+    "website": "https://uniswap.org",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "The minter can inflate supply by a capped percentage after a fixed date, which is the token's documented emission design.",
+      "constrainedBy": "Governance timelock at 0x1a9C8182C09F50C8318d769245beA52c32BE35BC, plus a hard cap and minimum interval in the contract"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = UNI, decimals() = 18, 12567 bytes. owner() REVERTS while minter() returns 0x1a9c8182c09f50c8318d769245bea52c32be35bc. This is the case that motivated patterns/evm/admin-minter.json. An owner()-only reader reports UNI as renounced, which is wrong.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Uniswap documents the governance timelock and the capped inflation schedule.",
+      "url": "https://docs.uniswap.org/concepts/governance/overview"
+    }
+  ],
+  "caveats": [
+    "A live admin behind a timelock is still a live admin.",
+    "This entry does not assess governance capture or voting concentration.",
+    "The mint capability is real. It is constrained by a timelock and a cap, not absent."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

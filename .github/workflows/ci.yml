@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Enforces the contribution rules in CONTRIBUTING.md: schema validity,
+      # two evidence kinds per registry entry, no duplicate addresses,
+      # mandatory disclosure field.
+      - name: Validate patterns and registry
+        run: npm run validate
+
+      # These read live public RPC endpoints on purpose. Mocking them would
+      # test the mocks rather than our reading of the chain.
+      - name: Test
+        run: npm test

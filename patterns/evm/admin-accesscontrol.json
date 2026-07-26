@@ -1,0 +1,30 @@
+{
+  "id": "admin-accesscontrol",
+  "title": "OpenZeppelin AccessControl DEFAULT_ADMIN_ROLE",
+  "chainFamily": "evm",
+  "capability": "admin-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x91d14854",
+    "signature": "hasRole(bytes32,address) returns (bool)",
+    "returnType": "bool"
+  },
+  "detects": "Role-based admin. Presence of hasRole indicates a role system, where privileges are held per-role rather than by a single owner.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "hasRole requires you to already know which address to ask about, so it cannot enumerate role holders from a single call. Renouncing Ownable while retaining a MINTER_ROLE is a real and common pattern, and an Ownable-only reader will miss it entirely.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+      "symbol": "ENS",
+      "observed": "18709 bytes, role-based access probed",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "Role systems are how modern tokens hold privileges. They are invisible to owner()-only detection, which is precisely how 'renounced ownership' becomes security theatre.",
+  "references": [
+    "https://docs.openzeppelin.com/contracts/5.x/api/access#AccessControl"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

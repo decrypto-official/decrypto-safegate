@@ -1,0 +1,43 @@
+{
+  "id": "spl-mint-authority",
+  "title": "SPL mint authority",
+  "chainFamily": "solana",
+  "capability": "mint-authority",
+  "method": {
+    "kind": "account-field",
+    "accountField": "data.parsed.info.mintAuthority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "A non-null pubkey can mint unlimited new supply. Null means the authority was permanently revoked.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "An active mint authority is NOT inherently a risk, and treating it as one is the single most common scoring error. Stablecoin issuers must mint against reserves, and liquid staking tokens must mint on deposit. Verified on 2026-07-22: USDC, USDT, ORCA, JitoSOL and mSOL all carry an active mint authority and are all legitimate. Always resolve the registry before scoring this.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "symbol": "USDC",
+      "observed": "ACTIVE, expected for a regulated issuer",
+      "verifiedAt": "2026-07-22"
+    },
+    {
+      "chain": "solana",
+      "address": "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+      "symbol": "JitoSOL",
+      "observed": "ACTIVE, structurally required, the token mints on SOL deposit",
+      "verifiedAt": "2026-07-22"
+    },
+    {
+      "chain": "solana",
+      "address": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+      "symbol": "RAY",
+      "observed": "null, permanently revoked",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "The headline Solana capability, and the one most often misread. The pattern reads it. The registry decides whether it is expected.",
+  "references": [
+    "https://spl.solana.com/token"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

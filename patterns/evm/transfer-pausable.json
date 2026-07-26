@@ -1,0 +1,31 @@
+{
+  "id": "transfer-pausable",
+  "title": "Pausable paused()",
+  "chainFamily": "evm",
+  "capability": "transfer-restriction",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x5c975abb",
+    "signature": "paused() returns (bool)",
+    "returnType": "bool"
+  },
+  "detects": "A successful call means the contract has a pause mechanism. Whoever holds the pauser role can halt transfers.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "paused() returning false only says transfers are not halted RIGHT NOW. The capability still exists, and capability is what gets scored, not the current state.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "observed": "pausable, which is expected for a regulated issuer",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "Pausing is both insider power and an exit blocker. It is assigned to the Control axis, with the mapping documented in METHODOLOGY.md.",
+  "references": [
+    "https://docs.openzeppelin.com/contracts/5.x/api/utils#Pausable"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto",
+  "presenceIndicatedBy": "call-success"
+}

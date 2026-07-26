@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/decrypto-official/decrypto-safegate/registry/schema.json",
+  "title": "Safegate registry issuer entry",
+  "description": "A registry entry records which capabilities are EXPECTED for a specific token, and the evidence for that claim. It is a deterministic lookup, never a classifier. An entry never says a token is safe. It says a named capability is structurally normal for this issuer, and shows why.",
+  "type": "object",
+  "required": ["id", "chain", "address", "symbol", "name", "issuer", "archetype", "expectedCapabilities", "evidence", "verifiedAt", "approvedBy"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "chain": { "enum": ["ethereum", "solana"] },
+    "address": { "type": "string", "description": "Contract address or mint address, in the chain's canonical casing." },
+    "symbol": { "type": "string" },
+    "name": { "type": "string" },
+    "decimals": { "type": "integer", "minimum": 0, "maximum": 18 },
+    "issuer": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "jurisdiction": { "type": "string" },
+        "website": { "type": "string" },
+        "regulated": { "type": "boolean", "description": "Subject to a financial regulator that constrains its conduct." }
+      },
+      "additionalProperties": false
+    },
+    "archetype": {
+      "enum": ["fiat-stablecoin", "crypto-collateralised-stablecoin", "wrapped-asset", "governance", "utility", "liquid-staking", "oracle", "unknown"],
+      "description": "Descriptive only. Recorded per entry by a human with evidence. NOT inferred by any classifier at runtime."
+    },
+    "expectedCapabilities": {
+      "type": "array",
+      "description": "Capabilities that are structurally normal for this token. A capability listed here resolves to EXPECTED instead of BAD, and the justification is shown to the reader.",
+      "items": {
+        "type": "object",
+        "required": ["capability", "justification"],
+        "properties": {
+          "capability": {
+            "enum": ["upgradeability", "mint-authority", "freeze-authority", "admin-authority", "metadata-mutability", "transfer-restriction", "fee-control"]
+          },
+          "justification": { "type": "string", "description": "Why this capability is necessary for this token to function or to comply with law." },
+          "constrainedBy": { "type": "string", "description": "What limits the capability. A timelock, a multisig, a regulator, a published policy." }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "description": "At least two independent items. On-chain observation alone is not sufficient, and documentation alone is not sufficient.",
+      "items": {
+        "type": "object",
+        "required": ["kind", "detail"],
+        "properties": {
+          "kind": { "enum": ["onchain", "documentation", "whitepaper", "regulatory-filing", "audit", "public-statement"] },
+          "detail": { "type": "string" },
+          "url": { "type": "string" },
+          "observedAt": { "type": "string", "format": "date" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "caveats": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "What being on this list does NOT mean. Displayed alongside the entry."
+    },
+    "commercialRelationship": {
+      "type": ["string", "null"],
+      "description": "Any commercial relationship between Decrypto and this issuer. Null means none. Populated automatically into DISCLOSURE.md and shown on the token's page."
+    },
+    "verifiedAt": { "type": "string", "format": "date" },
+    "reviewDue": { "type": "string", "format": "date", "description": "Entries expire. A stale entry loses EXPECTED status and reverts to normal scoring." },
+    "approvedBy": { "type": "string" }
+  }
+}

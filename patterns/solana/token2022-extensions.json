@@ -1,0 +1,29 @@
+{
+  "id": "token2022-extensions",
+  "title": "Token-2022 extension set",
+  "chainFamily": "solana",
+  "capability": "fee-control",
+  "method": {
+    "kind": "account-field",
+    "accountField": "data.parsed.info.extensions",
+    "returnType": "string"
+  },
+  "detects": "Token-2022 mints can carry extensions including transfer fees, transfer hooks, permanent delegate and non-transferable. Permanent delegate in particular grants an address perpetual authority over every holder's balance.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "A mint owned by the legacy Token program can never carry extensions, so this must only be evaluated when the account owner is the Token-2022 program. Verified on 2026-07-22: all 8 seeded Solana tokens use the legacy Token program, so none are affected. Any new token using Token-2022 must be checked here, and permanent delegate is the most severe capability in the SPL ecosystem.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "symbol": "USDC",
+      "observed": "owned by legacy Token program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA, extensions not applicable",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "Token-2022 adoption is rising and its extensions grant powers with no equivalent in the legacy program. Absent this pattern, a permanent delegate is completely invisible.",
+  "references": [
+    "https://spl.solana.com/token-2022/extensions"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

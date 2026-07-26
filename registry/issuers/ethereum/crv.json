@@ -1,0 +1,36 @@
+{
+  "id": "crv-ethereum",
+  "chain": "ethereum",
+  "address": "0xD533a949740bb3306d119CC777fa900bA034cd52",
+  "symbol": "CRV",
+  "name": "Curve DAO Token",
+  "decimals": 18,
+  "issuer": {
+    "name": "Curve DAO",
+    "jurisdiction": "Decentralised",
+    "website": "https://curve.fi",
+    "regulated": false
+  },
+  "archetype": "utility",
+  "expectedCapabilities": [],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = CRV, decimals() = 18. Standard ERC-20, no expected privileged capabilities claimed.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Curve DAO public documentation.",
+      "url": "https://curve.fi"
+    }
+  ],
+  "caveats": [
+    "No capabilities are pre-approved for this token. It is scored on structure alone.",
+    "Presence in this registry confirms identity and archetype. It does not grant any capability exemption."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

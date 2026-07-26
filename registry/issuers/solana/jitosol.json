@@ -1,0 +1,43 @@
+{
+  "id": "jitosol-solana",
+  "chain": "solana",
+  "address": "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+  "symbol": "JitoSOL",
+  "name": "Jito Staked SOL",
+  "decimals": 9,
+  "issuer": {
+    "name": "Jito Foundation",
+    "jurisdiction": "Decentralised",
+    "website": "https://www.jito.network",
+    "regulated": false
+  },
+  "archetype": "liquid-staking",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Structurally required. A liquid staking token MUST mint when a user deposits SOL, otherwise the product cannot function at all. The authority is held by the stake pool program, not by a person.",
+      "constrainedBy": "The SPL stake pool program. Minting is mechanical against deposited SOL, not discretionary."
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 9. mintAuthority ACTIVE, freezeAuthority null, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Jito uses the SPL stake pool program, where the pool holds mint authority.",
+      "url": "https://www.jito.network/docs/"
+    }
+  ],
+  "caveats": [
+    "Mint authority being expected does not remove validator, slashing or depeg risk.",
+    "This entry speaks only to token structure, never to yield or solvency.",
+    "This archetype would false-positive on any scanner treating an active mint authority as a risk. That is the reason this entry exists."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

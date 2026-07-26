@@ -1,0 +1,49 @@
+{
+  "id": "usdc-solana",
+  "chain": "solana",
+  "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "symbol": "USDC",
+  "name": "USD Coin",
+  "decimals": 6,
+  "issuer": {
+    "name": "Circle Internet Financial",
+    "jurisdiction": "United States",
+    "website": "https://www.circle.com",
+    "regulated": true
+  },
+  "archetype": "fiat-stablecoin",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Mints and burns against dollar reserves as users deposit and redeem.",
+      "constrainedBy": "Reserve attestations and US regulatory supervision"
+    },
+    {
+      "capability": "freeze-authority",
+      "justification": "Legally required. US permitted stablecoin issuers must retain the ability to freeze and seize on lawful order. Circle has exercised this in practice.",
+      "constrainedBy": "Court and regulator orders"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 6. mintAuthority ACTIVE and freezeAuthority ACTIVE, both verified directly against Solana mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Circle publishes USDC reserve attestations and its freeze policy.",
+      "url": "https://www.circle.com/en/usdc"
+    }
+  ],
+  "caveats": [
+    "Being listed here does not mean the token cannot lose value or depeg.",
+    "It means the named capabilities are structurally expected, not that the issuer is beyond criticism.",
+    "An expected capability is still a capability. The issuer can use it.",
+    "This is the canonical case for why blanket rules fail. Both authorities are live, and this is the lowest structural risk token in the registry."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

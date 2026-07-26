@@ -1,0 +1,42 @@
+{
+  "id": "orca-solana",
+  "chain": "solana",
+  "address": "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
+  "symbol": "ORCA",
+  "name": "Orca",
+  "decimals": 6,
+  "issuer": {
+    "name": "Orca",
+    "jurisdiction": "Decentralised",
+    "website": "https://www.orca.so",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Retained for the documented emission schedule.",
+      "constrainedBy": "Protocol governance"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 6. mintAuthority ACTIVE, freezeAuthority null, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Orca documents tokenomics and emissions.",
+      "url": "https://docs.orca.so/"
+    }
+  ],
+  "caveats": [
+    "Mint authority is live. It is expected under the emission schedule, not absent.",
+    "Freeze authority is revoked, a materially different profile from the stablecoins in this registry."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

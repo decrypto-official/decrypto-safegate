@@ -1,0 +1,55 @@
+{
+  "id": "usdt-ethereum",
+  "chain": "ethereum",
+  "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+  "symbol": "USDT",
+  "name": "Tether USD",
+  "decimals": 6,
+  "issuer": {
+    "name": "Tether Limited",
+    "jurisdiction": "British Virgin Islands",
+    "website": "https://tether.to",
+    "regulated": false
+  },
+  "archetype": "fiat-stablecoin",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Issues and redeems against reserves.",
+      "constrainedBy": "Published attestations"
+    },
+    {
+      "capability": "transfer-restriction",
+      "justification": "Operates an on-chain blacklist used for law enforcement freezes.",
+      "constrainedBy": "Issuer policy and law enforcement requests"
+    },
+    {
+      "capability": "admin-authority",
+      "justification": "Owner-controlled contract, the issuer's operational design.",
+      "constrainedBy": "Issuer-controlled, no timelock"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = USDT, decimals() = 6, 11075 bytes of code.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Tether publishes attestation reports and documents its blacklist function.",
+      "url": "https://tether.to/en/transparency/"
+    }
+  ],
+  "caveats": [
+    "Being listed here does not mean the token cannot lose value or depeg.",
+    "It means the named capabilities are structurally expected, not that the issuer is beyond criticism.",
+    "An expected capability is still a capability. The issuer can use it.",
+    "Tether's issuer is not subject to the same regulatory supervision as Circle. The expected capabilities are identical, the constraints on them are not.",
+    "Admin authority here is not timelocked, unlike the governance tokens in this registry."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

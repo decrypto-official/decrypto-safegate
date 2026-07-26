@@ -1,0 +1,30 @@
+{
+  "id": "proxy-admin-slot",
+  "title": "EIP-1967 proxy admin slot",
+  "chainFamily": "evm",
+  "capability": "admin-authority",
+  "method": {
+    "kind": "storage-slot",
+    "storageSlot": "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103",
+    "slotDerivation": "keccak256('eip1967.proxy.admin') - 1",
+    "returnType": "address"
+  },
+  "detects": "The address permitted to upgrade this proxy. This is the party who can replace the token's entire logic.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "An empty admin slot does not mean nobody can upgrade. Legacy and UUPS proxies keep upgrade rights elsewhere, and a beacon proxy's authority is on the beacon.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "observed": "admin slot probed alongside the zeppelinos implementation slot",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "Upgradeability without knowing WHO can upgrade is only half the finding. This turns 'is a proxy' into 'and this address controls it'.",
+  "references": [
+    "https://eips.ethereum.org/EIPS/eip-1967"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

@@ -1,0 +1,43 @@
+{
+  "id": "mkr-ethereum",
+  "chain": "ethereum",
+  "address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2",
+  "symbol": "MKR",
+  "name": "Maker",
+  "decimals": 18,
+  "issuer": {
+    "name": "Sky Protocol, formerly MakerDAO",
+    "jurisdiction": "Decentralised",
+    "website": "https://sky.money",
+    "regulated": false
+  },
+  "archetype": "governance",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "MKR is minted and burned by the protocol as part of the surplus and debt auction mechanism.",
+      "constrainedBy": "Protocol authorisation and governance"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = MKR, decimals() = 18, 3379 bytes. Note: MKR returns symbol as bytes32 rather than string, an older ERC-20 convention that naive decoders mishandle.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Maker documents MKR mint and burn in the auction system.",
+      "url": "https://docs.makerdao.com/"
+    }
+  ],
+  "caveats": [
+    "A live admin behind a timelock is still a live admin.",
+    "This entry does not assess governance capture or voting concentration.",
+    "The bytes32 symbol encoding is a decoding trap. Recorded here because it breaks naive readers."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

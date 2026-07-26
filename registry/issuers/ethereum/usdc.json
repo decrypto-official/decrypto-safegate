@@ -1,0 +1,63 @@
+{
+  "id": "usdc-ethereum",
+  "chain": "ethereum",
+  "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "symbol": "USDC",
+  "name": "USD Coin",
+  "decimals": 6,
+  "issuer": {
+    "name": "Circle Internet Financial",
+    "jurisdiction": "United States",
+    "website": "https://www.circle.com",
+    "regulated": true
+  },
+  "archetype": "fiat-stablecoin",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "A fiat-backed stablecoin must mint and burn to track reserves as users deposit and redeem dollars.",
+      "constrainedBy": "Reserve attestations and US regulatory supervision"
+    },
+    {
+      "capability": "transfer-restriction",
+      "justification": "The issuer is legally required to be able to freeze and seize on lawful order, including sanctions enforcement.",
+      "constrainedBy": "Court and regulator orders"
+    },
+    {
+      "capability": "upgradeability",
+      "justification": "The contract is a proxy so the issuer can patch and meet changing compliance obligations.",
+      "constrainedBy": "Circle-controlled admin"
+    },
+    {
+      "capability": "admin-authority",
+      "justification": "Circle controls the proxy admin and the owner role, which is how a regulated issuer administers blacklisting, pausing and reserve operations.",
+      "constrainedBy": "Circle corporate governance and US regulatory supervision"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = USDC, decimals() = 6, 2186 bytes of code. Upgradeable via the legacy zeppelinos slot, implementation 0x43506849d7c04f9138d1a2050bbf3a0c054402dd. The EIP-1967 slot reads zero, which is why patterns/evm/proxy-zeppelinos.json exists.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Circle publishes reserve composition and monthly attestations.",
+      "url": "https://www.circle.com/en/usdc"
+    },
+    {
+      "kind": "onchain",
+      "detail": "owner() returns 0xfcb19e6a322b27c06842a71e8c725399f049ae3a and paused() returns false, confirming a live pause mechanism that is not currently engaged.",
+      "observedAt": "2026-07-22"
+    }
+  ],
+  "caveats": [
+    "Being listed here does not mean the token cannot lose value or depeg.",
+    "It means the named capabilities are structurally expected, not that the issuer is beyond criticism.",
+    "An expected capability is still a capability. The issuer can use it."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

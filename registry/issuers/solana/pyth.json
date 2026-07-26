@@ -1,0 +1,35 @@
+{
+  "id": "pyth-solana",
+  "chain": "solana",
+  "address": "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3",
+  "symbol": "PYTH",
+  "name": "Pyth Network",
+  "decimals": 6,
+  "issuer": {
+    "name": "Pyth Data Association",
+    "jurisdiction": "Switzerland",
+    "website": "https://pyth.network",
+    "regulated": false
+  },
+  "archetype": "oracle",
+  "expectedCapabilities": [],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Legacy Token program. decimals 6. mintAuthority null and freezeAuthority null, verified against mainnet RPC.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Pyth documents its fixed supply and unlock schedule.",
+      "url": "https://docs.pyth.network/home/pyth-token"
+    }
+  ],
+  "caveats": [
+    "Revoked authorities do not remove unlock-schedule risk, which is off-chain and not assessed here."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

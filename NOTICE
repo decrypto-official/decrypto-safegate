@@ -1,0 +1,52 @@
+Safegate
+Copyright 2026 Decrypto
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+The whole repository is under this licence: the source, the pattern
+dictionary in patterns/, the registry in registry/, and the documentation.
+There is no separate licence for the data.
+
+------------------------------------------------------------------------
+
+ATTRIBUTION
+
+Apache-2.0 section 4 asks you to retain this file and to state any
+changes you made. If you use Safegate, credit:
+
+    Safegate
+    https://github.com/decrypto-official/decrypto-safegate
+
+If you modified the pattern dictionary or the registry, please say so
+plainly. Someone reading a score needs to know whose dictionary and whose
+registry produced it, because those two directories are what a score
+actually means. A score computed against a modified registry is not
+comparable to one computed against this repository's registry, and
+presenting it as such would mislead the reader.
+
+Sharing improvements back is not required. It is the whole reason this is
+public, and a pull request helps everyone downstream of you.
+
+------------------------------------------------------------------------
+
+THIS IS NOT FINANCIAL ADVICE, AND IT IS NOT A SAFETY RATING.
+
+Safegate reports the structural capabilities present in a token's deployed
+code, with an explicit measure of how much it was able to check. It does
+not predict behaviour, it cannot observe off-chain risk, and it never
+certifies any token as safe.
+
+Read LIMITATIONS.md before relying on any output. If you surface Safegate
+results to end users, carry the coverage figure and the limitations with
+them. A bare score presented as a verdict is a misuse of this project,
+whatever the licence permits.

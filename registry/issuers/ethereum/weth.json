@@ -1,0 +1,41 @@
+{
+  "id": "weth-ethereum",
+  "chain": "ethereum",
+  "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "symbol": "WETH",
+  "name": "Wrapped Ether",
+  "decimals": 18,
+  "issuer": {
+    "name": "None. Immutable public good.",
+    "jurisdiction": "Decentralised",
+    "website": "https://weth.io",
+    "regulated": false
+  },
+  "archetype": "wrapped-asset",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "Minting is permissionless and mechanical. Anyone deposits ETH and receives WETH one to one. No privileged party controls it.",
+      "constrainedBy": "Contract logic. The mint is fully collateralised by design and cannot be called selectively."
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = WETH, decimals() = 18, 3124 bytes of code. No admin, no proxy, contract is immutable.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "The canonical WETH9 contract has been unchanged since deployment in 2017.",
+      "url": "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+  ],
+  "caveats": [
+    "This is the reference case for a token with no admin capability whatsoever."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

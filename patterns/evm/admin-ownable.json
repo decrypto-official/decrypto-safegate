@@ -1,0 +1,37 @@
+{
+  "id": "admin-ownable",
+  "title": "OpenZeppelin Ownable owner()",
+  "chainFamily": "evm",
+  "capability": "admin-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x8da5cb5b",
+    "signature": "owner() returns (address)",
+    "returnType": "address"
+  },
+  "detects": "The current owner. The zero address, or a known burn address, means ownership was renounced.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "A revert does NOT mean there is no admin. UNI and SHIB both revert on owner() and both have admin power elsewhere. Never treat a revert as 'renounced'. Resolve admin-minter, admin-accesscontrol and proxy-admin-slot before concluding anything.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
+      "symbol": "PEPE",
+      "observed": "owner() = 0x0000000000000000000000000000000000000000, genuinely renounced",
+      "verifiedAt": "2026-07-22"
+    },
+    {
+      "chain": "ethereum",
+      "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "symbol": "UNI",
+      "observed": "owner() REVERTS. admin is actually minter(). documented false negative.",
+      "verifiedAt": "2026-07-22"
+    }
+  ],
+  "rationale": "The most common admin shape by volume, and the most commonly misread. Its failure mode is the dangerous direction: it reports a controlled token as renounced.",
+  "references": [
+    "https://docs.openzeppelin.com/contracts/5.x/api/access#Ownable"
+  ],
+  "addedAt": "2026-07-22",
+  "addedBy": "decrypto"
+}

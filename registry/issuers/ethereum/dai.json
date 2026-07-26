@@ -1,0 +1,47 @@
+{
+  "id": "dai-ethereum",
+  "chain": "ethereum",
+  "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+  "symbol": "DAI",
+  "name": "Dai Stablecoin",
+  "decimals": 18,
+  "issuer": {
+    "name": "Sky Protocol, formerly MakerDAO",
+    "jurisdiction": "Decentralised",
+    "website": "https://sky.money",
+    "regulated": false
+  },
+  "archetype": "crypto-collateralised-stablecoin",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "DAI is minted against on-chain collateral by protocol contracts, which is the core mechanism.",
+      "constrainedBy": "Governance vote plus the Maker protocol's collateral system"
+    },
+    {
+      "capability": "admin-authority",
+      "justification": "Authorised protocol modules can call privileged functions.",
+      "constrainedBy": "On-chain governance with a delay"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "symbol() = DAI, decimals() = 18, 7904 bytes of code.",
+      "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Maker documents the ward and authorisation system governing mint rights.",
+      "url": "https://docs.makerdao.com/"
+    }
+  ],
+  "caveats": [
+    "Collateral risk is not assessed here.",
+    "Governance can change collateral parameters."
+  ],
+  "verifiedAt": "2026-07-22",
+  "reviewDue": "2027-07-22",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}
