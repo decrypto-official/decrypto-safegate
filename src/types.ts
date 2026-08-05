@@ -85,8 +85,23 @@ export interface UnverifiedReference {
 
 export interface AxisResult {
   axis: Axis;
-  /** 0 to 100. Higher is always worse, on every axis. */
+
+  /**
+   * False when nothing on this axis resolved, which is not the same as a clean
+   * axis. Read this before `value`.
+   *
+   * `value` is 0 in that case by arithmetic, and 0 is the best score the model
+   * can produce, so an unassessed axis is indistinguishable from a checked and
+   * clean one to anything reading `value` alone. That is the same failure the
+   * `incident` field avoids by refusing to be a number at all. The axes cannot
+   * take that route without breaking the score shape, so they carry the
+   * distinction in a separate field instead.
+   */
+  assessed: boolean;
+
+  /** 0 to 100. Higher is always worse, on every axis. Meaningless when `assessed` is false. */
   value: number;
+
   /** Signals scored / signals applicable. UNKNOWN signals are excluded from the numerator. */
   coverage: { scored: number; applicable: number; ratio: number };
   signals: Signal[];

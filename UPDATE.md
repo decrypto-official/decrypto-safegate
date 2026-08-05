@@ -14,6 +14,30 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.3, 2026-08-05
+
+Review follow-up. The unassessed-axis fix in 0.1.1 was correct in the two places a human looks and absent from the one a machine reads.
+
+### Fixed
+
+**An unassessed axis still reported a flat 0 to every machine consumer.** 0.1.1 taught the CLI and the dashboard to print `n/a` when `coverage.scored` is 0, but it did that inside the two render functions. `GET /api/score` and `safegate score --json` hand the raw score object to somebody else's code, and that object was unchanged: `"value": 0`, which is the best score the model can produce, on an axis that was never checked. The distinction existed only for readers who happened to be looking at our own output.
+
+`AxisResult` now carries `assessed`, false when nothing on the axis resolved. The CLI and the dashboard read that field instead of each re-deriving the condition, so the rule lives in the scorer with the rest of the methodology rather than in two renderers that can drift apart.
+
+This is the same reasoning that keeps `incident` a literal rather than a number. The axes cannot take that route without breaking the score shape, so they carry the distinction beside the value instead.
+
+**Both lockfiles were still at 0.1.0**, left behind by the 0.1.1 version bump and not caught by 0.1.2. The root lockfile additionally recorded `AGPL-3.0-only` while `LICENSE` and `NOTICE` say Apache-2.0. Regenerated; the repository is Apache-2.0 throughout.
+
+### Added
+
+**Two tests.** One serialises a score and asserts `assessed` survives the round trip, because a marker that exists only in memory does not help an integrator. The other asserts that an axis holding one resolved `ABSENT` is assessed with value 0 while an axis holding only `UNKNOWN` is not, since those two cases print the same number and must never render the same way.
+
+### Compatibility
+
+`assessed` is additive. No existing field changed shape or meaning, so consumers need no migration, but anything reading `axes.*.value` without checking coverage was already wrong and should now read `assessed` first.
+
+---
+
 ## 0.1.2, 2026-07-26
 
 Completes the deployment fix. 0.1.1 got the data into the bundle but still looked for it in the wrong place.
