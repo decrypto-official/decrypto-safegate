@@ -14,6 +14,20 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.4, 2026-08-05
+
+Applies the project's own rule to the tool's blind spots: where Safegate cannot see, that has to be visible rather than silent.
+
+### Added
+
+**An error boundary on the web app**, `apps/web/app/error.tsx`. `/patterns`, `/registry` and `/disclosure` call the loaders directly while rendering. Since 0.1.1 those loaders throw rather than returning an empty array, which is right, but with no boundary Next served its generic 500 and production hid the reason behind "a server-side exception has occurred". 0.1.1 gave `/api/score` an honest 503 and left these three pages opaque.
+
+The boundary says plainly that the page could not be read, and that this is not evidence the registry or the dictionary is empty. A blank registry page and a registry page that failed to load are indistinguishable to a reader, and only one of them means "there is nothing here" — the same reasoning the scorer applies to a token capability.
+
+React strips error messages from client boundaries in production and replaces them with an opaque `digest`, so the boundary does not try to echo the loader's explanation. It states what is true either way and surfaces the digest for correlation with the server log.
+
+---
+
 ## 0.1.3, 2026-08-05
 
 Review follow-up. The unassessed-axis fix in 0.1.1 was correct in the two places a human looks and absent from the one a machine reads.
