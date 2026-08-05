@@ -34,6 +34,16 @@ There is deliberately no separate `score.schema.json`. Two maintained definition
 
 `parseScore()` and `safeParseScore()` are exported for consumers who want the contract enforced on their side. Neither runs on the request path: the scorer builds the object, so validating our own output on every request would spend time catching a bug only a code change can introduce, and the tests already catch that.
 
+**Detection of privileged functions no pattern reads.** `LIMITATIONS.md` §5 calls this the failure mode this project considers most likely: *"a token using an admin pattern we have never seen will under-report its capabilities, and we will not know it happened."* That gap was entirely invisible. No pattern matched, nothing was emitted, and the token read as clean — the tool applying to its own dictionary exactly the "absence means safety" rule it refuses to apply to a token.
+
+A contract's runtime bytecode contains the 4-byte selector of every function it dispatches, so we can now ask what the dictionary cannot: does this contract answer to a privileged function no pattern of ours reads? `src/patterns/selectors.ts` walks the bytecode opcode by opcode, collects the selectors it pushes, and subtracts two things — any selector a pattern already calls, and any capability we already found positively another way. What survives is the case that matters, and it appears on the score as `dictionaryGaps`.
+
+**It reports, it does not score.** No axis, no coverage figure and no signal state moves. Knowing a function exists is not the same as reading who holds it, and inferring one from the other is the guesswork the dictionary exists to avoid. A score with no gaps is byte-identical to one produced before this shipped, apart from gaining an empty list. Whether an unreadable capability should reduce coverage is a real question and a separate one: it would move every published score and so needs a methodology version and a before/after seed-set diff.
+
+The finding is prepended to `limitations`, so it reaches the CLI, the dashboard and the API without any consumer changing, and both renderers show it above the signals: a reader who stops at the signal table would otherwise take an incomplete reading for a complete one.
+
+**keccak256**, `src/sources/keccak.ts`, dependency-free. Selectors are derived from signature strings rather than hand-copied as hex constants, because a wrong constant would produce a table matching nothing and the report would be quietly useless instead of visibly broken. Locked against the published digests for the empty string and `"abc"`, and cross-checked against four widely-known ERC-20 and Ownable selectors. Note this is Keccak with 0x01 padding, not NIST SHA3-256 — Node's `crypto` offers the latter and they disagree on every input.
+
 ### Changed
 
 **`Observation.value` and the two `Disagreement` value fields are now optional keys** rather than required keys typed to include `undefined`. This is what was always true on the wire: `JSON.stringify` drops an `undefined`, so an observation meaning "we could not look" arrives with the key absent. Both forms parse, and neither is `ABSENT`. No runtime behaviour changed.

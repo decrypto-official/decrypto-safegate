@@ -168,6 +168,43 @@ export function ScoreResult({ score }: { score: Score }) {
           </section>
         </div>
 
+        {/* What the contract can do that no pattern reads. Placed above the
+            signals table on purpose: a reader who stops at the signals would
+            otherwise take an incomplete reading for a complete one. */}
+        {score.dictionaryGaps.length > 0 && (
+          <section className="panel">
+            <div className="panel-head">
+              <h2 className="panel-title">Not read by any pattern</h2>
+              <span className="tag">{score.dictionaryGaps.length} unaccounted for</span>
+            </div>
+            <div className="panel-body">
+              <div className="callout callout-warn" style={{ marginBottom: 14 }}>
+                <strong style={{ color: 'var(--unknown)' }}>This score is incomplete.</strong> The contract
+                answers to these privileged functions, and no pattern in the dictionary reads them. That means
+                we could not determine who holds them — not that nobody does. They are excluded from every
+                axis and from the coverage figure.
+              </div>
+
+              {score.dictionaryGaps.map((gap) => (
+                <div key={gap.selector} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                    <span data-numeric style={{ fontSize: 13, color: 'var(--unknown)' }}>
+                      {gap.signature}
+                    </span>
+                    <span className="tag">{gap.capability}</span>
+                    <span data-numeric style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                      {gap.selector}
+                    </span>
+                  </div>
+                  <div className="reason" style={{ marginTop: 3 }}>
+                    {gap.note}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* signals, taking all remaining width */}
         <section className="panel">
           <div className="panel-head">

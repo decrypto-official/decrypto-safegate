@@ -5,10 +5,11 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { Chain, Observation, Score, UnverifiedReference } from './types.js';
-import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall } from './sources/rpc.js';
+import type { Chain, DictionaryGap, Observation, Score, UnverifiedReference } from './types.js';
+import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode } from './sources/rpc.js';
 import { solanaClient, fetchMint } from './sources/solana.js';
 import { loadPatterns, applyEvmPatterns, applySolanaPatterns } from './patterns/resolve.js';
+import { findDictionaryGaps } from './patterns/selectors.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
 import { normalise } from './signals/normalise.js';
 import { score } from './scoring/model2.js';
@@ -28,6 +29,7 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   let name: string | undefined;
   let rawForHash: unknown;
   const unverified: UnverifiedReference[] = [];
+  let dictionaryGaps: DictionaryGap[] = [];
 
   if (chain === 'ethereum') {
     const client = new RpcClient({ endpoints: options.evmEndpoints ?? DEFAULT_EVM_ENDPOINTS });
@@ -35,6 +37,21 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     symbol = (await readErc20Symbol(client, address)) ?? entry?.symbol;
     name = entry?.name;
     rawForHash = observations.map((o) => [o.patternId, o.value]);
+
+    // Ask what the contract can do that our dictionary cannot read. This is
+    // reported beside the score and never folded into it: see the note in
+    // scoring/model2.ts.
+    //
+    // A failure here must not cost the caller their score. Not knowing our own
+    // blind spots is worse than not reporting them, but it is not worse than
+    // returning nothing, so this degrades to an empty list and the score stands
+    // on the readings we did get.
+    try {
+      const bytecode = await ethGetCode(client, address);
+      dictionaryGaps = findDictionaryGaps(bytecode, patterns, observations);
+    } catch {
+      dictionaryGaps = [];
+    }
   } else {
     const client = solanaClient(options.solanaEndpoints);
     const mint = await fetchMint(client, address);
@@ -84,6 +101,7 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
       : null,
     inputSnapshotHash: hash(rawForHash),
     computedAt: new Date().toISOString(),
+    dictionaryGaps,
   });
 }
 

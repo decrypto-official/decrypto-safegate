@@ -108,6 +108,15 @@ export const axisResultSchema = z
   })
   .strict();
 
+export const dictionaryGapSchema = z
+  .object({
+    selector: z.string().regex(/^0x[0-9a-f]{8}$/),
+    signature: z.string().min(1),
+    capability: capabilitySchema,
+    note: z.string().min(1),
+  })
+  .strict();
+
 export const scoreSchema = z
   .object({
     chain: chainSchema,
@@ -141,6 +150,11 @@ export const scoreSchema = z
     methodologyVersion: z.string(),
     inputSnapshotHash: z.string(),
     computedAt: z.string(),
+
+    // Reported, never scored. Present and empty when there is nothing to say,
+    // so a consumer can tell "we looked and found none" from an older payload
+    // that predates the field.
+    dictionaryGaps: z.array(dictionaryGapSchema),
 
     // Never optional. A score that dropped its limitations would be the bare
     // number this project refuses to produce.

@@ -89,6 +89,20 @@ export interface UnverifiedReference {
   caveat: string;
 }
 
+/**
+ * A privileged function a contract exposes that no pattern in the dictionary
+ * reads. Evidence that our reading is incomplete, not evidence of a capability.
+ */
+export interface DictionaryGap {
+  /** The 4-byte selector as it appears in the bytecode. */
+  selector: string;
+  /** The canonical signature it was derived from. */
+  signature: string;
+  /** The capability this function would belong to, if we could read it. */
+  capability: Capability;
+  note: string;
+}
+
 export interface AxisResult {
   axis: Axis;
 
@@ -139,6 +153,20 @@ export interface Score {
   methodologyVersion: string;
   inputSnapshotHash: string;
   computedAt: string;
+
+  /**
+   * Privileged functions the contract exposes that no pattern reads.
+   *
+   * Reported, never scored. These do not move an axis, a coverage figure or a
+   * signal state: knowing a function exists is not the same as reading who
+   * holds it, and inferring one from the other would be exactly the guesswork
+   * the dictionary exists to avoid.
+   *
+   * What it does say is that our answer is incomplete on a specific capability,
+   * which is the thing LIMITATIONS.md §5 admits we previously could not see.
+   * Empty for Solana, where there is no analogous bytecode to read.
+   */
+  dictionaryGaps: DictionaryGap[];
 
   /** What this score does not and cannot tell you. Always present. */
   limitations: string[];

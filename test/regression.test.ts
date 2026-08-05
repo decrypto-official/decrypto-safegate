@@ -551,3 +551,263 @@ describe('the score contract', () => {
     expect(safeParseScore(broken).success).toBe(false);
   });
 });
+
+/**
+ * keccak256.
+ *
+ * Locked against published vectors because the selectors in
+ * src/patterns/selectors.ts are derived from it rather than hand-copied. A
+ * silently wrong hash would produce a table of plausible-looking selectors
+ * that match nothing, and the dictionary-gap report would then be quietly
+ * useless rather than visibly broken.
+ *
+ * The first vector is the one that catches the classic mistake. Node's
+ * crypto has `sha3-256`, which is NIST SHA3 and pads differently; Ethereum
+ * uses original Keccak padding. The two disagree on every input including
+ * the empty string, and c5d24601... is the Keccak answer.
+ */
+describe('keccak256', () => {
+  it('matches the published digest for the empty input', async () => {
+    const { keccak256Hex } = await import('../src/sources/keccak.js');
+    expect(keccak256Hex('')).toBe(
+      '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+    );
+  });
+
+  it('matches the published digest for "abc"', async () => {
+    const { keccak256Hex } = await import('../src/sources/keccak.js');
+    expect(keccak256Hex('abc')).toBe(
+      '0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45'
+    );
+  });
+
+  it('derives selectors that match the well-known ERC-20 and Ownable ones', async () => {
+    // Independent corroboration: these four are on every mainnet contract and
+    // their selectors are widely published. If the permutation were subtly
+    // wrong these would not all land.
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    expect(selectorOf('transfer(address,uint256)')).toBe('0xa9059cbb');
+    expect(selectorOf('balanceOf(address)')).toBe('0x70a08231');
+    expect(selectorOf('owner()')).toBe('0x8da5cb5b');
+    expect(selectorOf('transferOwnership(address)')).toBe('0xf2fde38b');
+  });
+
+  it('hashes input longer than one absorb block', async () => {
+    // 136 bytes is the rate; anything longer exercises multi-block absorption,
+    // which a single-block implementation would get wrong.
+    const { keccak256Hex } = await import('../src/sources/keccak.js');
+    const long = 'a'.repeat(200);
+    expect(keccak256Hex(long)).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(keccak256Hex(long)).not.toBe(keccak256Hex('a'.repeat(199)));
+  });
+});
+
+/**
+ * Capabilities the dictionary cannot read.
+ *
+ * LIMITATIONS.md §5: "a token using an admin pattern we have never seen will
+ * under-report its capabilities, and we will not know it happened. This is the
+ * failure mode we consider most likely." These tests cover making it visible.
+ *
+ * Everything here runs on hand-built bytecode. The one part not exercised is
+ * the eth_getCode fetch itself, which needs a live chain.
+ */
+describe('privileged functions no pattern reads', () => {
+  /** Assemble bytecode that PUSH4s each selector, as a dispatcher does. */
+  function bytecodeWith(selectors: string[]): string {
+    return '0x6080604052' + selectors.map((s) => '63' + s.replace(/^0x/, '')).join('') + '00';
+  }
+
+  it('extracts selectors a dispatcher pushes', async () => {
+    const { extractSelectors, privilegedSelectors } = await import('../src/patterns/selectors.js');
+    const mint = [...privilegedSelectors()].find(([, f]) => f.signature === 'mint(address,uint256)')![0];
+
+    const found = extractSelectors(bytecodeWith([mint, '0xa9059cbb']));
+    expect(found.has(mint)).toBe(true);
+    expect(found.has('0xa9059cbb')).toBe(true);
+  });
+
+  it('does not read PUSH operand bytes as instructions', async () => {
+    // The whole reason for walking opcodes. 0x7f is PUSH32, so the 32 bytes
+    // after it are literal data. A scanner that just looked for the byte 0x63
+    // would find the 0x63 buried in that operand and invent a selector from
+    // whatever followed. Nothing here is a real instruction.
+    const { extractSelectors } = await import('../src/patterns/selectors.js');
+    const operand = '63deadbeef' + '00'.repeat(27);
+    expect(operand.length / 2).toBe(32);
+
+    const found = extractSelectors('0x7f' + operand + '00');
+    expect(found.size).toBe(0);
+  });
+
+  it('reports a privileged function the dictionary has no pattern for', async () => {
+    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
+    const setMinter = [...privilegedSelectors()].find(([, f]) => f.signature === 'setMinter(address)')![0];
+
+    const gaps = findDictionaryGaps(bytecodeWith([setMinter]), [], []);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.signature).toBe('setMinter(address)');
+    expect(gaps[0]!.capability).toBe('mint-authority');
+    // The wording has to put it as unaccounted for, never as absent.
+    expect(gaps[0]!.note).toMatch(/unaccounted for rather than absent/i);
+  });
+
+  it('stays quiet about a selector a pattern already reads', async () => {
+    // Not a gap. The dictionary reads it, so the capability is covered whatever
+    // that particular call returned.
+    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
+    const pause = [...privilegedSelectors()].find(([, f]) => f.signature === 'pause()')![0];
+
+    const patterns = [
+      {
+        id: 'transfer-pausable',
+        capability: 'transfer-restriction',
+        chainFamily: 'evm',
+        method: { kind: 'call-selector', callSelector: pause },
+      },
+    ] as unknown as Parameters<typeof findDictionaryGaps>[1];
+
+    expect(findDictionaryGaps(bytecodeWith([pause]), patterns, [])).toHaveLength(0);
+  });
+
+  it('stays quiet when the capability was already found another way', async () => {
+    // UNI's case in reverse: if owner() or minter() already located an admin,
+    // transferOwnership appearing in the bytecode adds nothing. The capability
+    // is reported and scored already.
+    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
+    const transferOwnership = [...privilegedSelectors()].find(
+      ([, f]) => f.signature === 'transferOwnership(address)'
+    )![0];
+
+    const observations = [
+      {
+        capability: 'admin-authority' as const,
+        value: '0x1a9c8182c09f50c8318d769245bea52c32be35bc',
+        source: 'onchain' as const,
+        observedAt: '2026-08-05T00:00:00.000Z',
+      },
+    ];
+
+    expect(findDictionaryGaps(bytecodeWith([transferOwnership]), [], observations)).toHaveLength(0);
+  });
+
+  it('still reports when a pattern looked for the capability and found nothing', async () => {
+    // The dangerous case. A pattern ran, returned null, and the capability
+    // reads ABSENT — while the contract plainly exposes a function we cannot
+    // read. "Checked and clean" and "checked the wrong way" must not look alike.
+    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
+    const setMinter = [...privilegedSelectors()].find(([, f]) => f.signature === 'setMinter(address)')![0];
+
+    const observations = [
+      {
+        capability: 'mint-authority' as const,
+        value: null,
+        source: 'onchain' as const,
+        patternId: 'admin-minter',
+        observedAt: '2026-08-05T00:00:00.000Z',
+      },
+    ];
+
+    const gaps = findDictionaryGaps(bytecodeWith([setMinter]), [], observations);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.capability).toBe('mint-authority');
+  });
+
+  it('ignores ordinary ERC-20 surface', async () => {
+    // transfer, approve and balanceOf are on every token and are not powers
+    // held over anyone. Reporting them would bury the real findings.
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const ordinary = ['0xa9059cbb', '0x095ea7b3', '0x70a08231', '0x18160ddd'];
+    expect(findDictionaryGaps(bytecodeWith(ordinary), [], [])).toHaveLength(0);
+  });
+
+  it('survives bytecode that is empty or malformed', async () => {
+    // eth_getCode returns 0x for an EOA, and a truncated response should not
+    // throw in the middle of producing a score.
+    const { extractSelectors, findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    for (const input of ['0x', '', '0xabc', '0xzz']) {
+      expect(() => extractSelectors(input)).not.toThrow();
+      expect(findDictionaryGaps(input, [], [])).toHaveLength(0);
+    }
+  });
+
+  it('orders gaps deterministically', async () => {
+    // The score has to be byte-identical across runs, so the list cannot come
+    // out in Set iteration order.
+    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
+    const some = [...privilegedSelectors()].slice(0, 5).map(([sel]) => sel);
+
+    const first = findDictionaryGaps(bytecodeWith(some), [], []);
+    const second = findDictionaryGaps(bytecodeWith([...some].reverse()), [], []);
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second));
+  });
+});
+
+describe('a dictionary gap is reported but never scored', () => {
+  const base = {
+    chain: 'ethereum' as const,
+    address: '0xtest',
+    signals: [
+      {
+        capability: 'mint-authority' as const,
+        state: 'ABSENT' as const,
+        axis: 'control' as const,
+        observations: [],
+        reasoning: 'No mint authority found.',
+      },
+    ],
+    disagreements: [],
+    unverified: [],
+    registryEntry: null,
+    inputSnapshotHash: 'sha256:fixed',
+    computedAt: '2026-08-05T00:00:00.000Z',
+  };
+
+  const gap = {
+    selector: '0xd0e30db0',
+    signature: 'setMinter(address)',
+    capability: 'mint-authority' as const,
+    note: 'unaccounted for, not absent',
+  };
+
+  it('moves no axis, no coverage figure and no signal state', async () => {
+    // The boundary this feature is built on. Knowing a function exists is not
+    // reading who holds it, and letting it move a number would be the guesswork
+    // the dictionary exists to avoid.
+    const { score } = await import('../src/scoring/model2.js');
+    const without = score(base);
+    const with_ = score({ ...base, dictionaryGaps: [gap] });
+
+    expect(with_.axes.control.value).toBe(without.axes.control.value);
+    expect(with_.axes.control.coverage).toEqual(without.axes.control.coverage);
+    expect(with_.coverage).toEqual(without.coverage);
+    expect(JSON.stringify(with_.axes)).toBe(JSON.stringify(without.axes));
+  });
+
+  it('says so in the limitations, where a reader will see it', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({ ...base, dictionaryGaps: [gap] });
+
+    expect(result.dictionaryGaps).toHaveLength(1);
+    expect(result.limitations[0]).toMatch(/no pattern in the dictionary reads/i);
+    expect(result.limitations[0]).toMatch(/unaccounted for, not absent/i);
+  });
+
+  it('leaves a score with no gaps byte-identical to before the feature', async () => {
+    // Nobody's published score may move because this shipped, beyond gaining an
+    // empty list.
+    const { score } = await import('../src/scoring/model2.js');
+    const omitted = score(base);
+    const explicitlyEmpty = score({ ...base, dictionaryGaps: [] });
+
+    expect(JSON.stringify(omitted)).toBe(JSON.stringify(explicitlyEmpty));
+    expect(omitted.dictionaryGaps).toEqual([]);
+    expect(omitted.limitations[0]).not.toMatch(/no pattern in the dictionary reads/i);
+  });
+
+  it('stays inside the published contract', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const { parseScore } = await import('../src/scoring/schema.js');
+    expect(() => parseScore(JSON.parse(JSON.stringify(score({ ...base, dictionaryGaps: [gap] }))))).not.toThrow();
+  });
+});
