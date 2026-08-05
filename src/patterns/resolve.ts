@@ -7,13 +7,10 @@
  */
 
 import { readdir, readFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import type { Capability, ChainFamily, Observation } from '../types.js';
 import { RpcClient, ethCall, ethGetStorageAt, wordToAddress, isBurnAddress } from '../sources/rpc.js';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const PATTERNS_DIR = join(HERE, '..', '..', 'patterns');
+import { findDataDir, DataRootError } from '../data-root.js';
 
 export interface PatternMethod {
   kind: 'storage-slot' | 'call-selector' | 'account-field';
@@ -62,7 +59,18 @@ export class PatternLoadError extends Error {
 /** `baseDir` is for tests. Passing it bypasses the cache. */
 export async function loadPatterns(baseDir?: string): Promise<Pattern[]> {
   if (!baseDir && cache) return cache;
-  const root = baseDir ?? PATTERNS_DIR;
+
+  let root: string;
+  if (baseDir) {
+    root = baseDir;
+  } else {
+    try {
+      root = await findDataDir('patterns');
+    } catch (err) {
+      if (err instanceof DataRootError) throw new PatternLoadError(err.message);
+      throw err;
+    }
+  }
 
   const out: Pattern[] = [];
   for (const family of ['evm', 'solana'] as const) {

@@ -14,6 +14,30 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.2, 2026-07-26
+
+Completes the deployment fix. 0.1.1 got the data into the bundle but still looked for it in the wrong place.
+
+### Fixed
+
+**The data directories were located from `import.meta.url`.** A bundler inlines that as a literal build-time path, so the deployed function looked under the build machine's checkout directory, which does not exist at runtime. The traced files were present at the deployment root the whole time.
+
+Added `src/data-root.ts`, which searches for `patterns/` and `registry/` across candidate roots: `SAFEGATE_DATA_ROOT` if set, then the working directory and its ancestors, then module-relative paths. The working directory comes first because that is the deployment root where output tracing places included files. Module-relative still works for local runs, the CLI and tests. Each candidate is confirmed by checking for a known subdirectory rather than assumed.
+
+On failure the error names every path tried, the working directory, and the override variable, so a future occurrence is diagnosable from one log line.
+
+### Added
+
+**Two tests for runtime data location.** They copy the data to a temporary directory, change the working directory to it, and assert the resolver finds it there. A local run cannot otherwise distinguish the deployed layout from the development one, because on a dev machine the working directory and the module path happen to agree.
+
+There is deliberately no test for "data missing everywhere". Run from inside the repository, the module-relative fallback correctly finds the real directories, which is what local runs depend on. The loud-failure path is covered by the existing data availability tests, which pass an explicit base directory.
+
+### Notes
+
+`outputFileTracingIncludes` from 0.1.1 is still required. Both parts were needed: the files have to be in the bundle, and the lookup has to point at where they land.
+
+---
+
 ## 0.1.1, 2026-07-26
 
 Fixes a deployment fault that served empty data, and the code defects that let it pass unnoticed.
