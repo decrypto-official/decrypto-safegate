@@ -74,7 +74,7 @@ function render(s: Score): void {
 
     // Nothing resolved is not a score of zero. A blank bar reading "0" would be
     // the best-looking result on the page, produced by having checked nothing.
-    if (a.coverage.scored === 0) {
+    if (!a.assessed) {
       console.log(
         `  ${axis.padEnd(13)} ${YELLOW}${'.'.repeat(20)}${RESET} ${YELLOW}n/a${RESET}` +
           `   ${DIM}nothing resolved on this axis${RESET}`

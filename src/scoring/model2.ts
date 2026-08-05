@@ -123,6 +123,9 @@ function scoreAxis(axis: Axis, signals: Signal[]): AxisResult {
 
   return {
     axis,
+    // Nothing resolved is not a score of zero, and `value` cannot express the
+    // difference. Every renderer reads this rather than re-deriving it.
+    assessed: scored > 0,
     value,
     coverage: {
       scored,

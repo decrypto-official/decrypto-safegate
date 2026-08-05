@@ -89,7 +89,7 @@ export function ScoreResult({ score }: { score: Score }) {
 
                 // Nothing resolved is not a score of zero. Rendering 0 here would
                 // make "we checked nothing" the best-looking result on the page.
-                const assessed = a.coverage.scored > 0;
+                const assessed = a.assessed;
 
                 return (
                   <div key={axis} style={{ marginBottom: 14 }}>

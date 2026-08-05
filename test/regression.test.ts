@@ -303,13 +303,76 @@ describe('an unscored axis is never reported as zero', () => {
     });
 
     // The number is 0 by arithmetic, so any consumer reading `value` alone would
-    // see a perfect score. `scored` is what tells them nothing was checked, and
+    // see a perfect score. `assessed` is what tells them nothing was checked, and
     // the CLI and the dashboard both render "n/a" on the strength of it.
     for (const axis of ['control', 'transparency', 'exit'] as const) {
+      expect(result.axes[axis].assessed).toBe(false);
       expect(result.axes[axis].coverage.scored).toBe(0);
       expect(result.axes[axis].coverage.applicable).toBe(0);
     }
     expect(result.coverage.ratio).toBe(0);
+  });
+
+  it('carries the distinction in the score object, not only in the renderers', async () => {
+    // The CLI and the dashboard were fixed to print "n/a", but `/api/score` and
+    // `--json` hand the raw object to someone else's code. If the only marker
+    // lived in our own render functions, every integrator would still read a
+    // flat 0 and call it clean. `assessed` has to survive serialisation.
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({
+      chain: 'ethereum',
+      address: '0xtest',
+      signals: [],
+      disagreements: [],
+      unverified: [],
+      registryEntry: null,
+      inputSnapshotHash: 'sha256:fixed',
+      computedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    const roundTripped = JSON.parse(JSON.stringify(result));
+    for (const axis of ['control', 'transparency', 'exit'] as const) {
+      expect(roundTripped.axes[axis]).toHaveProperty('assessed', false);
+    }
+  });
+
+  it('marks an axis as assessed as soon as one signal resolves', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({
+      chain: 'ethereum',
+      address: '0xtest',
+      signals: [
+        {
+          capability: 'mint-authority',
+          axis: 'control',
+          state: 'ABSENT',
+          observations: [],
+          reasoning: 'Mint authority is null. Verified as revoked.',
+        },
+        {
+          capability: 'metadata-mutability',
+          axis: 'transparency',
+          state: 'UNKNOWN',
+          observations: [],
+          reasoning: 'Could not read the metadata account.',
+        },
+      ],
+      disagreements: [],
+      unverified: [],
+      registryEntry: null,
+      inputSnapshotHash: 'sha256:fixed',
+      computedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    // A resolved ABSENT is a real finding: checked, and clean. It reads 0 and
+    // means it.
+    expect(result.axes.control.assessed).toBe(true);
+    expect(result.axes.control.value).toBe(0);
+
+    // An axis holding only UNKNOWN resolved nothing, so its 0 means nothing.
+    // These two must never render the same way.
+    expect(result.axes.transparency.assessed).toBe(false);
+    expect(result.axes.transparency.value).toBe(0);
   });
 });
 
