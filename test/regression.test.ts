@@ -11,14 +11,18 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mkdtemp, mkdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, cp } from 'node:fs/promises';
+import { realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { analyse } from '../src/pipeline.js';
 import { loadPatterns, PatternLoadError } from '../src/patterns/resolve.js';
 import { loadRegistry, findEntry, RegistryLoadError } from '../src/registry/lookup.js';
+import { findDataDir, clearDataDirCache } from '../src/data-root.js';
 
 const TIMEOUT = 60_000;
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const USDC_ETH = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const UNI_ETH = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';
@@ -195,6 +199,62 @@ describe('reproducibility', () => {
  * no signals, and a score with no signals reads 0 on every axis, which is the
  * best-looking result the product can render.
  */
+/**
+ * Runtime data location.
+ *
+ * A bundler inlines `import.meta.url` as a literal build-time path, so in a
+ * serverless deployment the module-relative route to patterns/ and registry/
+ * points at the build machine's checkout and does not exist. The data is present
+ * at the deployment root instead.
+ *
+ * These tests reproduce that split: data at the working directory, module path
+ * useless. Local runs cannot otherwise distinguish the two, because on a dev
+ * machine both happen to resolve to the same place.
+ */
+describe('runtime data location', () => {
+  it('finds the data at the working directory when the module path is useless', async () => {
+    const deployRoot = await mkdtemp(join(tmpdir(), 'safegate-deploy-'));
+    await cp(join(REPO_ROOT, 'patterns'), join(deployRoot, 'patterns'), { recursive: true });
+    await cp(join(REPO_ROOT, 'registry'), join(deployRoot, 'registry'), { recursive: true });
+
+    const original = process.cwd();
+    try {
+      process.chdir(deployRoot);
+      clearDataDirCache();
+
+      // realpath, because macOS resolves /var to /private/var.
+      expect(await realpath(await findDataDir('patterns'))).toBe(
+        await realpath(join(deployRoot, 'patterns'))
+      );
+      expect(await realpath(await findDataDir('registry'))).toBe(
+        await realpath(join(deployRoot, 'registry'))
+      );
+    } finally {
+      process.chdir(original);
+      clearDataDirCache();
+    }
+  });
+
+  it('honours SAFEGATE_DATA_ROOT as an override', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'safegate-override-'));
+    await cp(join(REPO_ROOT, 'patterns'), join(root, 'patterns'), { recursive: true });
+
+    process.env.SAFEGATE_DATA_ROOT = root;
+    clearDataDirCache();
+    try {
+      expect(await realpath(await findDataDir('patterns'))).toBe(await realpath(join(root, 'patterns')));
+    } finally {
+      delete process.env.SAFEGATE_DATA_ROOT;
+      clearDataDirCache();
+    }
+  });
+
+  // There is no test here for "data nowhere at all". Running from inside the repo,
+  // the module-relative fallback correctly finds the real directories, which is
+  // the behaviour local runs depend on. The loud-failure path is covered by the
+  // data availability tests below, which pass an explicit base directory.
+});
+
 describe('data availability', () => {
   it('throws when the pattern directory is missing', async () => {
     const empty = await mkdtemp(join(tmpdir(), 'safegate-missing-'));

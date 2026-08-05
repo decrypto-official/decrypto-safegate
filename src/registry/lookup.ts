@@ -14,12 +14,9 @@
  */
 
 import { readdir, readFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import type { Capability, Chain } from '../types.js';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const REGISTRY_DIR = join(HERE, '..', '..', 'registry');
+import { findDataDir, DataRootError } from '../data-root.js';
 
 export interface ExpectedCapability {
   capability: Capability;
@@ -65,7 +62,18 @@ export class RegistryLoadError extends Error {
 /** `baseDir` is for tests. Passing it bypasses the cache. */
 export async function loadRegistry(baseDir?: string): Promise<RegistryEntry[]> {
   if (!baseDir && cache) return cache;
-  const root = baseDir ?? REGISTRY_DIR;
+
+  let root: string;
+  if (baseDir) {
+    root = baseDir;
+  } else {
+    try {
+      root = await findDataDir('registry');
+    } catch (err) {
+      if (err instanceof DataRootError) throw new RegistryLoadError(err.message);
+      throw err;
+    }
+  }
 
   const out: RegistryEntry[] = [];
   for (const chain of ['ethereum', 'solana'] as const) {
