@@ -449,3 +449,105 @@ describe('data integrity', () => {
     expect(findEntry(registry, 'ethereum', USDC_ETH.toUpperCase().replace('0X', '0x'))).not.toBeNull();
   });
 });
+
+/**
+ * The published score contract.
+ *
+ * `GET /api/score` and `safegate score --json` hand the score object to code we
+ * do not control. Until now nothing noticed when that shape changed: adding
+ * `assessed` in 0.1.3 altered the contract and every test still passed.
+ *
+ * src/scoring/schema.ts holds the contract. It is enforced twice, and both
+ * halves are exercised here: `tsc` proves the schema and the `Score` interface
+ * describe the same shape, and these tests prove real scores satisfy it.
+ */
+describe('the score contract', () => {
+  const input = {
+    chain: 'ethereum' as const,
+    address: '0xtest',
+    signals: [
+      {
+        capability: 'mint-authority' as const,
+        state: 'PRESENT' as const,
+        axis: 'control' as const,
+        observations: [
+          {
+            capability: 'mint-authority' as const,
+            value: '0xabc',
+            source: 'onchain' as const,
+            patternId: 'admin-minter',
+            observedAt: '2026-08-05T00:00:00.000Z',
+          },
+          {
+            // "Could not look". This is the case that changes shape across a
+            // JSON round trip, so the contract has to accept both forms.
+            capability: 'mint-authority' as const,
+            source: 'onchain' as const,
+            observedAt: '2026-08-05T00:00:00.000Z',
+          },
+        ],
+        reasoning: 'A live minter was found.',
+      },
+    ],
+    disagreements: [],
+    unverified: [],
+    registryEntry: null,
+    inputSnapshotHash: 'sha256:fixed',
+    computedAt: '2026-08-05T00:00:00.000Z',
+  };
+
+  it('accepts a score the scorer actually produced', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const { parseScore } = await import('../src/scoring/schema.js');
+    expect(() => parseScore(score(input))).not.toThrow();
+  });
+
+  it('accepts the same score after a JSON round trip', async () => {
+    // The API sends JSON, not the in-memory object. An observation meaning "we
+    // could not look" loses its key entirely on the way out, and the contract
+    // must still hold on the other side.
+    const { score } = await import('../src/scoring/model2.js');
+    const { parseScore } = await import('../src/scoring/schema.js');
+    const overWire = JSON.parse(JSON.stringify(score(input)));
+    expect(() => parseScore(overWire)).not.toThrow();
+  });
+
+  it('rejects a field nobody declared', async () => {
+    // Every object in the contract is strict. A field appearing without being
+    // declared is drift, and drift in a published shape is a silent break for
+    // whoever is parsing it.
+    const { score } = await import('../src/scoring/model2.js');
+    const { safeParseScore } = await import('../src/scoring/schema.js');
+    const drifted = { ...score(input), somethingNew: true };
+    expect(safeParseScore(drifted).success).toBe(false);
+  });
+
+  it('rejects a score that lost `assessed`', async () => {
+    // The 0.1.3 fix is load-bearing: without `assessed` an unchecked axis is
+    // indistinguishable from a clean one. Losing it must fail, not degrade.
+    const { score } = await import('../src/scoring/model2.js');
+    const { safeParseScore } = await import('../src/scoring/schema.js');
+    const result = score(input);
+    const stripped = JSON.parse(JSON.stringify(result));
+    delete stripped.axes.control.assessed;
+    expect(safeParseScore(stripped).success).toBe(false);
+  });
+
+  it('rejects a score that lost its limitations', async () => {
+    // A score with no limitations attached is the bare number this project
+    // exists not to produce.
+    const { score } = await import('../src/scoring/model2.js');
+    const { safeParseScore } = await import('../src/scoring/schema.js');
+    const stripped = JSON.parse(JSON.stringify(score(input)));
+    delete stripped.limitations;
+    expect(safeParseScore(stripped).success).toBe(false);
+  });
+
+  it('rejects an axis value outside 0 to 100', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const { safeParseScore } = await import('../src/scoring/schema.js');
+    const broken = JSON.parse(JSON.stringify(score(input)));
+    broken.axes.control.value = 140;
+    expect(safeParseScore(broken).success).toBe(false);
+  });
+});

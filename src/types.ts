@@ -37,8 +37,14 @@ export type SourceId = 'onchain' | 'goplus' | 'rugcheck';
 /** A raw reading from one source, before any interpretation. */
 export interface Observation {
   capability: Capability;
-  /** null means the source looked and found nothing. undefined means it could not look. */
-  value: string | number | boolean | null | undefined;
+  /**
+   * null means the source looked and found nothing. Absent means it could not
+   * look. The key is optional rather than required-and-undefined because
+   * JSON.stringify drops an undefined, so after a round trip "could not look"
+   * arrives as a missing key. Both forms mean the same thing and neither means
+   * ABSENT.
+   */
+  value?: string | number | boolean | null;
   source: SourceId;
   /** Which pattern produced this, when the source is on-chain. */
   patternId?: string;
@@ -65,9 +71,9 @@ export interface Signal {
 export interface Disagreement {
   capability: Capability;
   /** Our own on-chain reading. */
-  ours: { value: unknown; source: SourceId; patternId?: string };
+  ours: { value?: unknown; source: SourceId; patternId?: string };
   /** What the third party claims. */
-  theirs: { value: unknown; source: SourceId };
+  theirs: { value?: unknown; source: SourceId };
   note: string;
 }
 
@@ -78,7 +84,7 @@ export interface Disagreement {
  */
 export interface UnverifiedReference {
   label: string;
-  value: unknown;
+  value?: unknown;
   source: SourceId;
   caveat: string;
 }

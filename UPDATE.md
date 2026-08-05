@@ -26,6 +26,18 @@ The boundary says plainly that the page could not be read, and that this is not 
 
 React strips error messages from client boundaries in production and replaces them with an opaque `digest`, so the boundary does not try to echo the loader's explanation. It states what is true either way and surfaces the digest for correlation with the server log.
 
+**A published contract for the score shape**, `src/scoring/schema.ts`. `GET /api/score` and `safegate score --json` hand the score object to code we do not control, and nothing here noticed when that shape changed. Adding `assessed` in 0.1.3 altered the contract and the whole suite still passed.
+
+The contract is now enforced twice. At compile time, two assertions prove the zod schema and the `Score` interface describe the same shape in both directions, so adding a field to one and forgetting the other fails `npm run typecheck`. At runtime, every object is `.strict()`, so an undeclared field is an error rather than something carried along silently. Six tests cover a real score, the same score after a JSON round trip, and the drift cases: an extra field, a missing `assessed`, missing `limitations`, an axis value out of range.
+
+There is deliberately no separate `score.schema.json`. Two maintained definitions of one shape drift apart, which is the failure this is meant to prevent. zod is already how `patterns/` and `registry/` are validated in `src/cli/validate.ts`.
+
+`parseScore()` and `safeParseScore()` are exported for consumers who want the contract enforced on their side. Neither runs on the request path: the scorer builds the object, so validating our own output on every request would spend time catching a bug only a code change can introduce, and the tests already catch that.
+
+### Changed
+
+**`Observation.value` and the two `Disagreement` value fields are now optional keys** rather than required keys typed to include `undefined`. This is what was always true on the wire: `JSON.stringify` drops an `undefined`, so an observation meaning "we could not look" arrives with the key absent. Both forms parse, and neither is `ABSENT`. No runtime behaviour changed.
+
 ---
 
 ## 0.1.3, 2026-08-05
