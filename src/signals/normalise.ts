@@ -140,7 +140,15 @@ function resolveState(onchain: Observation[]): SignalState {
   return 'UNKNOWN';
 }
 
-function isPositive(value: Observation['value']): boolean {
+/**
+ * Whether a reading actually located something.
+ *
+ * Exported because more than one place has to agree on it. '0x' and '' are
+ * empty return data, not a finding, and a second hand-rolled version of this
+ * check that forgot them would quietly count "the call returned nothing" as
+ * "the capability is there".
+ */
+export function isPositive(value: Observation['value']): boolean {
   if (value === null || value === undefined) return false;
   if (value === false) return false;
   if (value === '' || value === '0x') return false;

@@ -619,8 +619,9 @@ describe('privileged functions no pattern reads', () => {
   }
 
   it('extracts selectors a dispatcher pushes', async () => {
-    const { extractSelectors, privilegedSelectors } = await import('../src/patterns/selectors.js');
-    const mint = [...privilegedSelectors()].find(([, f]) => f.signature === 'mint(address,uint256)')![0];
+    const { extractSelectors } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const mint = selectorOf('mint(address,uint256)');
 
     const found = extractSelectors(bytecodeWith([mint, '0xa9059cbb']));
     expect(found.has(mint)).toBe(true);
@@ -641,10 +642,10 @@ describe('privileged functions no pattern reads', () => {
   });
 
   it('reports a privileged function the dictionary has no pattern for', async () => {
-    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
-    const setMinter = [...privilegedSelectors()].find(([, f]) => f.signature === 'setMinter(address)')![0];
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
 
-    const gaps = findDictionaryGaps(bytecodeWith([setMinter]), [], []);
+    const gaps = findDictionaryGaps(bytecodeWith([selectorOf('setMinter(address)')]), [], []);
     expect(gaps).toHaveLength(1);
     expect(gaps[0]!.signature).toBe('setMinter(address)');
     expect(gaps[0]!.capability).toBe('mint-authority');
@@ -655,8 +656,9 @@ describe('privileged functions no pattern reads', () => {
   it('stays quiet about a selector a pattern already reads', async () => {
     // Not a gap. The dictionary reads it, so the capability is covered whatever
     // that particular call returned.
-    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
-    const pause = [...privilegedSelectors()].find(([, f]) => f.signature === 'pause()')![0];
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const pause = selectorOf('pause()');
 
     const patterns = [
       {
@@ -674,10 +676,9 @@ describe('privileged functions no pattern reads', () => {
     // UNI's case in reverse: if owner() or minter() already located an admin,
     // transferOwnership appearing in the bytecode adds nothing. The capability
     // is reported and scored already.
-    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
-    const transferOwnership = [...privilegedSelectors()].find(
-      ([, f]) => f.signature === 'transferOwnership(address)'
-    )![0];
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const transferOwnership = selectorOf('transferOwnership(address)');
 
     const observations = [
       {
@@ -695,8 +696,9 @@ describe('privileged functions no pattern reads', () => {
     // The dangerous case. A pattern ran, returned null, and the capability
     // reads ABSENT — while the contract plainly exposes a function we cannot
     // read. "Checked and clean" and "checked the wrong way" must not look alike.
-    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
-    const setMinter = [...privilegedSelectors()].find(([, f]) => f.signature === 'setMinter(address)')![0];
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const setMinter = selectorOf('setMinter(address)');
 
     const observations = [
       {
@@ -734,8 +736,9 @@ describe('privileged functions no pattern reads', () => {
   it('orders gaps deterministically', async () => {
     // The score has to be byte-identical across runs, so the list cannot come
     // out in Set iteration order.
-    const { findDictionaryGaps, privilegedSelectors } = await import('../src/patterns/selectors.js');
-    const some = [...privilegedSelectors()].slice(0, 5).map(([sel]) => sel);
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const some = ['upgradeTo(address)', 'setOwner(address)', 'addMinter(address)', 'freeze(address)', 'setFee(uint256)'].map(selectorOf);
 
     const first = findDictionaryGaps(bytecodeWith(some), [], []);
     const second = findDictionaryGaps(bytecodeWith([...some].reverse()), [], []);

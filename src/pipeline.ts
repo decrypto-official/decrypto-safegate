@@ -34,23 +34,26 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   if (chain === 'ethereum') {
     const client = new RpcClient({ endpoints: options.evmEndpoints ?? DEFAULT_EVM_ENDPOINTS });
     observations = await applyEvmPatterns(client, address, patterns);
-    symbol = (await readErc20Symbol(client, address)) ?? entry?.symbol;
+    // Both reads depend only on the address, so they go out together rather
+    // than costing two sequential round trips on the request path.
+    //
+    // The bytecode read asks what the contract can do that our dictionary
+    // cannot see. It is reported beside the score and never folded into it:
+    // see the note in scoring/model2.ts. A failure here must not cost the
+    // caller their score — not knowing our own blind spots is worse than not
+    // reporting them, but it is not worse than returning nothing — so it
+    // degrades to null and the score stands on the readings we did get.
+    const [symbolRead, bytecode] = await Promise.all([
+      readErc20Symbol(client, address),
+      ethGetCode(client, address).catch(() => null),
+    ]);
+
+    symbol = symbolRead ?? entry?.symbol;
     name = entry?.name;
     rawForHash = observations.map((o) => [o.patternId, o.value]);
 
-    // Ask what the contract can do that our dictionary cannot read. This is
-    // reported beside the score and never folded into it: see the note in
-    // scoring/model2.ts.
-    //
-    // A failure here must not cost the caller their score. Not knowing our own
-    // blind spots is worse than not reporting them, but it is not worse than
-    // returning nothing, so this degrades to an empty list and the score stands
-    // on the readings we did get.
-    try {
-      const bytecode = await ethGetCode(client, address);
+    if (bytecode !== null) {
       dictionaryGaps = findDictionaryGaps(bytecode, patterns, observations);
-    } catch {
-      dictionaryGaps = [];
     }
   } else {
     const client = solanaClient(options.solanaEndpoints);

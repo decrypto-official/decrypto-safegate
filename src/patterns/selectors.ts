@@ -23,6 +23,7 @@
 import type { Capability, DictionaryGap, Observation } from '../types.js';
 import { selectorOf } from '../sources/keccak.js';
 import type { Pattern } from './resolve.js';
+import { isPositive } from '../signals/normalise.js';
 
 interface PrivilegedFunction {
   signature: string;
@@ -81,11 +82,6 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
 const BY_SELECTOR: Map<string, PrivilegedFunction> = new Map(
   PRIVILEGED_FUNCTIONS.map((fn) => [selectorOf(fn.signature), fn])
 );
-
-/** Exposed for tests, so the derived table can be inspected. */
-export function privilegedSelectors(): Map<string, PrivilegedFunction> {
-  return new Map(BY_SELECTOR);
-}
 
 /**
  * Every 4-byte selector a contract's bytecode pushes.
@@ -151,10 +147,11 @@ export function findDictionaryGaps(
       .filter((s): s is string => typeof s === 'string')
   );
 
+  // isPositive rather than a local truthiness check: it also rules out '' and
+  // '0x', which are empty return data and not a finding. A second definition of
+  // "we found something" would drift from the one the scorer uses.
   const alreadyFound = new Set(
-    observations
-      .filter((o) => o.value !== null && o.value !== undefined && o.value !== false)
-      .map((o) => o.capability)
+    observations.filter((o) => isPositive(o.value)).map((o) => o.capability)
   );
 
   const gaps: DictionaryGap[] = [];
