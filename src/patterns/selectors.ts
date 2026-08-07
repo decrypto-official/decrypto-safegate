@@ -76,7 +76,41 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   { signature: 'setFee(uint256)', capability: 'fee-control', implies: 'a transfer fee can be changed' },
   { signature: 'setFeeRate(uint256)', capability: 'fee-control', implies: 'the fee rate can be changed' },
   { signature: 'setTaxRate(uint256)', capability: 'fee-control', implies: 'the tax rate can be changed' },
+
+  // Metadata. Rarer on a plain ERC-20 than on an NFT, but a mutable URI is how
+  // a token's public identity gets rewritten after people have looked at it.
+  { signature: 'setBaseURI(string)', capability: 'metadata-mutability', implies: 'token metadata can be repointed' },
+  { signature: 'setTokenURI(uint256,string)', capability: 'metadata-mutability', implies: 'the metadata of a specific token can be rewritten' },
+  { signature: 'setContractURI(string)', capability: 'metadata-mutability', implies: 'contract-level metadata can be rewritten' },
 ];
+
+/**
+ * Capabilities with no EVM function surface worth scanning for.
+ *
+ * Declared rather than left implicit. Every capability must appear either in
+ * the table above or in this set, and a test enforces that — otherwise a new
+ * capability silently becomes undetectable, which is the same invisible-gap
+ * problem this module exists to solve, one level up.
+ *
+ * `freeze-authority` stays in the table despite being a Solana concept,
+ * because the EVM equivalents (freeze, freezeAccount) do exist on some tokens.
+ */
+const NOT_APPLICABLE_ON_EVM: ReadonlySet<Capability> = new Set<Capability>();
+
+/** Exposed so the completeness test can assert against it rather than duplicate it. */
+export function capabilitiesNotScannedOnEvm(): ReadonlySet<Capability> {
+  return NOT_APPLICABLE_ON_EVM;
+}
+
+/** The capabilities the table can actually produce a gap for. Exposed for tests. */
+export function scannedCapabilities(): Set<Capability> {
+  return new Set(PRIVILEGED_FUNCTIONS.map((fn) => fn.capability));
+}
+
+/** Every signature in the table, so a test can check they are canonical. */
+export function privilegedSignatures(): string[] {
+  return PRIVILEGED_FUNCTIONS.map((fn) => fn.signature);
+}
 
 /** Selector -> definition. Built once, from keccak rather than from constants. */
 const BY_SELECTOR: Map<string, PrivilegedFunction> = new Map(

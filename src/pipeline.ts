@@ -5,7 +5,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { Chain, DictionaryGap, Observation, Score, UnverifiedReference } from './types.js';
+import type { Chain, DictionaryGap, GapScanStatus, Observation, Score, UnverifiedReference } from './types.js';
 import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode } from './sources/rpc.js';
 import { solanaClient, fetchMint } from './sources/solana.js';
 import { loadPatterns, applyEvmPatterns, applySolanaPatterns } from './patterns/resolve.js';
@@ -30,6 +30,8 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   let rawForHash: unknown;
   const unverified: UnverifiedReference[] = [];
   let dictionaryGaps: DictionaryGap[] = [];
+  // Solana has no bytecode analogue to scan, so that branch never changes this.
+  let gapScan: GapScanStatus = 'not-applicable';
 
   if (chain === 'ethereum') {
     const client = new RpcClient({ endpoints: options.evmEndpoints ?? DEFAULT_EVM_ENDPOINTS });
@@ -52,7 +54,10 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     name = entry?.name;
     rawForHash = observations.map((o) => [o.patternId, o.value]);
 
-    if (bytecode !== null) {
+    if (bytecode === null) {
+      gapScan = 'failed';
+    } else {
+      gapScan = 'ran';
       dictionaryGaps = findDictionaryGaps(bytecode, patterns, observations);
     }
   } else {
@@ -105,6 +110,7 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     inputSnapshotHash: hash(rawForHash),
     computedAt: new Date().toISOString(),
     dictionaryGaps,
+    gapScan,
   });
 }
 

@@ -124,6 +124,8 @@ The bar for merging is deliberately high, because the registry is the part peopl
 
 Read [LIMITATIONS.md](LIMITATIONS.md) before relying on anything here. The short version: this is a structural reading, not a prediction. It cannot see team intent, custody arrangements, private agreements or hidden unlock schedules, and it cannot tell you whether a token will rug.
 
+It also cannot read every contract shape. Where a contract exposes a privileged function no pattern of ours reads, the score carries it as a `dictionaryGaps` entry — unaccounted for, not absent — and `gapScan` records whether that check ran at all. Both are reported beside the score and never folded into it.
+
 ---
 
 ## Disclosure

@@ -90,6 +90,13 @@ export interface UnverifiedReference {
 }
 
 /**
+ * Whether we scanned the contract for capabilities the dictionary cannot read.
+ *
+ * An empty `dictionaryGaps` is only reassuring when this is `ran`.
+ */
+export type GapScanStatus = 'ran' | 'not-applicable' | 'failed';
+
+/**
  * A privileged function a contract exposes that no pattern in the dictionary
  * reads. Evidence that our reading is incomplete, not evidence of a capability.
  */
@@ -167,6 +174,19 @@ export interface Score {
    * Empty for Solana, where there is no analogous bytecode to read.
    */
   dictionaryGaps: DictionaryGap[];
+
+  /**
+   * Whether the scan behind `dictionaryGaps` actually ran.
+   *
+   * Without this an empty list means two different things — we looked and
+   * found none, and we never looked — and a reader cannot tell which. That is
+   * the same conflation of absence with safety that the rest of this file
+   * exists to prevent, so it is not left to inference.
+   *
+   * `not-applicable` on Solana, which has no bytecode analogue to read.
+   * `failed` when the bytecode could not be fetched.
+   */
+  gapScan: GapScanStatus;
 
   /** What this score does not and cannot tell you. Always present. */
   limitations: string[];

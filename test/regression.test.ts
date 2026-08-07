@@ -814,3 +814,182 @@ describe('a dictionary gap is reported but never scored', () => {
     expect(() => parseScore(JSON.parse(JSON.stringify(score({ ...base, dictionaryGaps: [gap] }))))).not.toThrow();
   });
 });
+
+/**
+ * Completeness of the privileged-function table.
+ *
+ * The table is a judgement call, and a capability missing from it becomes
+ * silently undetectable — the same invisible-gap problem the module exists to
+ * solve, one level up. These tests make the omission fail instead.
+ */
+describe('the privileged-function table covers every capability', () => {
+  const ALL_CAPABILITIES = [
+    'upgradeability',
+    'mint-authority',
+    'freeze-authority',
+    'admin-authority',
+    'metadata-mutability',
+    'transfer-restriction',
+    'fee-control',
+  ] as const;
+
+  it('accounts for every capability, by scanning for it or declaring it out of scope', async () => {
+    const { scannedCapabilities, capabilitiesNotScannedOnEvm } = await import(
+      '../src/patterns/selectors.js'
+    );
+    const scanned = scannedCapabilities();
+    const excluded = capabilitiesNotScannedOnEvm();
+
+    for (const capability of ALL_CAPABILITIES) {
+      expect(
+        scanned.has(capability) || excluded.has(capability),
+        `${capability} is neither scanned for nor declared out of scope, so it can never produce a gap and nothing says why`
+      ).toBe(true);
+    }
+  });
+
+  it('matches the Capability union in types.ts', async () => {
+    // Locks the list above against the code, so a capability added to the type
+    // does not quietly slip past the completeness check.
+    const { capabilitySchema } = await import('../src/scoring/schema.js');
+    expect([...capabilitySchema.options].sort()).toEqual([...ALL_CAPABILITIES].sort());
+  });
+
+  it('uses canonical signatures', async () => {
+    // A stray space, or `uint` instead of `uint256`, hashes to a different
+    // selector. The table would look right and match nothing on chain.
+    const { privilegedSignatures } = await import('../src/patterns/selectors.js');
+
+    for (const signature of privilegedSignatures()) {
+      expect(signature, `${signature} is not a canonical signature`).toMatch(
+        /^[a-zA-Z_$][a-zA-Z0-9_$]*\([a-z0-9,[\]]*\)$/
+      );
+      expect(signature, `${signature} contains a whitespace character`).not.toMatch(/\s/);
+      expect(signature, `${signature} uses the uint/int alias rather than an explicit width`).not.toMatch(
+        /\b(uint|int)\b(?![0-9])/
+      );
+    }
+  });
+
+  it('derives a distinct selector for every signature', async () => {
+    // A collision would silently drop one entry from the lookup map.
+    const { privilegedSignatures } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const selectors = privilegedSignatures().map(selectorOf);
+    expect(new Set(selectors).size).toBe(selectors.length);
+  });
+});
+
+/**
+ * Saying when we did not look.
+ *
+ * An empty `dictionaryGaps` meant two different things: we scanned and found
+ * none, and we never scanned. The second happens on every Solana score and on
+ * any EVM score whose bytecode fetch failed. Left unstated, "we could not
+ * check" reads exactly like "we checked and it is clean".
+ */
+describe('an unscanned contract does not read as a clean one', () => {
+  const base = {
+    chain: 'ethereum' as const,
+    address: '0xtest',
+    signals: [],
+    disagreements: [],
+    unverified: [],
+    registryEntry: null,
+    inputSnapshotHash: 'sha256:fixed',
+    computedAt: '2026-08-05T00:00:00.000Z',
+  };
+
+  it('says so when the bytecode could not be read', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({ ...base, gapScan: 'failed' });
+
+    expect(result.gapScan).toBe('failed');
+    expect(result.dictionaryGaps).toEqual([]);
+    expect(result.limitations[0]).toMatch(/failed check, not a clean one/i);
+  });
+
+  it('says so on a chain where the scan does not apply', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({ ...base, chain: 'solana', gapScan: 'not-applicable' });
+
+    expect(result.gapScan).toBe('not-applicable');
+    expect(result.limitations[0]).toMatch(/we did not look, not that there is nothing/i);
+  });
+
+  it('stays quiet when the scan actually ran and found nothing', async () => {
+    // The one case where an empty list is genuinely reassuring, and the only
+    // one that should not carry a caveat.
+    const { score } = await import('../src/scoring/model2.js');
+    const result = score({ ...base, gapScan: 'ran' });
+
+    expect(result.gapScan).toBe('ran');
+    expect(result.limitations.join(' ')).not.toMatch(/did not look|failed check/i);
+  });
+
+  it('defaults to not-applicable rather than claiming a scan happened', async () => {
+    // A caller that supplies nothing must not be reported as having scanned.
+    const { score } = await import('../src/scoring/model2.js');
+    expect(score(base).gapScan).toBe('not-applicable');
+  });
+
+  it('stays inside the published contract in every state', async () => {
+    const { score } = await import('../src/scoring/model2.js');
+    const { parseScore } = await import('../src/scoring/schema.js');
+
+    for (const gapScan of ['ran', 'not-applicable', 'failed'] as const) {
+      const wire = JSON.parse(JSON.stringify(score({ ...base, gapScan })));
+      expect(() => parseScore(wire), `gapScan ${gapScan} must satisfy the contract`).not.toThrow();
+    }
+  });
+});
+
+/**
+ * Documentation that cannot quietly go stale.
+ *
+ * METHODOLOGY.md §3 lists the capability-to-axis mapping, and LIMITATIONS.md
+ * describes what the tool cannot see. Both were briefly wrong after 0.1.4
+ * shipped, because the code gained an ability the prose still said it lacked.
+ *
+ * A document that overstates a blind spot is as misleading as one that hides
+ * it, and this project's whole claim rests on its documents being true. These
+ * read the files rather than trusting anyone to remember.
+ */
+describe('the documents match the code', () => {
+  it('documents every capability in the axis mapping', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { capabilitySchema } = await import('../src/scoring/schema.js');
+    const methodology = await readFile(join(REPO_ROOT, 'METHODOLOGY.md'), 'utf8');
+
+    for (const capability of capabilitySchema.options) {
+      expect(
+        methodology.includes(capability),
+        `METHODOLOGY.md does not mention ${capability}, so the published mapping is incomplete`
+      ).toBe(true);
+    }
+  });
+
+  it('documents the reported-not-scored fields the API now carries', async () => {
+    // A consumer reading the docs must find these, since an empty
+    // dictionaryGaps is only meaningful alongside gapScan.
+    const { readFile } = await import('node:fs/promises');
+    const methodology = await readFile(join(REPO_ROOT, 'METHODOLOGY.md'), 'utf8');
+
+    expect(methodology).toMatch(/dictionaryGaps/);
+    expect(methodology).toMatch(/gapScan/);
+    expect(methodology).toMatch(/reported and never scored/i);
+  });
+
+  it('does not claim an undetected admin pattern is wholly invisible', async () => {
+    // The pre-0.1.4 wording said we would "not know it happened". That is no
+    // longer wholly true, and overstating a blind spot costs credibility on
+    // the ones that are real.
+    const { readFile } = await import('node:fs/promises');
+    const limitations = await readFile(join(REPO_ROOT, 'LIMITATIONS.md'), 'utf8');
+
+    expect(limitations).toMatch(/dictionaryGaps/);
+    // ...while still admitting the residual gap, which has not gone away.
+    expect(limitations).toMatch(/can still under-report its capabilities/i);
+    expect(limitations).toMatch(/EVM-only|no bytecode analogue/i);
+  });
+});

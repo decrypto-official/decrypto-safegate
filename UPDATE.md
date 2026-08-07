@@ -44,7 +44,17 @@ The finding is prepended to `limitations`, so it reaches the CLI, the dashboard 
 
 **keccak256**, `src/sources/keccak.ts`, dependency-free. Selectors are derived from signature strings rather than hand-copied as hex constants, because a wrong constant would produce a table matching nothing and the report would be quietly useless instead of visibly broken. Locked against the published digests for the empty string and `"abc"`, and cross-checked against four widely-known ERC-20 and Ownable selectors. Note this is Keccak with 0x01 padding, not NIST SHA3-256 — Node's `crypto` offers the latter and they disagree on every input.
 
+**`gapScan` on every score**, recording whether the scan above actually ran: `ran`, `not-applicable`, or `failed`. Without it an empty `dictionaryGaps` meant two different things — we looked and found none, and we never looked — and a reader could not tell which. The second case is every Solana score, since there is no bytecode analogue, and any EVM score whose bytecode fetch failed. Both now carry an explicit limitation saying the empty list reflects a check that did not happen. Left unstated, "we could not check" reads exactly like "we checked and it is clean", which is the failure this release exists to fix, reproduced inside the fix.
+
+**Completeness tests for the privileged-function table.** `metadata-mutability` had no entry, so that capability could never produce a gap and nothing said so. Entries added, and a test now requires every capability to be either scanned for or explicitly declared out of scope on EVM — a missing one fails rather than disappears. Two further tests assert signatures are canonical (a stray space or a `uint` alias hashes to a selector matching nothing) and that no two signatures collide.
+
+**Tests that hold the documents to the code.** `METHODOLOGY.md` must mention every capability and describe `dictionaryGaps` and `gapScan`; `LIMITATIONS.md` must no longer claim an undetected admin pattern is wholly invisible, while still admitting the residual gap. Both documents were briefly wrong after the feature landed, because the code gained an ability the prose still said it lacked. A document that overstates a blind spot is as misleading as one that hides it.
+
 ### Changed
+
+**CI now runs on every branch**, not only `main`. Five commits reached this release and only the first was ever tested: with `push` limited to `main`, the rest depended entirely on the `pull_request` event firing, and it did not. Added `workflow_dispatch` for forcing a run without an empty commit, and a commit-keyed concurrency group so the push and pull-request events for one commit collapse into a single run.
+
+**`METHODOLOGY.md` §6 now documents what happens when we did not know to look**, and §10 records an open question rather than burying it: should a dictionary gap reduce coverage? It currently does not, and the argument that it should has not been dismissed — it is deferred until the scan has run against the registry seed set on mainnet, so the call is made on real gap counts instead of a guess.
 
 **`Observation.value` and the two `Disagreement` value fields are now optional keys** rather than required keys typed to include `undefined`. This is what was always true on the wire: `JSON.stringify` drops an `undefined`, so an observation meaning "we could not look" arrives with the key absent. Both forms parse, and neither is `ABSENT`. No runtime behaviour changed.
 

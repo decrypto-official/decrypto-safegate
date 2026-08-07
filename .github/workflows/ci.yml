@@ -1,9 +1,22 @@
 name: CI
 
+# Runs on every branch, not just main. Five commits reached the 0.1.4 branch
+# and only the first was ever tested: with `push` limited to main, the rest
+# depended entirely on the pull_request event firing, and it did not. Whatever
+# the cause on a given push, a branch-wide push trigger does not rely on it,
+# and workflow_dispatch gives a way to force a run without an empty commit.
+#
+# The concurrency key is the commit rather than the ref, so the push event and
+# the pull_request event for the same commit collapse into one run instead of
+# testing identical trees twice.
 on:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   check:

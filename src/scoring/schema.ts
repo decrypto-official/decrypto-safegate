@@ -156,6 +156,9 @@ export const scoreSchema = z
     // that predates the field.
     dictionaryGaps: z.array(dictionaryGapSchema),
 
+    // An empty dictionaryGaps is only reassuring when this says 'ran'.
+    gapScan: z.enum(['ran', 'not-applicable', 'failed']),
+
     // Never optional. A score that dropped its limitations would be the bare
     // number this project refuses to produce.
     limitations: z.array(z.string()),

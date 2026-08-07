@@ -10,7 +10,7 @@
  * If you ever need I/O here, you need a different file.
  */
 
-import type { Axis, AxisResult, Disagreement, DictionaryGap, Score, Signal, UnverifiedReference, Chain } from '../types.js';
+import type { Axis, AxisResult, Disagreement, DictionaryGap, GapScanStatus, Score, Signal, UnverifiedReference, Chain } from '../types.js';
 import { CAPABILITY_WEIGHT } from '../signals/normalise.js';
 
 export const METHODOLOGY_VERSION = '0.1.0';
@@ -45,6 +45,11 @@ export interface ScoreInput {
    * existing caller keeps producing byte-identical output.
    */
   dictionaryGaps?: DictionaryGap[];
+  /**
+   * Whether the scan behind `dictionaryGaps` ran. Defaults to 'not-applicable',
+   * which is the honest answer for a caller that did not attempt one.
+   */
+  gapScan?: GapScanStatus;
 }
 
 export function score(input: ScoreInput): Score {
@@ -67,6 +72,21 @@ export function score(input: ScoreInput): Score {
   }
 
   const dictionaryGaps = input.dictionaryGaps ?? [];
+  const gapScan: GapScanStatus = input.gapScan ?? 'not-applicable';
+
+  // An empty list is only reassuring when we actually looked. Saying nothing
+  // here would let "we could not scan" read exactly like "we scanned and the
+  // contract is clean", which is the failure this whole feature exists to
+  // prevent, reproduced one level up inside the feature itself.
+  if (gapScan !== 'ran') {
+    limitations.unshift(
+      gapScan === 'failed'
+        ? `We could not read this contract's bytecode, so it was not checked for capabilities ` +
+            `the dictionary cannot see. The absence of findings below reflects a failed check, not a clean one.`
+        : `Scanning for capabilities the dictionary cannot read is not available on this chain, ` +
+            `so it was not attempted. An empty finding list here means we did not look, not that there is nothing.`
+    );
+  }
 
   // A dictionary gap changes no number anywhere. It is stated in the
   // limitations because that is where a reader is told what the score does not
@@ -112,6 +132,7 @@ export function score(input: ScoreInput): Score {
     inputSnapshotHash: input.inputSnapshotHash,
     computedAt: input.computedAt,
     dictionaryGaps,
+    gapScan,
     limitations,
   };
 }
