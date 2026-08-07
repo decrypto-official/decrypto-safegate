@@ -834,11 +834,9 @@ describe('the privileged-function table covers every capability', () => {
   ] as const;
 
   it('accounts for every capability, by scanning for it or declaring it out of scope', async () => {
-    const { scannedCapabilities, capabilitiesNotScannedOnEvm } = await import(
-      '../src/patterns/selectors.js'
-    );
-    const scanned = scannedCapabilities();
-    const excluded = capabilitiesNotScannedOnEvm();
+    const { privilegedFunctionTable } = await import('../src/patterns/selectors.js');
+    const { functions, notScannedOnEvm: excluded } = privilegedFunctionTable();
+    const scanned = new Set(functions.map((fn) => fn.capability));
 
     for (const capability of ALL_CAPABILITIES) {
       expect(
@@ -858,9 +856,9 @@ describe('the privileged-function table covers every capability', () => {
   it('uses canonical signatures', async () => {
     // A stray space, or `uint` instead of `uint256`, hashes to a different
     // selector. The table would look right and match nothing on chain.
-    const { privilegedSignatures } = await import('../src/patterns/selectors.js');
+    const { privilegedFunctionTable } = await import('../src/patterns/selectors.js');
 
-    for (const signature of privilegedSignatures()) {
+    for (const { signature } of privilegedFunctionTable().functions) {
       expect(signature, `${signature} is not a canonical signature`).toMatch(
         /^[a-zA-Z_$][a-zA-Z0-9_$]*\([a-z0-9,[\]]*\)$/
       );
@@ -873,9 +871,9 @@ describe('the privileged-function table covers every capability', () => {
 
   it('derives a distinct selector for every signature', async () => {
     // A collision would silently drop one entry from the lookup map.
-    const { privilegedSignatures } = await import('../src/patterns/selectors.js');
+    const { privilegedFunctionTable } = await import('../src/patterns/selectors.js');
     const { selectorOf } = await import('../src/sources/keccak.js');
-    const selectors = privilegedSignatures().map(selectorOf);
+    const selectors = privilegedFunctionTable().functions.map((fn) => selectorOf(fn.signature));
     expect(new Set(selectors).size).toBe(selectors.length);
   });
 });

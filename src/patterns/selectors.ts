@@ -25,7 +25,7 @@ import { selectorOf } from '../sources/keccak.js';
 import type { Pattern } from './resolve.js';
 import { isPositive } from '../signals/normalise.js';
 
-interface PrivilegedFunction {
+export interface PrivilegedFunction {
   signature: string;
   capability: Capability;
   /** What holding this function would mean, in the reader's terms. */
@@ -97,19 +97,18 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
  */
 const NOT_APPLICABLE_ON_EVM: ReadonlySet<Capability> = new Set<Capability>();
 
-/** Exposed so the completeness test can assert against it rather than duplicate it. */
-export function capabilitiesNotScannedOnEvm(): ReadonlySet<Capability> {
-  return NOT_APPLICABLE_ON_EVM;
-}
-
-/** The capabilities the table can actually produce a gap for. Exposed for tests. */
-export function scannedCapabilities(): Set<Capability> {
-  return new Set(PRIVILEGED_FUNCTIONS.map((fn) => fn.capability));
-}
-
-/** Every signature in the table, so a test can check they are canonical. */
-export function privilegedSignatures(): string[] {
-  return PRIVILEGED_FUNCTIONS.map((fn) => fn.signature);
+/**
+ * The table and its declared exclusions, for the completeness tests.
+ *
+ * One accessor rather than several narrow ones: a test that derives what it
+ * needs from the real table cannot fall out of step with it, whereas a helper
+ * per question is more surface to keep in sync for no extra safety.
+ */
+export function privilegedFunctionTable(): {
+  functions: readonly PrivilegedFunction[];
+  notScannedOnEvm: ReadonlySet<Capability>;
+} {
+  return { functions: PRIVILEGED_FUNCTIONS, notScannedOnEvm: NOT_APPLICABLE_ON_EVM };
 }
 
 /** Selector -> definition. Built once, from keccak rather than from constants. */
