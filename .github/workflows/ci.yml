@@ -57,3 +57,15 @@ jobs:
       - name: Build web and verify bundled data
         run: npm run build
         working-directory: apps/web
+
+      # Measures, never gates. METHODOLOGY.md section 10 defers a decision —
+      # should a dictionary gap reduce coverage? — until there are real numbers
+      # from mainnet, and this is where they come from. It walks the registry
+      # seed set and reports what the scan found per token.
+      #
+      # continue-on-error because a public RPC endpoint having a bad minute must
+      # not block a merge, and because a token WITH gaps is a finding rather
+      # than a fault. Read the output; do not treat a red mark here as a failure.
+      - name: Dictionary gap census
+        run: npm run census
+        continue-on-error: true

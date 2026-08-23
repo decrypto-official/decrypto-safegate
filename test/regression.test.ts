@@ -991,3 +991,81 @@ describe('the documents match the code', () => {
     expect(limitations).toMatch(/EVM-only|no bytecode analogue/i);
   });
 });
+
+/**
+ * The gap census.
+ *
+ * METHODOLOGY.md §10 defers a decision — should a dictionary gap reduce
+ * coverage? — until there are real numbers. The census produces them, so its
+ * arithmetic is load-bearing on that decision. Wrong numbers here would argue
+ * for the wrong answer, convincingly.
+ *
+ * The walk itself needs live RPC. `summarise` is pure and is what gets checked.
+ */
+describe('the gap census counts honestly', () => {
+  const row = (over: Partial<import('../src/cli/census.js').TokenCensus> = {}) => ({
+    id: 'x',
+    chain: 'ethereum',
+    symbol: 'X',
+    gapScan: 'ran' as const,
+    gapCount: 0,
+    capabilities: [],
+    signatures: [],
+    ...over,
+  });
+
+  it('rates gaps against tokens actually scanned, not all tokens', async () => {
+    // The distinction that matters. Solana entries are never scanned, so
+    // including them in the denominator would halve the apparent rate and
+    // argue against a change on the strength of tokens we never looked at.
+    const { summarise } = await import('../src/cli/census.js');
+    const summary = summarise([
+      row({ gapCount: 2, capabilities: ['mint-authority'] }),
+      row(),
+      row({ chain: 'solana', gapScan: 'not-applicable' }),
+      row({ chain: 'solana', gapScan: 'not-applicable' }),
+    ]);
+
+    expect(summary.tokens).toBe(4);
+    expect(summary.scanned).toBe(2);
+    expect(summary.notApplicable).toBe(2);
+    expect(summary.withGaps).toBe(1);
+    expect(summary.gapRate).toBe(0.5);
+  });
+
+  it('does not count an unreadable token as a clean one', async () => {
+    // A token we could not read has no gaps recorded, which must never be
+    // reported as having been scanned and found clean.
+    const { summarise } = await import('../src/cli/census.js');
+    const summary = summarise([
+      row({ gapScan: 'failed' }),
+      row({ gapScan: 'error', error: 'boom' }),
+    ]);
+
+    expect(summary.scanned).toBe(0);
+    expect(summary.withGaps).toBe(0);
+    expect(summary.failed).toBe(1);
+    expect(summary.errored).toBe(1);
+    // No scanned tokens means no rate to report, not a rate of zero found.
+    expect(summary.gapRate).toBe(0);
+  });
+
+  it('tallies gaps by capability across tokens', async () => {
+    const { summarise } = await import('../src/cli/census.js');
+    const summary = summarise([
+      row({ gapCount: 2, capabilities: ['mint-authority', 'fee-control'] }),
+      row({ gapCount: 1, capabilities: ['mint-authority'] }),
+    ]);
+
+    expect(summary.totalGaps).toBe(3);
+    expect(summary.byCapability['mint-authority']).toBe(2);
+    expect(summary.byCapability['fee-control']).toBe(1);
+  });
+
+  it('reports nothing rather than dividing by zero on an empty registry', async () => {
+    const { summarise } = await import('../src/cli/census.js');
+    const summary = summarise([]);
+    expect(summary.gapRate).toBe(0);
+    expect(Number.isNaN(summary.gapRate)).toBe(false);
+  });
+});
