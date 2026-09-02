@@ -179,8 +179,9 @@ export function ScoreResult({ score }: { score: Score }) {
           </section>
         </div>
 
+        <div className="result-main">
         {/* What the contract can do that no pattern reads. Placed above the
-            signals table on purpose: a reader who stops at the signals would
+            signals list on purpose: a reader who stops at the signals would
             otherwise take an incomplete reading for a complete one. */}
         {score.dictionaryGaps.length > 0 && (
           <section className="panel">
@@ -228,6 +229,7 @@ export function ScoreResult({ score }: { score: Score }) {
             ))}
           </div>
         </section>
+        </div>
       </div>
 
       {/* disagreements: loud by design */}
