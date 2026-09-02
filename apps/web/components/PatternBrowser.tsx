@@ -71,7 +71,7 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
                   <td className="mono" style={{ color: 'var(--text)', overflowWrap: 'anywhere' }}>
                     {pattern.id}
                   </td>
-                  <td style={{ color: 'var(--text-dim)', fontSize: 11, overflowWrap: 'anywhere' }}>
+                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)', overflowWrap: 'anywhere' }}>
                     {pattern.capability}
                   </td>
                   <td style={{ textAlign: 'right', color: 'var(--unknown)' }}>
@@ -97,20 +97,20 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
       <section className="panel">
         <div className="panel-body">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-            <div className="mono" style={{ fontSize: 18, fontWeight: 600 }}>
+            <div className="mono" style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>
               {pattern.id}
             </div>
             <span className="tag">{pattern.chainFamily}</span>
             <span className="tag" style={{ color: 'var(--expected)' }}>
               {pattern.capability}
             </span>
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-faint)' }}>
+            <span style={{ marginLeft: 'auto', fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
               added {pattern.addedAt}
               {pattern.addedBy ? ` by ${pattern.addedBy}` : ''}
             </span>
           </div>
           {pattern.title && (
-            <div style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 4 }}>{pattern.title}</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-body)', marginTop: 4 }}>{pattern.title}</div>
           )}
           <p className="reason" style={{ margin: '10px 0 0' }}>
             {pattern.detects}
@@ -138,11 +138,11 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
             <dl style={{ margin: 0, display: 'grid', gap: 10 }}>
               {m.storageSlot && (
                 <Field label="Storage slot">
-                  <span className="mono" style={{ wordBreak: 'break-all', fontSize: 11 }}>
+                  <span className="mono" style={{ wordBreak: 'break-all', fontSize: 'var(--fs-meta)' }}>
                     {m.storageSlot}
                   </span>
                   {m.slotDerivation && (
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 3 }}>
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 3 }}>
                       {m.slotDerivation}
                     </div>
                   )}
@@ -152,13 +152,13 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
                 <Field label="Selector">
                   <span className="mono">{m.callSelector}</span>
                   {m.signature && (
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 3 }}>{m.signature}</div>
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 3 }}>{m.signature}</div>
                   )}
                 </Field>
               )}
               {m.accountField && (
                 <Field label="Account field">
-                  <span className="mono" style={{ fontSize: 11 }}>
+                  <span className="mono" style={{ fontSize: 'var(--fs-meta)' }}>
                     {m.accountField}
                   </span>
                 </Field>
@@ -168,7 +168,7 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
               </Field>
               <Field label="Presence decided by">
                 <span className="mono">{pattern.presenceIndicatedBy ?? 'non-empty-value'}</span>
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 3 }}>
+                <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 3 }}>
                   {pattern.presenceIndicatedBy === 'call-success'
                     ? 'The function existing proves the capability exists, whatever it returns.'
                     : 'The returned value decides. A zero address means genuinely renounced.'}
@@ -189,7 +189,7 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
             {pattern.references && pattern.references.length > 0 && (
               <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
                 {pattern.references.map((r) => (
-                  <a key={r} href={r} target="_blank" rel="noreferrer noopener" style={{ fontSize: 11 }}>
+                  <a key={r} href={r} target="_blank" rel="noreferrer noopener" style={{ fontSize: 'var(--fs-meta)' }}>
                     {r.replace(/^https?:\/\//, '').slice(0, 70)}
                   </a>
                 ))}
@@ -225,10 +225,10 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
                     <td className="mono" style={{ color: 'var(--text)' }}>
                       {ex.symbol}
                     </td>
-                    <td style={{ fontSize: 11, color: 'var(--text-faint)' }}>{ex.chain}</td>
+                    <td style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>{ex.chain}</td>
                     <td className="reason">
                       {ex.observed ?? '.'}
-                      <div className="addr" style={{ fontSize: 10, marginTop: 3 }}>
+                      <div className="addr" style={{ fontSize: 'var(--fs-label)', marginTop: 3 }}>
                         {ex.address}
                       </div>
                     </td>
@@ -248,7 +248,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <dt
         style={{
-          fontSize: 10,
+          fontSize: 'var(--fs-label)',
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
           color: 'var(--text-faint)',
@@ -257,7 +257,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       >
         {label}
       </dt>
-      <dd style={{ margin: 0, fontSize: 12 }}>{children}</dd>
+      <dd style={{ margin: 0, fontSize: 'var(--fs-body)' }}>{children}</dd>
     </div>
   );
 }

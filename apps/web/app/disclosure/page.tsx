@@ -27,7 +27,7 @@ export default async function DisclosurePage() {
         ]}
       />
 
-      <div className={clean ? 'callout' : 'callout callout-warn'} style={{ fontSize: 13 }}>
+      <div className={clean ? 'callout' : 'callout callout-warn'} style={{ fontSize: 'var(--fs-body)' }}>
         {clean ? (
           <>
             <strong style={{ color: 'var(--absent)' }}>No commercial relationships exist</strong> with any
@@ -72,8 +72,8 @@ export default async function DisclosurePage() {
                     <td className="mono" style={{ color: 'var(--text)' }}>
                       {e.symbol}
                     </td>
-                    <td style={{ fontSize: 11, color: 'var(--text-faint)' }}>{e.chain}</td>
-                    <td style={{ fontSize: 12, color: 'var(--text-dim)' }}>{e.issuer.name}</td>
+                    <td style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>{e.chain}</td>
+                    <td style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>{e.issuer.name}</td>
                     <td className="reason">{e.commercialRelationship}</td>
                   </tr>
                 ))}

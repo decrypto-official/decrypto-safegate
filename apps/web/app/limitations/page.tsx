@@ -79,7 +79,7 @@ export default function LimitationsPage() {
         lead="What Safegate cannot tell you. This is why the tool reports capabilities with reasoning instead of verdicts."
       />
 
-      <div className="callout callout-warn" style={{ fontSize: 13 }}>
+      <div className="callout callout-warn" style={{ fontSize: 'var(--fs-body)' }}>
         <strong style={{ color: 'var(--unknown)' }}>If you read nothing else:</strong> a good Safegate score is
         not permission to buy anything.
       </div>

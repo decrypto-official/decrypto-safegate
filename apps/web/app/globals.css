@@ -1,14 +1,30 @@
 /*
  * Safegate design system.
  *
- * Two rules from DESIGN.md are enforced structurally here rather than left to
- * the discipline of whoever writes the next component:
+ * This file is the design system. An earlier header cited a DESIGN.md that was
+ * never committed to this repository, so the rules it referred to are written
+ * out here instead, where the code that must obey them can be read beside them.
+ *
+ * Rules enforced structurally rather than left to the discipline of whoever
+ * writes the next component:
  *
  *   1. The shell fills the viewport. There is no max-width on any container.
  *      Narrow centred columns with dead margins either side are the single
  *      clearest tell of a generated interface, and this is a dashboard.
  *   2. State colour is semantic. The four state colours mean exactly one thing
  *      each and are never reused for emphasis, branding or decoration.
+ *   3. Type comes from the scale below. No component sets a pixel size inline.
+ *      Before this existed there were 25 hardcoded `fontSize: 11` and four
+ *      `fontSize: 10` across the components, which is why nothing lined up and
+ *      why raising the base size alone would have fixed nothing.
+ *   4. Every text colour passes WCAG AA (4.5:1) on every surface it is used on.
+ *      Contrast is measured, not eyeballed: the ratios are recorded beside the
+ *      tokens so a future change cannot quietly regress one.
+ *
+ * On sizing: 14px is the body size, not 13px. Every dense-data design system
+ * worth copying — GitHub Primer, Vercel Geist, IBM Carbon's productive set,
+ * Ant Design — puts dense UI body text at 14px. Linear runs 13px, but as
+ * caption and secondary text rather than as body.
  */
 
 :root {
@@ -18,9 +34,12 @@
   --border: #1e2635;
   --border-strong: #2b3648;
 
-  --text: #e6ebf4;
-  --text-dim: #8a97ad;
-  --text-faint: #55627a;
+  /* Contrast measured against --bg / --surface / --surface-raised.
+     AA needs 4.5:1 for body text; the large-text exemption starts around 24px
+     and so applies to nothing here. */
+  --text: #e6ebf4;        /* 16.75 / 15.78 / 14.56 */
+  --text-dim: #9fabc0;    /*  8.64 /  8.15 /  7.52 — clears GitHub's 7:1 target */
+  --text-faint: #8794a8;  /*  6.52 /  6.14 /  5.67 — was #55627a at 3.26/3.07/2.83, failing everywhere */
 
   /* Semantic states. Never used decoratively. */
   --present: #ff5c5c;   /* capability exists, nothing justifies it */
@@ -34,10 +53,28 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-  --row-h: 36px;
+  /* Type scale. Rooted at 14px, the body size shared by Primer, Geist, Carbon
+     and Ant for dense product UI. Nothing in the app may go below --fs-label. */
+  --fs-label: 12px;   /* uppercase micro-labels, table headers */
+  --fs-meta: 13px;    /* metadata, tags, provenance */
+  --fs-body: 14px;    /* default */
+  --fs-prose: 15px;   /* explanatory paragraphs — the reading text */
+  --fs-h: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 26px;
+  --fs-display: 34px;
+
+  --lh-tight: 1.35;
+  --lh-body: 1.5;
+  --lh-prose: 1.65;   /* prose is read, not scanned; it gets the room */
+
+  --measure: 78ch;
+
+  --row-h: 40px;
   --pad: 16px;
-  --topbar-h: 48px;
-  --sidebar-w: 240px;
+  --pad-lg: 20px;
+  --topbar-h: 52px;
+  --sidebar-w: 248px;
 }
 
 *,
@@ -54,8 +91,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -126,7 +163,7 @@ body {
   padding: 0 var(--pad);
   border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--fs-h);
   font-weight: 600;
   letter-spacing: -0.02em;
   flex-shrink: 0;
@@ -144,12 +181,12 @@ body {
 .nav-item {
   display: flex;
   align-items: center;
-  height: 30px;
+  height: 32px;
   padding: 0 10px;
   border-radius: 4px;
   color: var(--text-dim);
   text-decoration: none;
-  font-size: 12px;
+  font-size: var(--fs-body);
   transition: background 140ms, color 140ms;
 }
 .nav-item:hover {
@@ -162,8 +199,8 @@ body {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 .nav-label {
-  padding: 12px 10px 6px;
-  font-size: 10px;
+  padding: 14px 10px 6px;
+  font-size: var(--fs-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -182,18 +219,19 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px var(--pad);
+  padding: 12px var(--pad);
   border-bottom: 1px solid var(--border);
 }
 .panel-title {
-  font-size: 11px;
+  font-size: var(--fs-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
+  font-weight: 600;
   margin: 0;
 }
 .panel-body {
-  padding: var(--pad);
+  padding: var(--pad-lg);
 }
 
 /* Fluid grid: panels reflow instead of leaving dead space at any width. */
@@ -253,13 +291,14 @@ body {
   align-items: center;
   gap: 6px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-meta);
+  font-weight: 500;
   white-space: nowrap;
 }
 .state::before {
   content: '';
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 2px;
   background: currentColor;
   flex-shrink: 0;
@@ -282,7 +321,7 @@ body {
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--fs-body);
   table-layout: fixed;
 }
 .table col.c-state { width: 108px; }
@@ -291,17 +330,17 @@ body {
 .table col.c-src { width: 152px; }
 .table th {
   text-align: left;
-  font-size: 10px;
+  font-size: var(--fs-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-faint);
-  font-weight: 500;
-  padding: 8px var(--pad);
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 10px var(--pad);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .table td {
-  padding: 10px var(--pad);
+  padding: 12px var(--pad);
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
@@ -313,8 +352,9 @@ body {
 }
 .reason {
   color: var(--text-dim);
-  font-size: 12px;
-  max-width: 70ch; /* the ONLY place a measure limit is allowed: prose */
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+  max-width: var(--measure); /* the ONLY place a measure limit is allowed: prose */
   /* Reasoning text embeds raw addresses, which have no break opportunities and
      will otherwise push the column past its container. */
   overflow-wrap: anywhere;
@@ -324,20 +364,20 @@ body {
 
 .meter {
   display: grid;
-  grid-template-columns: 96px 1fr 40px;
+  grid-template-columns: 104px 1fr 48px;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 10px;
 }
 .meter-label {
-  font-size: 11px;
+  font-size: var(--fs-body);
   color: var(--text-dim);
   text-transform: capitalize;
 }
 .meter-track {
-  height: 6px;
+  height: 8px;
   background: var(--surface-raised);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 .meter-fill {
@@ -348,20 +388,34 @@ body {
 .meter-value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--fs-h);
+  font-weight: 600;
   text-align: right;
 }
 
 /* ---------- callouts ---------- */
 
+/* An editorial sidenote, not a card.
+ *
+ * This was a rounded box outlined on all four sides with a coloured left edge.
+ * That specific combination — rounded card, thick tinted border on one side —
+ * is the most frequently cited visual tell of a generated interface, and it
+ * also fought the panel it sat inside: a bordered box within a bordered box,
+ * two radii deep. A flat rule against a tinted ground reads as an aside, which
+ * is what this is, and it costs one border instead of four. */
 .callout {
-  border: 1px solid var(--border);
-  border-left-width: 2px;
-  border-radius: 4px;
-  padding: 10px 12px;
-  font-size: 12px;
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0;
+  padding: 12px 16px;
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
   color: var(--text-dim);
-  background: var(--surface);
+  background: var(--surface-raised);
+  max-width: var(--measure);
+}
+.callout strong {
+  color: var(--text);
+  font-weight: 600;
 }
 .callout-warn {
   border-left-color: var(--unknown);
@@ -370,11 +424,80 @@ body {
   border-left-color: var(--expected);
 }
 
+/* ---------- findings: prose that is not tabular data ----------
+ *
+ * The signals list used to be a five-column table whose last column held a
+ * multi-sentence paragraph. Tables are for values you compare down a column,
+ * and nobody compares paragraphs that way — the reasoning was being squeezed
+ * into whatever width the four fixed columns left over, at 12px.
+ *
+ * Here the scannable fields stay on one line and the reasoning sits beneath
+ * them at full prose size. Nothing is hidden or collapsed: the product rule is
+ * that a bare score must be impossible to obtain, so reasoning is never put
+ * behind a disclosure control. It is laid out to be read instead. */
+.findings {
+  display: flex;
+  flex-direction: column;
+}
+.finding {
+  padding: 16px var(--pad-lg);
+  border-bottom: 1px solid var(--border);
+}
+.finding:last-child {
+  border-bottom: none;
+}
+.finding:hover {
+  background: var(--surface-raised);
+}
+.finding-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.finding-cap {
+  font-family: var(--font-mono);
+  font-size: var(--fs-h);
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.finding-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: var(--fs-meta);
+  color: var(--text-faint);
+}
+/* The state chip carries the row. Give it a fixed column so the eye can run
+   straight down the states without reading anything else. */
+.finding-state {
+  min-width: 104px;
+}
+
+/* A key/value strip for dense metadata that genuinely is tabular. */
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  font-size: var(--fs-body);
+}
+.kv dt {
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.kv dd {
+  margin: 0;
+  color: var(--text);
+}
+
 .tag {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 1px 6px;
+  font-size: var(--fs-meta);
+  padding: 2px 7px;
   border: 1px solid var(--border-strong);
   border-radius: 3px;
   color: var(--text-faint);
@@ -383,7 +506,7 @@ body {
 
 .addr {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-body);
   color: var(--text-dim);
   word-break: break-all;
 }
@@ -398,14 +521,14 @@ body {
 .input {
   flex: 1;
   min-width: 0;
-  height: 32px;
-  padding: 0 10px;
+  height: 38px;
+  padding: 0 12px;
   background: var(--bg);
   border: 1px solid var(--border-strong);
   border-radius: 4px;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-body);
 }
 .input:focus-visible,
 .select:focus-visible,
@@ -415,23 +538,23 @@ body {
   outline-offset: 1px;
 }
 .select {
-  height: 32px;
-  padding: 0 8px;
+  height: 38px;
+  padding: 0 10px;
   background: var(--bg);
   border: 1px solid var(--border-strong);
   border-radius: 4px;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-body);
 }
 .btn {
-  height: 32px;
-  padding: 0 14px;
+  height: 38px;
+  padding: 0 16px;
   background: var(--accent);
   border: none;
   border-radius: 4px;
   color: #06080d;
-  font-size: 12px;
+  font-size: var(--fs-body);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;

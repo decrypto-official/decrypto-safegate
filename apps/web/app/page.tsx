@@ -98,7 +98,7 @@ export default function LookupPage() {
           </form>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>try:</span>
+            <span style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>try:</span>
             {EXAMPLES.map((ex) => (
               <button
                 key={`${ex.chain}-${ex.address}`}
@@ -151,7 +151,7 @@ export default function LookupPage() {
       {!score && !loading && !error && (
         <section className="panel">
           <div className="panel-body">
-            <h1 style={{ fontSize: 22, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 'var(--fs-xl)', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
               What can this token actually do to you?
             </h1>
             <p className="reason" style={{ margin: '0 0 16px' }}>

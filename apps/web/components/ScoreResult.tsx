@@ -43,10 +43,13 @@ export function ScoreResult({ score }: { score: Score }) {
       <div className="panel">
         <div className="panel-body" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'baseline' }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em' }}>
               {score.symbol ?? 'Unknown token'}
               {score.name && score.name !== score.symbol && (
-                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 15 }}> {score.name}</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-lg)' }}>
+                  {' '}
+                  {score.name}
+                </span>
               )}
             </div>
             <div className="addr">
@@ -60,13 +63,13 @@ export function ScoreResult({ score }: { score: Score }) {
                 <div className="tag" style={{ color: 'var(--expected)', borderColor: 'var(--expected)' }}>
                   registry: {score.registryEntry.archetype}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>
+                <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 6 }}>
                   verified {score.registryEntry.verifiedAt} by {score.registryEntry.approvedBy}
                 </div>
               </>
             ) : (
               /* Neutral, not a warning. Most legitimate tokens have no entry. */
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+              <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
                 No registry entry. Scored on structure alone.
               </div>
             )}
@@ -111,7 +114,7 @@ export function ScoreResult({ score }: { score: Score }) {
                       </span>
                     </div>
                     {/* The coverage denominator is never separable from the value. */}
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', paddingLeft: 106 }}>
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', paddingLeft: 116 }}>
                       {assessed
                         ? `${a.coverage.scored}/${a.coverage.applicable} checks resolved`
                         : 'nothing resolved on this axis'}
@@ -131,18 +134,26 @@ export function ScoreResult({ score }: { score: Score }) {
                 <span
                   data-numeric
                   style={{
-                    fontSize: 30,
+                    fontSize: 'var(--fs-display)',
                     fontWeight: 600,
+                    letterSpacing: '-0.02em',
                     color: coveragePct >= 80 ? 'var(--absent)' : coveragePct >= 60 ? 'var(--unknown)' : 'var(--present)',
                   }}
                 >
                   {coveragePct}%
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                <span style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>
                   {score.coverage.scored} of {score.coverage.applicable} applicable checks resolved
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: '10px 0 0' }}>
+              <p
+                style={{
+                  fontSize: 'var(--fs-body)',
+                  lineHeight: 'var(--lh-prose)',
+                  color: 'var(--text-faint)',
+                  margin: '12px 0 0',
+                }}
+              >
                 Coverage measures how much of this token we could check. It is not a safety measure.
               </p>
             </div>
@@ -186,17 +197,17 @@ export function ScoreResult({ score }: { score: Score }) {
               </div>
 
               {score.dictionaryGaps.map((gap) => (
-                <div key={gap.selector} style={{ marginBottom: 12 }}>
+                <div key={gap.selector} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span data-numeric style={{ fontSize: 13, color: 'var(--unknown)' }}>
+                    <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 600, color: 'var(--unknown)' }}>
                       {gap.signature}
                     </span>
                     <span className="tag">{gap.capability}</span>
-                    <span data-numeric style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    <span data-numeric style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
                       {gap.selector}
                     </span>
                   </div>
-                  <div className="reason" style={{ marginTop: 3 }}>
+                  <div className="reason" style={{ marginTop: 6 }}>
                     {gap.note}
                   </div>
                 </div>
@@ -211,30 +222,10 @@ export function ScoreResult({ score }: { score: Score }) {
             <h2 className="panel-title">Signals</h2>
             <span className="tag">{sorted.length} capabilities checked</span>
           </div>
-          <div className="table-wrap">
-          <table className="table">
-            <colgroup>
-              <col className="c-state" />
-              <col className="c-cap" />
-              <col className="c-axis" />
-              <col className="c-src" />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>State</th>
-                <th>Capability</th>
-                <th>Axis</th>
-                <th>Source</th>
-                <th>Reasoning</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((signal) => (
-                <SignalRow key={signal.capability} signal={signal} />
-              ))}
-            </tbody>
-          </table>
+          <div className="findings">
+            {sorted.map((signal) => (
+              <SignalRow key={signal.capability} signal={signal} />
+            ))}
           </div>
         </section>
       </div>
@@ -312,7 +303,7 @@ export function ScoreResult({ score }: { score: Score }) {
         </div>
       </section>
 
-      <div style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
+      <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
         methodology {score.methodologyVersion} &nbsp; snapshot {score.inputSnapshotHash} &nbsp;{' '}
         {score.computedAt}
       </div>
@@ -320,27 +311,38 @@ export function ScoreResult({ score }: { score: Score }) {
   );
 }
 
+/**
+ * One capability, read.
+ *
+ * This was a table row whose fifth cell held a paragraph. A table asks the eye
+ * to compare values down a column, which is the right shape for the state, the
+ * capability and the axis, and the wrong shape for the reasoning: prose does
+ * not compare downward, and it was being fitted into whatever width the four
+ * fixed columns left, at 12px.
+ *
+ * The scannable fields now sit on one line with the state first, so the states
+ * still form a single column the eye can run down, and the reasoning sits under
+ * them at full prose size and measure. It is always visible. Reasoning behind a
+ * disclosure control would make a bare score obtainable by collapsing it, and
+ * that is the one thing this product refuses to allow.
+ */
 function SignalRow({ signal }: { signal: Signal }) {
   const hit = signal.observations.find((o) => o.value !== null && o.value !== undefined);
 
   return (
-    <tr>
-      <td>
-        <span className={`state state-${signal.state}`}>{signal.state}</span>
-      </td>
-      <td className="mono" style={{ whiteSpace: 'nowrap' }}>
-        {signal.capability}
-      </td>
-      <td style={{ color: 'var(--text-faint)', fontSize: 11 }}>{signal.axis}</td>
-      <td>
-        {/* Provenance travels with every value. */}
-        {hit?.patternId ? (
-          <span className="tag">{hit.patternId}</span>
-        ) : (
-          <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>no source</span>
-        )}
-      </td>
-      <td className="reason">{signal.reasoning}</td>
-    </tr>
+    <article className="finding">
+      <div className="finding-head">
+        <span className={`state state-${signal.state} finding-state`}>{signal.state}</span>
+        <span className="finding-cap">{signal.capability}</span>
+        <span className="finding-meta">
+          <span>{signal.axis}</span>
+          {/* Provenance travels with every value. */}
+          {hit?.patternId ? <span className="tag">{hit.patternId}</span> : <span>no source</span>}
+        </span>
+      </div>
+      <p className="reason" style={{ margin: 0 }}>
+        {signal.reasoning}
+      </p>
+    </article>
   );
 }

@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </aside>
 
           <header className="topbar">
-            <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+            <div style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>
               Structural capability analysis. Not a safety rating.
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
