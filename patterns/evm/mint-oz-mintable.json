@@ -1,0 +1,32 @@
+{
+  "id": "mint-oz-mintable",
+  "title": "OpenZeppelin MintableToken mintingFinished()",
+  "chainFamily": "evm",
+  "capability": "mint-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x05d2035b",
+    "signature": "mintingFinished() returns (bool)",
+    "returnType": "bool"
+  },
+  "detects": "The legacy OpenZeppelin MintableToken shape. This flag exists only on a contract that has a mint function guarded by canMint, so the getter answering at all proves a mint mechanism is built into the token. The flag reports whether minting has been terminated; the mechanism is what gets scored.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "Reading the flag as the answer is the trap here, and WBTC is the case that proves it. MintableToken is supposed to let an owner permanently end minting by calling finishMinting(), but WBTC overrides that function to `return false` with no super call and no assignment, so mintingFinished can never become true on that contract. A reader that treats a false flag as 'minting can still be stopped' has it backwards: on WBTC it can never be stopped. This is why the pattern scores on the function existing rather than on what it returns.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+      "symbol": "WBTC",
+      "observed": "mintingFinished() answers, and finishMinting() is overridden to return false without setting the flag",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "mint(address,uint256) takes arguments and changes state, so it cannot be read directly and no pattern could see it. The dictionary-gap census flagged WBTC's mint for exactly that reason. mintingFinished() is the zero-argument getter that betrays the same shape, and it is readable. Without this pattern the largest wrapped-Bitcoin token on Ethereum reads as having no mint authority at all.",
+  "references": [
+    "https://github.com/WrappedBTC/bitcoin-token-smart-contracts/blob/master/ethereum/contracts/token/WBTC.sol",
+    "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-solidity/v1.12.0/contracts/token/ERC20/MintableToken.sol"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

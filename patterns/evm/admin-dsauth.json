@@ -1,0 +1,32 @@
+{
+  "id": "admin-dsauth",
+  "title": "DSAuth authority()",
+  "chainFamily": "evm",
+  "capability": "admin-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xbf7e214f",
+    "signature": "authority() returns (address)",
+    "returnType": "address"
+  },
+  "detects": "The DSAuthority contract a DSAuth-based token defers to. In DSAuth, the auth modifier permits a call if the caller is the owner OR if authority.canCall() approves it, so a token whose owner is the zero address can still be fully administered through its authority.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "Reading authority() alone gives an address, not the rules it enforces. A DSAuthority is itself a contract with its own access list, so the returned address is where the investigation continues rather than where it ends. Both owner() and authority() must be zero before a DSAuth contract is genuinely un-administered; reading either one on its own can wrongly suggest renouncement.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2",
+      "symbol": "MKR",
+      "observed": "owner() does not resolve an admin, while authority() does",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "The Ownable false negative again, in the dialect that predates Ownable. An owner()-only reader sees nothing on a DSAuth token and concludes the contract has no admin, when administration has simply moved to the authority slot. This is the shape MakerDAO's tokens use, so the gap is not hypothetical: the dictionary-gap census flagged MKR's setOwner(address) precisely because owner() came back empty and no pattern read the authority.",
+  "references": [
+    "https://github.com/dapphub/ds-auth/blob/master/src/auth.sol",
+    "https://github.com/makerdao/developerguides/blob/master/mkr/mkr-token/mkr-token.md"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}
