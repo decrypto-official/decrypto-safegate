@@ -15,6 +15,7 @@ const NAV = [
   {
     section: 'How it works',
     items: [
+      { href: '/guide', label: 'Guide' },
       { href: '/methodology', label: 'Methodology' },
       { href: '/limitations', label: 'Limitations' },
       { href: '/disclosure', label: 'Disclosure' },

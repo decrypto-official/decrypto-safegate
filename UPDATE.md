@@ -34,6 +34,16 @@ An **unassessed axis wore the same amber as a resolved score**. `--unknown` mean
 
 **`overflowWrap: anywhere` on the capability column** broke `upgradeability` into `upgradeabili/ty`. It breaks at any character, and that word has no hyphen to break at.
 
+### Added
+
+**A guide, at `/guide`.** The dashboard assumed its reader already knew what minting, a proxy or an admin key was. Someone who does not is exactly the person the tool is for, and they were the only audience with nothing to read.
+
+It explains the screen top to bottom, defines every term it uses in plain words, and walks three real tokens: USDC, where three capabilities are expected and still real; MKR, whose administrator is invisible to the obvious check; and WBTC, whose "stop minting" function was overridden to do nothing, so trusting the flag gives the opposite of the truth.
+
+It is a page in the app rather than a document beside it, because the vocabulary it defines is the vocabulary on screen two clicks away, and because a second copy is a second thing to drift. Print styles are part of it, so the browser saves a clean PDF from the same source.
+
+Nothing countable is typed into it. The pattern count is read from the dictionary at build time, and four tests hold the prose to the code: it must explain every signal state the scorer can emit, name every axis, teach both of the distinctions the product exists to make, and count the dictionary rather than assert a number. When a capability or a state is added, the suite fails until the guide catches up — a guide that quietly falls behind is wrong with the authority of documentation, and its reader is the least equipped to notice.
+
 ### Changed
 
 **Body type is 14px, not 13px, and comes from a scale.** Every dense-data design system worth copying puts body text at 14px — GitHub Primer, Vercel Geist, IBM Carbon's productive set, Ant Design. Linear runs 13px, but as caption and secondary text rather than as body. Before this there were 25 hardcoded `fontSize: 11` and four `fontSize: 10` inline across the components, each chosen locally, which is why nothing lined up and why raising the base alone would have fixed nothing. All 39 are now scale tokens and no pixel size is set inline anywhere.

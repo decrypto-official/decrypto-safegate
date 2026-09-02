@@ -667,6 +667,176 @@ body {
   word-break: break-all;
 }
 
+/* ---------- the guide ----------
+ *
+ * The only place in the app with long-form reading text, so it is the only
+ * place with heading rhythm and a measure. Everything else here is a dashboard
+ * and is scanned rather than read. */
+.guide-body {
+  max-width: var(--measure);
+}
+.guide-body h2 {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+  margin: 32px 0 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.guide-body > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.guide-body h3 {
+  font-size: var(--fs-h);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 22px 0 6px;
+}
+.guide-body p {
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+  margin: 0 0 12px;
+}
+.guide-body code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--text);
+}
+.guide-body .callout {
+  margin: 12px 0;
+}
+.guide-body .note {
+  color: var(--text);
+}
+.steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+}
+.steps strong,
+.guide-body p strong {
+  color: var(--text);
+  font-weight: var(--fw-bold);
+}
+
+/* Term and definition. The label column is fixed so the definitions align down
+   the page and the list reads as a reference rather than as prose. */
+.kv-list {
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+.term {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.term dt {
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+.term dd {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+}
+@media (min-width: 720px) {
+  .term {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 20px;
+    align-items: baseline;
+  }
+}
+
+.table.states td {
+  color: var(--text-dim);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.table.states th[scope='row'] {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--fs-body);
+}
+.print-hint {
+  margin-top: 24px;
+  font-size: var(--fs-meta);
+  color: var(--text-faint);
+}
+
+/* Saving the guide as a PDF is the browser's print dialog, so print is a real
+   output here rather than an afterthought: ink on white, no app chrome, and no
+   page breaks landing between a heading and the text it introduces. */
+@media print {
+  .sidebar,
+  .topbar,
+  .mobile-nav,
+  .print-hint {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff;
+    color: #111;
+    font-size: 11pt;
+  }
+  .shell {
+    display: block;
+    height: auto;
+  }
+  .content {
+    overflow: visible;
+    padding: 0;
+  }
+  .panel {
+    border: none;
+    background: none;
+  }
+  .panel-body {
+    padding: 0;
+  }
+  .guide-body,
+  .guide-body p,
+  .term dd,
+  .steps {
+    color: #111;
+    max-width: none;
+  }
+  .guide-body h2,
+  .guide-body h3,
+  .term dt,
+  .guide-body p strong {
+    color: #000;
+  }
+  .callout {
+    background: #f4f5f7;
+    border-left-color: #999;
+    break-inside: avoid;
+  }
+  .term,
+  .table.states tr {
+    break-inside: avoid;
+  }
+  .guide-body h2,
+  .guide-body h3 {
+    break-after: avoid;
+  }
+}
+
 /* ---------- form ---------- */
 
 .field {
