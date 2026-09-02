@@ -23,7 +23,7 @@ export default async function DisclosurePage() {
         lead="Any commercial relationship between the maintainer and an entity rated by Safegate. Generated from the registry rather than written by hand, so it cannot quietly fall out of date."
         stats={[
           { label: 'entries checked', value: entries.length },
-          { label: 'commercial ties', value: disclosed.length, tone: clean ? 'good' : 'warn' },
+          { label: 'commercial ties', value: disclosed.length, note: 'declared, not audited' },
         ]}
       />
 

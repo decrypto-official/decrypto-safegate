@@ -27,7 +27,9 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
             {(['all', 'evm', 'solana'] as const).map((f) => (
               <button
                 key={f}
+                type="button"
                 className="tag"
+                aria-pressed={familyFilter === f}
                 onClick={() => setFamilyFilter(f)}
                 style={{
                   cursor: 'pointer',
@@ -61,7 +63,20 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
               {visible.map((pattern) => (
                 <tr
                   key={pattern.id}
+                  className="row-button"
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={pattern.id === selected?.id}
                   onClick={() => setSelectedId(pattern.id)}
+                  onKeyDown={(e) => {
+                    // This list is the only way to reach any pattern but the
+                    // first. Without a key handler the rest of the dictionary
+                    // was unreachable without a mouse.
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedId(pattern.id);
+                    }
+                  }}
                   style={{
                     cursor: 'pointer',
                     background: pattern.id === selected?.id ? 'var(--surface-raised)' : undefined,
@@ -71,11 +86,18 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
                   <td className="mono" style={{ color: 'var(--text)', overflowWrap: 'anywhere' }}>
                     {pattern.id}
                   </td>
-                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)', overflowWrap: 'anywhere' }}>
+                  {/* No overflowWrap here. `anywhere` breaks at any character,
+                      and capability names have no hyphen to break at, so
+                      `upgradeability` rendered as `upgradeabili/ty`. */}
+                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>
                     {pattern.capability}
                   </td>
-                  <td style={{ textAlign: 'right', color: 'var(--unknown)' }}>
-                    {pattern.knownFalseNegative ? '!' : ''}
+                  <td style={{ textAlign: 'right', color: 'var(--text-faint)' }}>
+                    {pattern.knownFalseNegative ? (
+                      <abbr title="documents a known false negative">!</abbr>
+                    ) : (
+                      ''
+                    )}
                   </td>
                 </tr>
               ))}

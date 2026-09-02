@@ -34,6 +34,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </header>
 
+          {/* Only rendered visibly below 1024px, where .sidebar is hidden. */}
+          <div className="mobile-nav">
+            <Nav variant="bar" />
+          </div>
+
           <main className="content">{children}</main>
         </div>
       </body>

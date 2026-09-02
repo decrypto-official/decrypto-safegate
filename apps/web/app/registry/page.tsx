@@ -17,7 +17,7 @@ export default async function RegistryPage() {
           { label: 'entries', value: entries.length },
           { label: 'ethereum', value: entries.filter((e) => e.chain === 'ethereum').length },
           { label: 'solana', value: entries.filter((e) => e.chain === 'solana').length },
-          { label: 'commercial ties', value: disclosed, tone: disclosed === 0 ? 'good' : 'warn' },
+          { label: 'commercial ties', value: disclosed, note: 'declared, not audited' },
         ]}
       />
       <RegistryBrowser entries={entries} />

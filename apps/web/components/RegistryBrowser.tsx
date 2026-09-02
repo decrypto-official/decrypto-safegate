@@ -61,7 +61,19 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
               {visible.map((entry) => (
                 <tr
                   key={entry.id}
+                  className="row-button"
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={entry.id === selected?.id}
                   onClick={() => setSelectedId(entry.id)}
+                  onKeyDown={(e) => {
+                    // Same as the pattern list: this is the only route to any
+                    // entry but the first, so it has to answer the keyboard.
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedId(entry.id);
+                    }
+                  }}
                   style={{
                     cursor: 'pointer',
                     background: entry.id === selected?.id ? 'var(--surface-raised)' : undefined,
@@ -72,7 +84,10 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
                     {entry.symbol}
                     <div style={{ fontSize: 'var(--fs-label)', color: 'var(--text-faint)' }}>{entry.chain}</div>
                   </td>
-                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)', overflowWrap: 'anywhere' }}>
+                  {/* No overflowWrap: it breaks mid-word, and archetypes like
+                      `crypto-collateralised-stablecoin` should break at their
+                      hyphens instead. */}
+                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>
                     {entry.archetype}
                   </td>
                   <td data-numeric style={{ textAlign: 'right', color: 'var(--text-dim)' }}>

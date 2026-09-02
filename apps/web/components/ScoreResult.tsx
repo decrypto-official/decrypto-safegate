@@ -43,7 +43,13 @@ export function ScoreResult({ score }: { score: Score }) {
       <div className="panel">
         <div className="panel-body" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'baseline' }}>
           <div>
-            <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em' }}>
+            {/* An h1, not a div. The only h1 on this route lived in the
+                pre-search intro and unmounted as soon as a score arrived, so
+                the result view had no h1 at all and the token's name — the most
+                important word on the page — was not a heading. Navigating by
+                heading landed on "Axes" and "Signals" without ever announcing
+                which token was being read. */}
+            <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
               {score.symbol ?? 'Unknown token'}
               {score.name && score.name !== score.symbol && (
                 <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-lg)' }}>
@@ -51,7 +57,7 @@ export function ScoreResult({ score }: { score: Score }) {
                   {score.name}
                 </span>
               )}
-            </div>
+            </h1>
             <div className="addr">
               {score.chain} {truncate(score.address)}
             </div>
@@ -60,9 +66,12 @@ export function ScoreResult({ score }: { score: Score }) {
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             {score.registryEntry ? (
               <>
-                <div className="tag" style={{ color: 'var(--expected)', borderColor: 'var(--expected)' }}>
-                  registry: {score.registryEntry.archetype}
-                </div>
+                {/* Plain. Tinted with --expected this was the most saturated
+                    shape above the fold, so the first thing the eye reached on
+                    a risk report was a piece of provenance metadata rather than
+                    the axes. --expected also means a specific thing about a
+                    capability, and this is not one. */}
+                <div className="tag">registry: {score.registryEntry.archetype}</div>
                 <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 6 }}>
                   verified {score.registryEntry.verifiedAt} by {score.registryEntry.approvedBy}
                 </div>
@@ -98,7 +107,14 @@ export function ScoreResult({ score }: { score: Score }) {
                   <div key={axis} style={{ marginBottom: 14 }}>
                     <div className="meter" style={{ marginBottom: 4 }}>
                       <span className="meter-label">{axis}</span>
-                      <div className="meter-track">
+                      {/* An unassessed axis gets a hatched track, not an empty
+                          one. Empty read identically to a genuine zero: Exit
+                          scoring 0 (we checked, nothing found) and Transparency
+                          resolving nothing produced the same flat grey bar, and
+                          the bar is the element with the most visual weight per
+                          axis. Anyone scanning bars rather than numbers could
+                          not tell "confirmed clear" from "we know nothing". */}
+                      <div className={assessed ? 'meter-track' : 'meter-track meter-track-unread'}>
                         {assessed && (
                           <div
                             className="meter-fill"
@@ -106,9 +122,14 @@ export function ScoreResult({ score }: { score: Score }) {
                           />
                         )}
                       </div>
+                      {/* n/a is neutral, never amber. --unknown means "we could
+                          not check this capability"; reusing it for an
+                          unassessed axis put "nothing resolved" in the same
+                          colour as Control's resolved 50, so the two read as
+                          the same severity band at a glance. */}
                       <span
                         className="meter-value"
-                        style={{ color: assessed ? severity(a.value) : 'var(--unknown)' }}
+                        style={{ color: assessed ? severity(a.value) : 'var(--text-faint)' }}
                       >
                         {assessed ? a.value : 'n/a'}
                       </span>
@@ -131,14 +152,17 @@ export function ScoreResult({ score }: { score: Score }) {
             </div>
             <div className="panel-body">
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                {/* Neutral, and no larger than the token symbol.
+                    This was banded green above 80, amber above 60, red below —
+                    a traffic light on a figure whose own caption one line down
+                    says it is not a safety measure. Cropped to this panel alone
+                    it produced a green "75%" badge: exactly the compact verdict
+                    card the rest of this component refuses to offer. At 34px it
+                    was also the largest text on the page, outweighing the token
+                    being analysed. */}
                 <span
                   data-numeric
-                  style={{
-                    fontSize: 'var(--fs-display)',
-                    fontWeight: 600,
-                    letterSpacing: '-0.02em',
-                    color: coveragePct >= 80 ? 'var(--absent)' : coveragePct >= 60 ? 'var(--unknown)' : 'var(--present)',
-                  }}
+                  style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em' }}
                 >
                   {coveragePct}%
                 </span>
@@ -223,7 +247,7 @@ export function ScoreResult({ score }: { score: Score }) {
             <h2 className="panel-title">Signals</h2>
             <span className="tag">{sorted.length} capabilities checked</span>
           </div>
-          <div className="findings">
+          <div className="findings" role="list">
             {sorted.map((signal) => (
               <SignalRow key={signal.capability} signal={signal} />
             ))}
@@ -332,17 +356,39 @@ function SignalRow({ signal }: { signal: Signal }) {
   const hit = signal.observations.find((o) => o.value !== null && o.value !== undefined);
 
   return (
-    <article className="finding">
+    <article className="finding" role="listitem" aria-labelledby={`cap-${signal.capability}`}>
       <div className="finding-head">
-        <span className={`state state-${signal.state} finding-state`}>{signal.state}</span>
-        <span className="finding-cap">{signal.capability}</span>
+        {/* Sighted readers take these four fields from their position. Nothing
+            carried that meaning to a screen reader once this stopped being a
+            table with column headers: it read as one run-on string with no way
+            to tell the axis from the pattern that sourced it. The labels are
+            visually hidden, not absent. */}
+        <span className={`state state-${signal.state} finding-state`}>
+          <span className="visually-hidden">State: </span>
+          {signal.state}
+        </span>
+        <h3 className="finding-cap" id={`cap-${signal.capability}`}>
+          <span className="visually-hidden">Capability: </span>
+          {signal.capability}
+        </h3>
         <span className="finding-meta">
-          <span>{signal.axis}</span>
+          <span>
+            <span className="visually-hidden">Axis: </span>
+            {signal.axis}
+          </span>
           {/* Provenance travels with every value. */}
-          {hit?.patternId ? <span className="tag">{hit.patternId}</span> : <span>no source</span>}
+          {hit?.patternId ? (
+            <span className="tag">
+              <span className="visually-hidden">Read by pattern: </span>
+              {hit.patternId}
+            </span>
+          ) : (
+            <span>no source</span>
+          )}
         </span>
       </div>
       <p className="reason" style={{ margin: 0 }}>
+        <span className="visually-hidden">Reasoning: </span>
         {signal.reasoning}
       </p>
     </article>

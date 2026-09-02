@@ -64,6 +64,12 @@
   --fs-xl: 26px;
   --fs-display: 34px;
 
+  /* Three weights, not two. Everything emphasised sat at 600, so nothing could
+     be emphasised less than maximally and the page read flat. */
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-bold: 600;
+
   --lh-tight: 1.35;
   --lh-body: 1.5;
   --lh-prose: 1.65;   /* prose is read, not scanned; it gets the room */
@@ -96,6 +102,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Available to assistive technology, absent from the visual layout. Used to
+   name fields whose meaning a sighted reader takes from column position. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Every number in this product is compared against another number. */
 [data-numeric],
 .mono {
@@ -111,7 +131,9 @@ body {
   grid-template-rows: var(--topbar-h) 1fr;
   grid-template-areas:
     'sidebar topbar'
+    'sidebar mobilenav'
     'sidebar content';
+  grid-template-rows: var(--topbar-h) auto 1fr;
   height: 100dvh;
   width: 100%;
 }
@@ -144,14 +166,39 @@ body {
   padding: var(--pad);
 }
 
+.mobile-nav {
+  grid-area: mobilenav;
+  display: none;
+}
+
 @media (max-width: 1024px) {
   .shell {
     grid-template-columns: 1fr;
-    grid-template-areas: 'topbar' 'content';
+    grid-template-areas: 'topbar' 'mobilenav' 'content';
+    grid-template-rows: var(--topbar-h) auto 1fr;
   }
   .sidebar {
     display: none;
   }
+  .mobile-nav {
+    display: block;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    min-width: 0;
+  }
+}
+
+/* Horizontal, scrollable if the links outrun the width. */
+.nav-bar {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.nav-bar .nav-item {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ---------- brand ---------- */
@@ -227,7 +274,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: var(--fw-medium);
   margin: 0;
 }
 .panel-body {
@@ -296,7 +343,11 @@ body {
    so the detail pane takes everything else, which is what fills the screen. */
 .master-detail {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  /* 420px, not 360px. table-layout: fixed breaks a word rather than overflow
+     its column, and at 360px the capability column was rendering
+     `upgradeability` as `upgradeabili/ty`. Capability names are the thing this
+     list is scanned by, so they get the width they need to stay whole. */
+  grid-template-columns: 420px minmax(0, 1fr);
   gap: var(--pad);
   align-items: start;
 }
@@ -356,7 +407,7 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: var(--fw-medium);
   padding: 10px var(--pad);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -402,6 +453,16 @@ body {
   border-radius: 2px;
   overflow: hidden;
 }
+.meter-track-unread {
+  /* Hatched, so "not assessed" cannot be mistaken for a track sitting at zero.
+     Colour alone would not do it: an empty grey bar and a zero-width fill on a
+     grey bar are the same pixels. */
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--border-strong) 0 2px,
+    transparent 2px 6px
+  );
+}
 .meter-fill {
   height: 100%;
   border-radius: 3px;
@@ -446,6 +507,39 @@ body {
   border-left-color: var(--expected);
 }
 
+.rules {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  max-width: var(--measure);
+}
+.rules > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.rules dt {
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  font-size: var(--fs-h);
+}
+.rules dd {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+}
+@media (min-width: 900px) {
+  .rules > div {
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    align-items: baseline;
+  }
+}
+
 /* ---------- findings: prose that is not tabular data ----------
  *
  * The signals list used to be a five-column table whose last column held a
@@ -462,8 +556,11 @@ body {
   flex-direction: column;
 }
 .finding {
-  padding: 16px var(--pad-lg);
-  border-bottom: 1px solid var(--border);
+  padding: 20px var(--pad-lg);
+  /* --border-strong, not --border. These are the page's primary content unit,
+     and at 1px hairline the four findings read as one continuous grey block
+     rather than four separate readings. */
+  border-bottom: 1px solid var(--border-strong);
 }
 .finding:last-child {
   border-bottom: none;
@@ -479,9 +576,10 @@ body {
   margin-bottom: 6px;
 }
 .finding-cap {
+  margin: 0; /* it is an h3 now, for heading navigation; it must not look like one */
   font-family: var(--font-mono);
   font-size: var(--fs-h);
-  font-weight: 600;
+  font-weight: var(--fw-bold);
   color: var(--text);
   letter-spacing: -0.01em;
 }
@@ -555,7 +653,9 @@ body {
 .input:focus-visible,
 .select:focus-visible,
 .btn:focus-visible,
-.nav-item:focus-visible {
+.nav-item:focus-visible,
+.row-button:focus-visible,
+tr.row-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
