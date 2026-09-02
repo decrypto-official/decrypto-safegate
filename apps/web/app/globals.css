@@ -148,6 +148,20 @@ body {
   overflow-y: auto;
 }
 
+/* The tagline is one line or it is nothing. The bar is a fixed --topbar-h, so
+   at narrow widths the sentence wrapped to three lines and was clipped by it. */
+.topbar-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .topbar-note {
+    display: none;
+  }
+}
+
 .topbar {
   grid-area: topbar;
   border-bottom: 1px solid var(--border);
@@ -306,6 +320,23 @@ body {
   flex-direction: column;
   gap: var(--pad);
   min-width: 0;
+  /* The rail is short and the findings column is long, so the rail always ran
+     out partway down and left dead space beside the tail of the list. Sticking
+     it means the axes, the coverage figure and the incident note stay on screen
+     while the findings are read — which is the point of putting them side by
+     side. The empty space below is then deliberate rather than left over. */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: calc(100dvh - var(--topbar-h) - var(--pad) * 2);
+  overflow-y: auto;
+}
+@media (max-width: 1440px) {
+  .summary-rail {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 /* The findings column. Everything that is not the summary rail stacks here.
@@ -512,7 +543,6 @@ body {
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--border);
-  max-width: var(--measure);
 }
 .rules > div {
   display: grid;
@@ -531,10 +561,14 @@ body {
   color: var(--text-dim);
   font-size: var(--fs-prose);
   line-height: var(--lh-prose);
+  /* The measure belongs to the prose, not to the whole two-column block.
+     Capping the block made the text column narrower than it needed to be while
+     leaving the panel's right half empty. */
+  max-width: var(--measure);
 }
 @media (min-width: 900px) {
   .rules > div {
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: 320px minmax(0, 1fr);
     gap: 24px;
     align-items: baseline;
   }
