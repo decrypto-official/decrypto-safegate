@@ -1,6 +1,6 @@
 {
   "name": "decrypto-safegate",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "An open, reproducible risk methodology for crypto tokens. Reads structure from the chain, scores three axes, and always publishes how much it could actually check.",
   "license": "Apache-2.0",
   "type": "module",
