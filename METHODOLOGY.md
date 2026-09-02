@@ -122,6 +122,18 @@ Missing this distinction is a live bug in naive implementations: USDC's `paused(
 
 `UNKNOWN`, and coverage drops. A gap in the dictionary must be visible in the output, never silently forgiving.
 
+That covers a capability we knew to look for and could not resolve. It does not cover the harder case: a capability we never knew to look for at all, where no pattern applies and so nothing is emitted.
+
+### When we did not know to look
+
+The contract's runtime bytecode carries the 4-byte selector of every function it dispatches. We scan it for privileged functions — mint, upgrade, admin, pause, blacklist, fee and metadata surfaces — and subtract two things: any selector a pattern already reads, and any capability we already resolved positively by another route. What remains is published as `dictionaryGaps`.
+
+**This is reported and never scored.** No axis, no coverage figure and no signal state moves because of it. Knowing that a function exists is not the same as reading who holds it, and treating the first as evidence of the second is exactly the inference the pattern dictionary exists to avoid. A gap says our answer is incomplete on a named capability; it does not say the capability is live.
+
+The scan itself is a capability that can be missing, so its status travels with the score as `gapScan`: `ran`, `not-applicable` (Solana, which has no bytecode analogue), or `failed`. An empty `dictionaryGaps` is only reassuring when this reads `ran`, and the other two states carry an explicit limitation saying we did not look.
+
+The residual blind spot, still real: a privileged function whose signature is not in our table is invisible to this scan, exactly as it is to the dictionary. See [LIMITATIONS.md](LIMITATIONS.md) §5.
+
 ---
 
 ## 7. Sources and disagreement
@@ -163,3 +175,17 @@ That is the whole basis of the claim in the README. If the scorer could reach th
 Weights and mappings are data, in `src/signals/normalise.ts` and versioned alongside the code. A change to any number in this document is a methodology version bump, and must state what it changes, why, and which tokens' scores move as a result.
 
 See [GOVERNANCE.md](GOVERNANCE.md).
+
+### Open question: should a dictionary gap reduce coverage?
+
+Currently it does not, and §6 says why: coverage counts the checks we know how to make, and a capability with no pattern was never in that denominator.
+
+The argument the other way is that a contract we cannot fully read genuinely *has* lower coverage, and excluding gaps lets a token with several unreadable admin functions report the same coverage as one with none. That is a real objection and it has not been dismissed.
+
+It is deferred deliberately rather than left unnoticed. Changing it would move every published score, so it needs a version bump here and a before/after diff across the registry seed set. That diff should be produced from real gap counts across the 20 registry tokens once the scan has run against mainnet, not from an estimate — the decision depends on how often gaps actually occur and on how many.
+
+**First measurements.** The census has now run against mainnet twice. On 0.1.4 it found 4 of 12 scanned tokens carrying a gap (33%), 5 gaps in total, every one of them mint authority. Three of those five were closed in 0.1.5 by reading the contract shapes involved, leaving 2 of 12 (17%) and 2 gaps.
+
+Two readings of that are available and we do not yet choose between them. The rate fell by half once someone looked at the shapes, which suggests gaps largely measure dictionary coverage at a moment in time and will keep falling as patterns are contributed — an argument for leaving coverage alone. Against that, the two survivors are not survivors by accident: DAI's authorisation is a mapping with no zero-argument getter, and both remaining gaps are mint authority on tokens whose supply genuinely can move. A residue that resists closure is a stronger argument for counting gaps against coverage than the original 33% was, because it is the part that will still be there after the dictionary improves.
+
+The question stays open, and the seed set is 12 EVM tokens: too few to decide something that moves every published score.

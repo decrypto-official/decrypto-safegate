@@ -4,7 +4,7 @@ An open, reproducible way to read what a crypto token can actually do to you.
 
 Safegate reads a token's structure directly from the blockchain, scores it on three axes, and always tells you how much of the token it was able to check. Every score can be recomputed by a stranger from public inputs.
 
-**Status: v0.1.2.** Ethereum and Solana, a 14-pattern dictionary, a 20-token registry, a CLI and a dashboard. Methodology 0.1.0. Changes are tracked in [UPDATE.md](UPDATE.md).
+**Status: v0.1.5.** Ethereum and Solana, a 17-pattern dictionary, a 20-token registry, a CLI and a dashboard. Methodology 0.1.0. Changes are tracked in [UPDATE.md](UPDATE.md).
 
 ---
 
@@ -123,6 +123,8 @@ The bar for merging is deliberately high, because the registry is the part peopl
 ## What this cannot do
 
 Read [LIMITATIONS.md](LIMITATIONS.md) before relying on anything here. The short version: this is a structural reading, not a prediction. It cannot see team intent, custody arrangements, private agreements or hidden unlock schedules, and it cannot tell you whether a token will rug.
+
+It also cannot read every contract shape. Where a contract exposes a privileged function no pattern of ours reads, the score carries it as a `dictionaryGaps` entry — unaccounted for, not absent — and `gapScan` records whether that check ran at all. Both are reported beside the score and never folded into it.
 
 ---
 

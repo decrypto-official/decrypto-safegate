@@ -14,6 +14,102 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.5, 2026-09-02
+
+Acts on the first real measurement from the census 0.1.4 added. Three of the five dictionary gaps it found on mainnet are now read; the two that remain are documented as deliberate rather than pending.
+
+### Added
+
+**Three patterns, for the three contract shapes the census caught us missing.** The census walked the registry seed set and reported that 4 of 12 scanned EVM tokens expose a privileged function no pattern reads — DAI, MKR, WBTC and ENS, five gaps in total. These were live false negatives: each of those tokens scored as though it had no mint authority at all.
+
+None of the five functions can be read directly, and that constraint shaped every pattern here. `applyEvmPatterns` sends a selector with no arguments, by design, so `mint(address,uint256)` and `setOwner(address)` are unreadable twice over: they take parameters, and they write state. The fix in each case is to find the zero-argument getter that betrays the same contract shape.
+
+- **`admin-dsauth`**, reading `authority()`. The Ownable false negative in the dialect that predates Ownable. DSAuth permits a call if the caller is the owner **or** if `authority.canCall` approves it, so a token whose `owner()` is empty can still be fully administered. The census corroborated this from the other direction before the pattern existed: it flagged MKR's `setOwner(address)` precisely because `owner()` came back empty and nothing read the authority.
+
+- **`mint-oz-mintable`**, reading `mintingFinished()`. The legacy OpenZeppelin `MintableToken` shape, where the flag exists only on a contract whose `mint` is guarded by `canMint`. WBTC is the case that makes this pattern worth reading twice: it **overrides `finishMinting()` to `return false`** with no `super` call and no assignment, so `mintingFinished` can never become true and minting is architecturally permanent. A reader that takes the flag at face value gets the opposite of the truth, which is why the pattern scores on the function existing rather than on what it returns.
+
+- **`mint-capped-schedule`**, reading `nextMint()`. A rate-limited governance mint. ENS already resolved `admin-authority` through `owner()`, but supply and administration are different capabilities, and nothing in the dictionary read the supply side — a token that can dilute holders on a schedule was reporting no mint authority whatsoever. The pattern deliberately does not read the cap or the interval: reporting "capped at a few percent a year" as though it were a safety property is a judgement, and patterns do not make judgements.
+
+**Six regression locks**, three live and three offline.
+
+The live three nearly shipped broken, and the way they failed is worth recording. Written first as `expect(state).not.toBe('ABSENT')`, the WBTC and ENS locks **passed in a sandbox where every RPC endpoint returned 403** — an unreachable endpoint records `undefined`, which becomes `UNKNOWN`, and `UNKNOWN` is not `ABSENT`. A regression lock that a total network outage satisfies is not a lock. All three now name the value they expect.
+
+The offline three lock the reasoning rather than the outcome, so they need no network: no pattern may match `mint(address,uint256)` or `setOwner(address)` as a call, both signatures stay in the privileged-function table, and every pattern added here reads through a zero-argument getter.
+
+### Changed
+
+**The census result, which is the point of the release.** Gaps fell from 5 to 2, and tokens carrying a gap from 4 of 12 (33%) to 2 of 12 (17%). ENS and WBTC now scan clean. MKR keeps one gap, DAI keeps one, both mint authority.
+
+**`METHODOLOGY.md` §10 now carries real numbers** in place of the note that nobody had any. The deferred question — should a dictionary gap reduce coverage? — stays deferred, but on better evidence and with the argument stated in both directions. The rate halving once someone looked at the shapes suggests gaps largely measure dictionary coverage at a moment in time; the fact that the two survivors resist closure cuts the other way, since that is the part which will still be there after the dictionary improves. Twelve EVM tokens is too small a seed set to settle something that moves every published score.
+
+**`LIMITATIONS.md` §5 gains a bound the project had not stated:** a detected gap is not always a closable one. Finding a gap and being able to read the capability are separate problems. DAI is both failure cases at once — `mint(address,uint256)` takes arguments, its `wards` authorisation is a mapping with no fixed slot, and the contract exposes no zero-argument admin getter of any kind — so that gap is reported on every DAI score and we have no way to close it.
+
+**`README.md` said v0.1.2 and a 14-pattern dictionary.** Both had been true two releases earlier.
+
+### Not done, deliberately
+
+**DAI's mint authority and MKR's mint authority stay unread**, and both stay in the privileged-function table so the census keeps reporting them.
+
+There was a shortcut available: treat a selector's presence in the bytecode as a reading of the capability. It would have closed all five gaps with two small files and needed no change to `findDictionaryGaps`, which already subtracts by `method.callSelector`. It was rejected, because if bytecode presence counts as a reading then every entry in the privileged-function table becomes a pattern, `findDictionaryGaps` returns nothing by construction, and the instrument that found these four tokens is deleted. That would have looked like closing the gaps while removing the ability to detect them.
+
+The line that keeps both features meaningful: the gap scanner says *a privileged function exists and we have no reading for it*; a pattern says *we can read who holds this capability on this contract shape*. MKR's mint is gated by the DSAuth authority, which is not mint-specific — reading it as mint authority would report a mint capability on every DSAuth contract, including those with no mint function.
+
+Where a capability cannot be read, the gap scanner is the only thing standing between it and silence. Trimming the table to make the census look clean would be the exact failure this project exists to prevent.
+
+---
+
+## 0.1.4, 2026-08-05
+
+Applies the project's own rule to the tool's blind spots: where Safegate cannot see, that has to be visible rather than silent.
+
+### Added
+
+**An error boundary on the web app**, `apps/web/app/error.tsx`. `/patterns`, `/registry` and `/disclosure` call the loaders directly while rendering. Since 0.1.1 those loaders throw rather than returning an empty array, which is right, but with no boundary Next served its generic 500 and production hid the reason behind "a server-side exception has occurred". 0.1.1 gave `/api/score` an honest 503 and left these three pages opaque.
+
+The boundary says plainly that the page could not be read, and that this is not evidence the registry or the dictionary is empty. A blank registry page and a registry page that failed to load are indistinguishable to a reader, and only one of them means "there is nothing here" — the same reasoning the scorer applies to a token capability.
+
+React strips error messages from client boundaries in production and replaces them with an opaque `digest`, so the boundary does not try to echo the loader's explanation. It states what is true either way and surfaces the digest for correlation with the server log.
+
+**A published contract for the score shape**, `src/scoring/schema.ts`. `GET /api/score` and `safegate score --json` hand the score object to code we do not control, and nothing here noticed when that shape changed. Adding `assessed` in 0.1.3 altered the contract and the whole suite still passed.
+
+The contract is now enforced twice. At compile time, two assertions prove the zod schema and the `Score` interface describe the same shape in both directions, so adding a field to one and forgetting the other fails `npm run typecheck`. At runtime, every object is `.strict()`, so an undeclared field is an error rather than something carried along silently. Six tests cover a real score, the same score after a JSON round trip, and the drift cases: an extra field, a missing `assessed`, missing `limitations`, an axis value out of range.
+
+There is deliberately no separate `score.schema.json`. Two maintained definitions of one shape drift apart, which is the failure this is meant to prevent. zod is already how `patterns/` and `registry/` are validated in `src/cli/validate.ts`.
+
+`parseScore()` and `safeParseScore()` are exported for consumers who want the contract enforced on their side. Neither runs on the request path: the scorer builds the object, so validating our own output on every request would spend time catching a bug only a code change can introduce, and the tests already catch that.
+
+**Detection of privileged functions no pattern reads.** `LIMITATIONS.md` §5 calls this the failure mode this project considers most likely: *"a token using an admin pattern we have never seen will under-report its capabilities, and we will not know it happened."* That gap was entirely invisible. No pattern matched, nothing was emitted, and the token read as clean — the tool applying to its own dictionary exactly the "absence means safety" rule it refuses to apply to a token.
+
+A contract's runtime bytecode contains the 4-byte selector of every function it dispatches, so we can now ask what the dictionary cannot: does this contract answer to a privileged function no pattern of ours reads? `src/patterns/selectors.ts` walks the bytecode opcode by opcode, collects the selectors it pushes, and subtracts two things — any selector a pattern already calls, and any capability we already found positively another way. What survives is the case that matters, and it appears on the score as `dictionaryGaps`.
+
+**It reports, it does not score.** No axis, no coverage figure and no signal state moves. Knowing a function exists is not the same as reading who holds it, and inferring one from the other is the guesswork the dictionary exists to avoid. A score with no gaps is byte-identical to one produced before this shipped, apart from gaining an empty list. Whether an unreadable capability should reduce coverage is a real question and a separate one: it would move every published score and so needs a methodology version and a before/after seed-set diff.
+
+The finding is prepended to `limitations`, so it reaches the CLI, the dashboard and the API without any consumer changing, and both renderers show it above the signals: a reader who stops at the signal table would otherwise take an incomplete reading for a complete one.
+
+**keccak256**, `src/sources/keccak.ts`, dependency-free. Selectors are derived from signature strings rather than hand-copied as hex constants, because a wrong constant would produce a table matching nothing and the report would be quietly useless instead of visibly broken. Locked against the published digests for the empty string and `"abc"`, and cross-checked against four widely-known ERC-20 and Ownable selectors. Note this is Keccak with 0x01 padding, not NIST SHA3-256 — Node's `crypto` offers the latter and they disagree on every input.
+
+**`gapScan` on every score**, recording whether the scan above actually ran: `ran`, `not-applicable`, or `failed`. Without it an empty `dictionaryGaps` meant two different things — we looked and found none, and we never looked — and a reader could not tell which. The second case is every Solana score, since there is no bytecode analogue, and any EVM score whose bytecode fetch failed. Both now carry an explicit limitation saying the empty list reflects a check that did not happen. Left unstated, "we could not check" reads exactly like "we checked and it is clean", which is the failure this release exists to fix, reproduced inside the fix.
+
+**A dictionary gap census**, `npm run census`, walking the registry seed set and reporting per token what the scan found: scanned with no gaps, scanned with gaps and which capabilities, not applicable, or unreadable. It exists to answer the question §10 of `METHODOLOGY.md` defers — should a gap reduce coverage? — on real numbers rather than an estimate, since that decision moves every published score and depends on how often gaps actually occur.
+
+It measures and does not gate. A token with gaps is a finding, not a fault, and the CI step is `continue-on-error` so a public endpoint having a bad minute cannot block a merge. One unreadable token is recorded and the walk continues rather than costing the other nineteen. The rate is reported against tokens actually scanned, never against all tokens — including Solana entries the scan never applied to would halve the apparent rate and argue against a change on the strength of tokens nobody looked at.
+
+Four tests cover the arithmetic, which is load-bearing on the deferred decision: wrong numbers here would argue for the wrong answer convincingly. The walk itself needs live RPC and runs in CI.
+
+**Completeness tests for the privileged-function table.** `metadata-mutability` had no entry, so that capability could never produce a gap and nothing said so. Entries added, and a test now requires every capability to be either scanned for or explicitly declared out of scope on EVM — a missing one fails rather than disappears. Two further tests assert signatures are canonical (a stray space or a `uint` alias hashes to a selector matching nothing) and that no two signatures collide.
+
+**Tests that hold the documents to the code.** `METHODOLOGY.md` must mention every capability and describe `dictionaryGaps` and `gapScan`; `LIMITATIONS.md` must no longer claim an undetected admin pattern is wholly invisible, while still admitting the residual gap. Both documents were briefly wrong after the feature landed, because the code gained an ability the prose still said it lacked. A document that overstates a blind spot is as misleading as one that hides it.
+
+### Changed
+
+**CI now runs on every branch**, not only `main`. Five commits reached this release and only the first was ever tested: with `push` limited to `main`, the rest depended entirely on the `pull_request` event firing, and it did not. Added `workflow_dispatch` for forcing a run without an empty commit, and a commit-keyed concurrency group so the push and pull-request events for one commit collapse into a single run.
+
+**`METHODOLOGY.md` §6 now documents what happens when we did not know to look**, and §10 records an open question rather than burying it: should a dictionary gap reduce coverage? It currently does not, and the argument that it should has not been dismissed — it is deferred until the scan has run against the registry seed set on mainnet, so the call is made on real gap counts instead of a guess.
+
+**`Observation.value` and the two `Disagreement` value fields are now optional keys** rather than required keys typed to include `undefined`. This is what was always true on the wire: `JSON.stringify` drops an `undefined`, so an observation meaning "we could not look" arrives with the key absent. Both forms parse, and neither is `ABSENT`. No runtime behaviour changed.
+
+---
+
 ## 0.1.3, 2026-08-05
 
 Review follow-up. The unassessed-axis fix in 0.1.1 was correct in the two places a human looks and absent from the one a machine reads.

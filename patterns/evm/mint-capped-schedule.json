@@ -1,0 +1,32 @@
+{
+  "id": "mint-capped-schedule",
+  "title": "Rate-limited governance mint nextMint()",
+  "chainFamily": "evm",
+  "capability": "mint-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xcf665443",
+    "signature": "nextMint() returns (uint256)",
+    "returnType": "uint256"
+  },
+  "detects": "A scheduled mint. This getter holds the earliest timestamp at which minting may next occur, and it exists only on a token whose mint function is gated by a time interval and a supply cap. The getter answering proves a mint mechanism is built in and currently governed by a schedule.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "A cap and a cooldown limit the rate of dilution, not the existence of the authority, and this pattern deliberately does not read either constant. Reporting 'capped at a few percent a year' as though it were a safety property would be a judgement, and patterns do not make judgements. It also cannot tell you who holds the authority: resolve admin-authority separately, because a scheduled mint controlled by a single key is a different proposition from the same schedule controlled by a DAO.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+      "symbol": "ENS",
+      "observed": "nextMint() answers alongside minimumMintInterval(), while mint(address,uint256) itself is unreadable",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "The census flagged ENS's mint(address,uint256) as unread. owner() already resolves who administers the token, but administration and supply are separate capabilities on separate axes, and nothing in the dictionary read the supply side. A governance token that can dilute holders on a schedule was reporting no mint authority whatsoever.",
+  "references": [
+    "https://docs.ens.domains/dao/token/",
+    "https://etherscan.io/address/0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72#code"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

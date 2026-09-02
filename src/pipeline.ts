@@ -5,10 +5,11 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { Chain, Observation, Score, UnverifiedReference } from './types.js';
-import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall } from './sources/rpc.js';
+import type { Chain, DictionaryGap, GapScanStatus, Observation, Score, UnverifiedReference } from './types.js';
+import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode } from './sources/rpc.js';
 import { solanaClient, fetchMint } from './sources/solana.js';
 import { loadPatterns, applyEvmPatterns, applySolanaPatterns } from './patterns/resolve.js';
+import { findDictionaryGaps } from './patterns/selectors.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
 import { normalise } from './signals/normalise.js';
 import { score } from './scoring/model2.js';
@@ -28,13 +29,37 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   let name: string | undefined;
   let rawForHash: unknown;
   const unverified: UnverifiedReference[] = [];
+  let dictionaryGaps: DictionaryGap[] = [];
+  // Solana has no bytecode analogue to scan, so that branch never changes this.
+  let gapScan: GapScanStatus = 'not-applicable';
 
   if (chain === 'ethereum') {
     const client = new RpcClient({ endpoints: options.evmEndpoints ?? DEFAULT_EVM_ENDPOINTS });
     observations = await applyEvmPatterns(client, address, patterns);
-    symbol = (await readErc20Symbol(client, address)) ?? entry?.symbol;
+    // Both reads depend only on the address, so they go out together rather
+    // than costing two sequential round trips on the request path.
+    //
+    // The bytecode read asks what the contract can do that our dictionary
+    // cannot see. It is reported beside the score and never folded into it:
+    // see the note in scoring/model2.ts. A failure here must not cost the
+    // caller their score — not knowing our own blind spots is worse than not
+    // reporting them, but it is not worse than returning nothing — so it
+    // degrades to null and the score stands on the readings we did get.
+    const [symbolRead, bytecode] = await Promise.all([
+      readErc20Symbol(client, address),
+      ethGetCode(client, address).catch(() => null),
+    ]);
+
+    symbol = symbolRead ?? entry?.symbol;
     name = entry?.name;
     rawForHash = observations.map((o) => [o.patternId, o.value]);
+
+    if (bytecode === null) {
+      gapScan = 'failed';
+    } else {
+      gapScan = 'ran';
+      dictionaryGaps = findDictionaryGaps(bytecode, patterns, observations);
+    }
   } else {
     const client = solanaClient(options.solanaEndpoints);
     const mint = await fetchMint(client, address);
@@ -84,6 +109,8 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
       : null,
     inputSnapshotHash: hash(rawForHash),
     computedAt: new Date().toISOString(),
+    dictionaryGaps,
+    gapScan,
   });
 }
 

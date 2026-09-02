@@ -122,6 +122,20 @@ function render(s: Score): void {
     }
   }
 
+  if (s.dictionaryGaps.length > 0) {
+    console.log(
+      `\n${BOLD}${YELLOW}NOT READ BY ANY PATTERN${RESET} ` +
+        `${DIM}(the contract can do these; we cannot see who holds them)${RESET}`
+    );
+    for (const gap of s.dictionaryGaps) {
+      console.log(
+        `  ${YELLOW}?${RESET} ${BOLD}${gap.signature}${RESET} ` +
+          `${DIM}[${gap.capability}] ${gap.selector}${RESET}`
+      );
+      console.log(`      ${DIM}${wrap(gap.note, 74, 6)}${RESET}`);
+    }
+  }
+
   console.log(`\n${BOLD}LIMITATIONS${RESET}`);
   for (const l of s.limitations) console.log(`  ${DIM}- ${wrap(l, 74, 4)}${RESET}`);
 

@@ -37,8 +37,14 @@ export type SourceId = 'onchain' | 'goplus' | 'rugcheck';
 /** A raw reading from one source, before any interpretation. */
 export interface Observation {
   capability: Capability;
-  /** null means the source looked and found nothing. undefined means it could not look. */
-  value: string | number | boolean | null | undefined;
+  /**
+   * null means the source looked and found nothing. Absent means it could not
+   * look. The key is optional rather than required-and-undefined because
+   * JSON.stringify drops an undefined, so after a round trip "could not look"
+   * arrives as a missing key. Both forms mean the same thing and neither means
+   * ABSENT.
+   */
+  value?: string | number | boolean | null;
   source: SourceId;
   /** Which pattern produced this, when the source is on-chain. */
   patternId?: string;
@@ -65,9 +71,9 @@ export interface Signal {
 export interface Disagreement {
   capability: Capability;
   /** Our own on-chain reading. */
-  ours: { value: unknown; source: SourceId; patternId?: string };
+  ours: { value?: unknown; source: SourceId; patternId?: string };
   /** What the third party claims. */
-  theirs: { value: unknown; source: SourceId };
+  theirs: { value?: unknown; source: SourceId };
   note: string;
 }
 
@@ -78,9 +84,30 @@ export interface Disagreement {
  */
 export interface UnverifiedReference {
   label: string;
-  value: unknown;
+  value?: unknown;
   source: SourceId;
   caveat: string;
+}
+
+/**
+ * Whether we scanned the contract for capabilities the dictionary cannot read.
+ *
+ * An empty `dictionaryGaps` is only reassuring when this is `ran`.
+ */
+export type GapScanStatus = 'ran' | 'not-applicable' | 'failed';
+
+/**
+ * A privileged function a contract exposes that no pattern in the dictionary
+ * reads. Evidence that our reading is incomplete, not evidence of a capability.
+ */
+export interface DictionaryGap {
+  /** The 4-byte selector as it appears in the bytecode. */
+  selector: string;
+  /** The canonical signature it was derived from. */
+  signature: string;
+  /** The capability this function would belong to, if we could read it. */
+  capability: Capability;
+  note: string;
 }
 
 export interface AxisResult {
@@ -133,6 +160,33 @@ export interface Score {
   methodologyVersion: string;
   inputSnapshotHash: string;
   computedAt: string;
+
+  /**
+   * Privileged functions the contract exposes that no pattern reads.
+   *
+   * Reported, never scored. These do not move an axis, a coverage figure or a
+   * signal state: knowing a function exists is not the same as reading who
+   * holds it, and inferring one from the other would be exactly the guesswork
+   * the dictionary exists to avoid.
+   *
+   * What it does say is that our answer is incomplete on a specific capability,
+   * which is the thing LIMITATIONS.md §5 admits we previously could not see.
+   * Empty for Solana, where there is no analogous bytecode to read.
+   */
+  dictionaryGaps: DictionaryGap[];
+
+  /**
+   * Whether the scan behind `dictionaryGaps` actually ran.
+   *
+   * Without this an empty list means two different things — we looked and
+   * found none, and we never looked — and a reader cannot tell which. That is
+   * the same conflation of absence with safety that the rest of this file
+   * exists to prevent, so it is not left to inference.
+   *
+   * `not-applicable` on Solana, which has no bytecode analogue to read.
+   * `failed` when the bytecode could not be fetched.
+   */
+  gapScan: GapScanStatus;
 
   /** What this score does not and cannot tell you. Always present. */
   limitations: string[];

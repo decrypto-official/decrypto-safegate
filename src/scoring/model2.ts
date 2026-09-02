@@ -10,7 +10,7 @@
  * If you ever need I/O here, you need a different file.
  */
 
-import type { Axis, AxisResult, Disagreement, Score, Signal, UnverifiedReference, Chain } from '../types.js';
+import type { Axis, AxisResult, Disagreement, DictionaryGap, GapScanStatus, Score, Signal, UnverifiedReference, Chain } from '../types.js';
 import { CAPABILITY_WEIGHT } from '../signals/normalise.js';
 
 export const METHODOLOGY_VERSION = '0.1.0';
@@ -39,6 +39,17 @@ export interface ScoreInput {
   inputSnapshotHash: string;
   /** Caller supplies the timestamp so this function has no clock dependency. */
   computedAt: string;
+  /**
+   * Privileged functions the contract exposes that no pattern reads. Reported,
+   * never scored: see the note where they are attached below. Optional so an
+   * existing caller keeps producing byte-identical output.
+   */
+  dictionaryGaps?: DictionaryGap[];
+  /**
+   * Whether the scan behind `dictionaryGaps` ran. Defaults to 'not-applicable',
+   * which is the honest answer for a caller that did not attempt one.
+   */
+  gapScan?: GapScanStatus;
 }
 
 export function score(input: ScoreInput): Score {
@@ -57,6 +68,42 @@ export function score(input: ScoreInput): Score {
     limitations.unshift(
       `Coverage is ${pct(scored / applicable)}. Fewer than two thirds of the applicable checks resolved, ` +
         `so this score is weak evidence. Read the unresolved signals rather than the numbers.`
+    );
+  }
+
+  const dictionaryGaps = input.dictionaryGaps ?? [];
+  const gapScan: GapScanStatus = input.gapScan ?? 'not-applicable';
+
+  // An empty list is only reassuring when we actually looked. Saying nothing
+  // here would let "we could not scan" read exactly like "we scanned and the
+  // contract is clean", which is the failure this whole feature exists to
+  // prevent, reproduced one level up inside the feature itself.
+  if (gapScan !== 'ran') {
+    limitations.unshift(
+      gapScan === 'failed'
+        ? `We could not read this contract's bytecode, so it was not checked for capabilities ` +
+            `the dictionary cannot see. The absence of findings below reflects a failed check, not a clean one.`
+        : `Scanning for capabilities the dictionary cannot read is not available on this chain, ` +
+            `so it was not attempted. An empty finding list here means we did not look, not that there is nothing.`
+    );
+  }
+
+  // A dictionary gap changes no number anywhere. It is stated in the
+  // limitations because that is where a reader is told what the score does not
+  // cover, and because a reader who sees only the axes would otherwise take an
+  // incomplete reading for a complete one.
+  //
+  // It deliberately does not reduce coverage. Coverage counts the checks we
+  // know how to make; a capability we have no pattern for was never in that
+  // denominator, and quietly moving it in would change every published score
+  // without a methodology version to explain why.
+  if (dictionaryGaps.length > 0) {
+    const capabilities = [...new Set(dictionaryGaps.map((g) => g.capability))];
+    limitations.unshift(
+      `This contract exposes ${dictionaryGaps.length} privileged function${dictionaryGaps.length === 1 ? '' : 's'} ` +
+        `that no pattern in the dictionary reads, affecting ${capabilities.join(', ')}. ` +
+        `Those capabilities are unaccounted for, not absent, and they are not included in any axis ` +
+        `or in the coverage figure. Read dictionaryGaps before treating this score as complete.`
     );
   }
 
@@ -84,6 +131,8 @@ export function score(input: ScoreInput): Score {
     methodologyVersion: METHODOLOGY_VERSION,
     inputSnapshotHash: input.inputSnapshotHash,
     computedAt: input.computedAt,
+    dictionaryGaps,
+    gapScan,
     limitations,
   };
 }

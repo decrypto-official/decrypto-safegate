@@ -56,9 +56,19 @@ The consequences of choosing human judgement:
 
 The dictionary covers the contract shapes we know. New shapes appear constantly.
 
-When no pattern matches, the result is `UNKNOWN` and coverage drops, so the gap is at least visible. But **a token using an admin pattern we have never seen will under-report its capabilities**, and we will not know it happened.
+When no pattern matches, the result is `UNKNOWN` and coverage drops, so the gap is at least visible.
 
-This is the failure mode we consider most likely, and it is why `patterns/` is open to contribution.
+Since 0.1.4 there is a second line of defence for the harder case, where no pattern applies and nothing would otherwise be emitted at all. We scan the contract's bytecode for privileged function selectors, subtract the ones our patterns already read, and publish what is left as `dictionaryGaps`. So a token with a `setMinter` we cannot read is now flagged as unaccounted for rather than passing silently.
+
+**That is a narrower fix than it sounds, and the failure mode is not closed.** The scan matches against a table of signatures we thought to include. A privileged function named something we did not anticipate is invisible to the scan for exactly the reason it is invisible to the dictionary, and **a token using an admin pattern we have never seen can still under-report its capabilities**. The scan shortens the list of ways that happens; it does not end it.
+
+Two further bounds worth stating plainly:
+
+- **A gap is not a finding.** It says a capability is unaccounted for, never that it is present. It moves no axis and no coverage figure.
+- **A detected gap is not always a closable one.** Finding the gap and being able to read the capability are separate problems, and 0.1.5 is where that became concrete. Our reader calls a function with no arguments, so a privileged function taking parameters cannot be called at all, and authority held in a mapping has no fixed storage slot to read. DAI is both cases at once: `mint(address,uint256)` takes arguments, its `wards` authorisation is a mapping, and the contract exposes no zero-argument admin getter of any kind. That gap is reported on every DAI score and we currently have no way to close it.
+- **The scan is EVM-only.** Solana has no bytecode analogue we read, so `dictionaryGaps` is always empty there — because we did not look, not because there is nothing. The `gapScan` field on every score says which of those applies.
+
+This remains the failure mode we consider most likely, and it is why `patterns/` is open to contribution.
 
 ---
 
