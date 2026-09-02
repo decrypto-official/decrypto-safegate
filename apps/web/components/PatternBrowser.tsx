@@ -44,10 +44,20 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
         </div>
 
         <div>
-          <table className="table" style={{ minWidth: 0 }}>
+          {/* role="grid" so a row may be focusable and selectable. Putting
+              role="button" on the <tr> instead overrode its row role, which
+              collapsed the cells into one flat button label and threw away the
+              column headers — breaking the table semantics that were the whole
+              reason for keeping a table. */}
+          <table className="table" role="grid" style={{ minWidth: 0 }}>
             <colgroup>
               <col />
-              <col style={{ width: 116 }} />
+              {/* 150, not 116. `upgradeability` is ~95px of glyphs at 13px with
+                  no hyphen to break at, and under table-layout: fixed a 116px
+                  track either broke it mid-word or spilled into the next
+                  column. Widening .master-detail did not help: this col is what
+                  constrains it. */}
+              <col style={{ width: 150 }} />
               <col style={{ width: 30 }} />
             </colgroup>
             <thead>
@@ -64,9 +74,8 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
                 <tr
                   key={pattern.id}
                   className="row-button"
-                  role="button"
                   tabIndex={0}
-                  aria-pressed={pattern.id === selected?.id}
+                  aria-selected={pattern.id === selected?.id}
                   onClick={() => setSelectedId(pattern.id)}
                   onKeyDown={(e) => {
                     // This list is the only way to reach any pattern but the

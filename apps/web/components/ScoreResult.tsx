@@ -30,7 +30,6 @@ export function ScoreResult({ score }: { score: Score }) {
   const order = { PRESENT: 0, UNKNOWN: 1, EXPECTED: 2, ABSENT: 3 };
   const sorted = [...signals].sort((a, b) => order[a.state] - order[b.state]);
 
-  const coveragePct = Math.round(score.coverage.ratio * 100);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)' }}>

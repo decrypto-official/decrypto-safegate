@@ -70,10 +70,9 @@ export function CoverageRing({ scored, applicable }: { scored: number; applicabl
           textAnchor="middle"
           dominantBaseline="central"
           fill="var(--text)"
-          fontSize="18"
           fontWeight="600"
           fontFamily="var(--font-mono)"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
+          style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-lg)' }}
         >
           {pct}%
         </text>
@@ -182,8 +181,8 @@ export function AxesRadar({ score }: { score: Score }) {
             textAnchor="middle"
             dominantBaseline="central"
             fill={p.assessed ? 'var(--text-dim)' : 'var(--text-faint)'}
-            fontSize="11"
             fontFamily="var(--font-mono)"
+            style={{ fontSize: 'var(--fs-label)' }}
           >
             {LABEL[p.axis]}
           </text>
@@ -194,8 +193,8 @@ export function AxesRadar({ score }: { score: Score }) {
               textAnchor="middle"
               dominantBaseline="central"
               fill="var(--text-faint)"
-              fontSize="10"
               fontFamily="var(--font-mono)"
+              style={{ fontSize: 'var(--fs-label)' }}
             >
               n/a
             </text>

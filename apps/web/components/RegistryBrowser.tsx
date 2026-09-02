@@ -42,7 +42,12 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
         </div>
 
         <div>
-          <table className="table" style={{ minWidth: 0 }}>
+          {/* role="grid" so a row may be focusable and selectable. Putting
+              role="button" on the <tr> instead overrode its row role, which
+              collapsed the cells into one flat button label and threw away the
+              column headers — breaking the table semantics that were the whole
+              reason for keeping a table. */}
+          <table className="table" role="grid" style={{ minWidth: 0 }}>
             <colgroup>
               <col style={{ width: 86 }} />
               <col />
@@ -62,9 +67,8 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
                 <tr
                   key={entry.id}
                   className="row-button"
-                  role="button"
                   tabIndex={0}
-                  aria-pressed={entry.id === selected?.id}
+                  aria-selected={entry.id === selected?.id}
                   onClick={() => setSelectedId(entry.id)}
                   onKeyDown={(e) => {
                     // Same as the pattern list: this is the only route to any

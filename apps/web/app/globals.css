@@ -45,8 +45,13 @@
      and so fails the 4.5:1 floor the same design document sets for text, at
      every surface it is used on: the specified palette contradicted the
      specified accessibility rule. Raised to the nearest value in the same hue
-     that clears it, and used at 12px rather than 10px. */
-  --text-faint: #8794a8;  /*  6.52 /  6.14 /  5.67 */
+     that clears it, and used at 12px rather than 10px.
+
+     #8794a8 was the first pass and sat within 4% of --text-dim, which collapsed
+     the two secondary tiers into one: "no source" and the axis beside it, or a
+     nav label and a nav item, became the same grey. This is a visible step
+     darker and still clears the floor on every surface. */
+  --text-faint: #7c8798;  /*  5.51 /  5.19 /  4.79 */
 
   /* Semantic states. Never used decoratively. */
   --present: #ff5c5c;   /* capability exists, nothing justifies it */
@@ -149,7 +154,7 @@ body {
     'sidebar topbar'
     'sidebar mobilenav'
     'sidebar content';
-  grid-template-rows: var(--topbar-h) auto 1fr;
+  grid-template-rows: auto auto 1fr;
   height: 100dvh;
   width: 100%;
 }
@@ -164,28 +169,29 @@ body {
   overflow-y: auto;
 }
 
-/* The tagline is one line or it is nothing. The bar is a fixed --topbar-h, so
-   at narrow widths the sentence wrapped to three lines and was clipped by it. */
+/* "Not a safety rating" is the product's central caveat, so it neither
+   truncates nor disappears. It was being clipped at medium widths and hidden
+   entirely below 640px, which removed the disclaimer on exactly the devices
+   least able to spare it. The bar grows instead. */
 .topbar-note {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   min-width: 0;
 }
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .topbar-note {
-    display: none;
+    font-size: var(--fs-meta);
   }
 }
 
 .topbar {
   grid-area: topbar;
+  min-height: var(--topbar-h);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 var(--pad);
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 8px var(--pad);
   min-width: 0;
 }
 
@@ -205,7 +211,7 @@ body {
   .shell {
     grid-template-columns: 1fr;
     grid-template-areas: 'topbar' 'mobilenav' 'content';
-    grid-template-rows: var(--topbar-h) auto 1fr;
+    grid-template-rows: auto auto 1fr;
   }
   .sidebar {
     display: none;
@@ -464,7 +470,10 @@ body {
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
-.table tbody tr:last-child td {
+/* Not .signals: there every record's second row is its tbody's last row, so
+   this rule out-specified the separator between records and merged the whole
+   list into one block — the exact thing that separator exists to prevent. */
+.table:not(.signals) tbody tr:last-child td {
   border-bottom: none;
 }
 .table tbody tr:hover {
