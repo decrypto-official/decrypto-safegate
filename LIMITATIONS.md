@@ -65,6 +65,7 @@ Since 0.1.4 there is a second line of defence for the harder case, where no patt
 Two further bounds worth stating plainly:
 
 - **A gap is not a finding.** It says a capability is unaccounted for, never that it is present. It moves no axis and no coverage figure.
+- **A detected gap is not always a closable one.** Finding the gap and being able to read the capability are separate problems, and 0.1.5 is where that became concrete. Our reader calls a function with no arguments, so a privileged function taking parameters cannot be called at all, and authority held in a mapping has no fixed storage slot to read. DAI is both cases at once: `mint(address,uint256)` takes arguments, its `wards` authorisation is a mapping, and the contract exposes no zero-argument admin getter of any kind. That gap is reported on every DAI score and we currently have no way to close it.
 - **The scan is EVM-only.** Solana has no bytecode analogue we read, so `dictionaryGaps` is always empty there — because we did not look, not because there is nothing. The `gapScan` field on every score says which of those applies.
 
 This remains the failure mode we consider most likely, and it is why `patterns/` is open to contribution.

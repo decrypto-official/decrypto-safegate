@@ -4,7 +4,7 @@ An open, reproducible way to read what a crypto token can actually do to you.
 
 Safegate reads a token's structure directly from the blockchain, scores it on three axes, and always tells you how much of the token it was able to check. Every score can be recomputed by a stranger from public inputs.
 
-**Status: v0.1.2.** Ethereum and Solana, a 14-pattern dictionary, a 20-token registry, a CLI and a dashboard. Methodology 0.1.0. Changes are tracked in [UPDATE.md](UPDATE.md).
+**Status: v0.1.5.** Ethereum and Solana, a 17-pattern dictionary, a 20-token registry, a CLI and a dashboard. Methodology 0.1.0. Changes are tracked in [UPDATE.md](UPDATE.md).
 
 ---
 

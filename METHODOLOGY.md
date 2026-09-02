@@ -182,4 +182,10 @@ Currently it does not, and §6 says why: coverage counts the checks we know how 
 
 The argument the other way is that a contract we cannot fully read genuinely *has* lower coverage, and excluding gaps lets a token with several unreadable admin functions report the same coverage as one with none. That is a real objection and it has not been dismissed.
 
-It is deferred deliberately rather than left unnoticed. Changing it would move every published score, so it needs a version bump here and a before/after diff across the registry seed set. That diff should be produced from real gap counts across the 20 registry tokens once the scan has run against mainnet, not from an estimate — the decision depends on how often gaps actually occur and on how many, which nobody currently knows.
+It is deferred deliberately rather than left unnoticed. Changing it would move every published score, so it needs a version bump here and a before/after diff across the registry seed set. That diff should be produced from real gap counts across the 20 registry tokens once the scan has run against mainnet, not from an estimate — the decision depends on how often gaps actually occur and on how many.
+
+**First measurements.** The census has now run against mainnet twice. On 0.1.4 it found 4 of 12 scanned tokens carrying a gap (33%), 5 gaps in total, every one of them mint authority. Three of those five were closed in 0.1.5 by reading the contract shapes involved, leaving 2 of 12 (17%) and 2 gaps.
+
+Two readings of that are available and we do not yet choose between them. The rate fell by half once someone looked at the shapes, which suggests gaps largely measure dictionary coverage at a moment in time and will keep falling as patterns are contributed — an argument for leaving coverage alone. Against that, the two survivors are not survivors by accident: DAI's authorisation is a mapping with no zero-argument getter, and both remaining gaps are mint authority on tokens whose supply genuinely can move. A residue that resists closure is a stronger argument for counting gaps against coverage than the original 33% was, because it is the part that will still be there after the dictionary improves.
+
+The question stays open, and the seed set is 12 EVM tokens: too few to decide something that moves every published score.

@@ -14,6 +14,50 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.5, 2026-09-02
+
+Acts on the first real measurement from the census 0.1.4 added. Three of the five dictionary gaps it found on mainnet are now read; the two that remain are documented as deliberate rather than pending.
+
+### Added
+
+**Three patterns, for the three contract shapes the census caught us missing.** The census walked the registry seed set and reported that 4 of 12 scanned EVM tokens expose a privileged function no pattern reads — DAI, MKR, WBTC and ENS, five gaps in total. These were live false negatives: each of those tokens scored as though it had no mint authority at all.
+
+None of the five functions can be read directly, and that constraint shaped every pattern here. `applyEvmPatterns` sends a selector with no arguments, by design, so `mint(address,uint256)` and `setOwner(address)` are unreadable twice over: they take parameters, and they write state. The fix in each case is to find the zero-argument getter that betrays the same contract shape.
+
+- **`admin-dsauth`**, reading `authority()`. The Ownable false negative in the dialect that predates Ownable. DSAuth permits a call if the caller is the owner **or** if `authority.canCall` approves it, so a token whose `owner()` is empty can still be fully administered. The census corroborated this from the other direction before the pattern existed: it flagged MKR's `setOwner(address)` precisely because `owner()` came back empty and nothing read the authority.
+
+- **`mint-oz-mintable`**, reading `mintingFinished()`. The legacy OpenZeppelin `MintableToken` shape, where the flag exists only on a contract whose `mint` is guarded by `canMint`. WBTC is the case that makes this pattern worth reading twice: it **overrides `finishMinting()` to `return false`** with no `super` call and no assignment, so `mintingFinished` can never become true and minting is architecturally permanent. A reader that takes the flag at face value gets the opposite of the truth, which is why the pattern scores on the function existing rather than on what it returns.
+
+- **`mint-capped-schedule`**, reading `nextMint()`. A rate-limited governance mint. ENS already resolved `admin-authority` through `owner()`, but supply and administration are different capabilities, and nothing in the dictionary read the supply side — a token that can dilute holders on a schedule was reporting no mint authority whatsoever. The pattern deliberately does not read the cap or the interval: reporting "capped at a few percent a year" as though it were a safety property is a judgement, and patterns do not make judgements.
+
+**Six regression locks**, three live and three offline.
+
+The live three nearly shipped broken, and the way they failed is worth recording. Written first as `expect(state).not.toBe('ABSENT')`, the WBTC and ENS locks **passed in a sandbox where every RPC endpoint returned 403** — an unreachable endpoint records `undefined`, which becomes `UNKNOWN`, and `UNKNOWN` is not `ABSENT`. A regression lock that a total network outage satisfies is not a lock. All three now name the value they expect.
+
+The offline three lock the reasoning rather than the outcome, so they need no network: no pattern may match `mint(address,uint256)` or `setOwner(address)` as a call, both signatures stay in the privileged-function table, and every pattern added here reads through a zero-argument getter.
+
+### Changed
+
+**The census result, which is the point of the release.** Gaps fell from 5 to 2, and tokens carrying a gap from 4 of 12 (33%) to 2 of 12 (17%). ENS and WBTC now scan clean. MKR keeps one gap, DAI keeps one, both mint authority.
+
+**`METHODOLOGY.md` §10 now carries real numbers** in place of the note that nobody had any. The deferred question — should a dictionary gap reduce coverage? — stays deferred, but on better evidence and with the argument stated in both directions. The rate halving once someone looked at the shapes suggests gaps largely measure dictionary coverage at a moment in time; the fact that the two survivors resist closure cuts the other way, since that is the part which will still be there after the dictionary improves. Twelve EVM tokens is too small a seed set to settle something that moves every published score.
+
+**`LIMITATIONS.md` §5 gains a bound the project had not stated:** a detected gap is not always a closable one. Finding a gap and being able to read the capability are separate problems. DAI is both failure cases at once — `mint(address,uint256)` takes arguments, its `wards` authorisation is a mapping with no fixed slot, and the contract exposes no zero-argument admin getter of any kind — so that gap is reported on every DAI score and we have no way to close it.
+
+**`README.md` said v0.1.2 and a 14-pattern dictionary.** Both had been true two releases earlier.
+
+### Not done, deliberately
+
+**DAI's mint authority and MKR's mint authority stay unread**, and both stay in the privileged-function table so the census keeps reporting them.
+
+There was a shortcut available: treat a selector's presence in the bytecode as a reading of the capability. It would have closed all five gaps with two small files and needed no change to `findDictionaryGaps`, which already subtracts by `method.callSelector`. It was rejected, because if bytecode presence counts as a reading then every entry in the privileged-function table becomes a pattern, `findDictionaryGaps` returns nothing by construction, and the instrument that found these four tokens is deleted. That would have looked like closing the gaps while removing the ability to detect them.
+
+The line that keeps both features meaningful: the gap scanner says *a privileged function exists and we have no reading for it*; a pattern says *we can read who holds this capability on this contract shape*. MKR's mint is gated by the DSAuth authority, which is not mint-specific — reading it as mint authority would report a mint capability on every DSAuth contract, including those with no mint function.
+
+Where a capability cannot be read, the gap scanner is the only thing standing between it and silence. Trimming the table to make the census look clean would be the exact failure this project exists to prevent.
+
+---
+
 ## 0.1.4, 2026-08-05
 
 Applies the project's own rule to the tool's blind spots: where Safegate cannot see, that has to be visible rather than silent.
