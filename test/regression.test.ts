@@ -27,6 +27,9 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const USDC_ETH = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const UNI_ETH = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';
 const PEPE_ETH = '0x6982508145454Ce325dDbE47a25d4ec3d2311933';
+const MKR_ETH = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2';
+const WBTC_ETH = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
+const ENS_ETH = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72';
 const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const RAY_SOL = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
 
@@ -1067,5 +1070,137 @@ describe('the gap census counts honestly', () => {
     const summary = summarise([]);
     expect(summary.gapRate).toBe(0);
     expect(Number.isNaN(summary.gapRate)).toBe(false);
+  });
+});
+
+
+/**
+ * The four tokens the dictionary-gap census caught.
+ *
+ * Each was a live false negative on mainnet: the contract exposes a privileged
+ * function, no pattern read it, and the token scored as though the capability did
+ * not exist. Three are now readable and locked here. The two that are not
+ * readable are locked further down, so "we chose not to" cannot decay into
+ * "we forgot".
+ *
+ * Every assertion below insists on a resolved value rather than merely a state
+ * that is not ABSENT. An unreachable endpoint records `undefined`, which becomes
+ * UNKNOWN, and UNKNOWN is not ABSENT — so the weaker assertion passes when
+ * nothing was read at all. A regression lock that a total network failure
+ * satisfies is not a lock.
+ */
+
+describe('MKR: the admin that predates Ownable', () => {
+  it(
+    'resolves the authority even though owner() finds nothing',
+    async () => {
+      const result = await analyse('ethereum', MKR_ETH);
+      const signal = result.axes.control.signals.find((s) => s.capability === 'admin-authority');
+
+      expect(signal).toBeDefined();
+      // DSAuth permits a call if the caller is the owner OR if authority.canCall
+      // approves it. Reading owner() alone on this token says "no admin".
+      expect(signal!.state).not.toBe('ABSENT');
+
+      const hit = signal!.observations.find((o) => o.patternId === 'admin-dsauth');
+      expect(hit).toBeDefined();
+      expect(String(hit!.value)).toMatch(/^0x[0-9a-f]{40}$/i);
+    },
+    TIMEOUT
+  );
+});
+
+describe('WBTC: minting that cannot be finished', () => {
+  it(
+    'reports mint authority from a shape whose mint function cannot be called',
+    async () => {
+      const result = await analyse('ethereum', WBTC_ETH);
+      const signal = result.axes.control.signals.find((s) => s.capability === 'mint-authority');
+
+      expect(signal).toBeDefined();
+      // mint(address,uint256) takes arguments and writes state, so it is
+      // unreadable. mintingFinished() is the zero-argument tell for the same shape.
+      expect(signal!.state).not.toBe('ABSENT');
+
+      const hit = signal!.observations.find((o) => o.patternId === 'mint-oz-mintable');
+      expect(hit).toBeDefined();
+      // presenceIndicatedBy is call-success, so a successful read is recorded as
+      // the mechanism being present. WBTC overrides finishMinting() to return
+      // false without setting the flag, which makes the flag's VALUE the one
+      // thing here that must never be mistaken for the answer.
+      expect(String(hit!.value)).toMatch(/mechanism present/i);
+    },
+    TIMEOUT
+  );
+});
+
+describe('ENS: a scheduled mint is still a mint', () => {
+  it(
+    'reports mint authority separately from who administers the token',
+    async () => {
+      const result = await analyse('ethereum', ENS_ETH);
+      const mint = result.axes.control.signals.find((s) => s.capability === 'mint-authority');
+
+      expect(mint).toBeDefined();
+      // owner() already resolved admin-authority here. Supply is a different
+      // capability on the same axis, and before mint-capped-schedule nothing
+      // read it at all.
+      expect(mint!.state).not.toBe('ABSENT');
+
+      const hit = mint!.observations.find((o) => o.patternId === 'mint-capped-schedule');
+      expect(hit).toBeDefined();
+      expect(String(hit!.value)).toMatch(/mechanism present/i);
+    },
+    TIMEOUT
+  );
+});
+
+describe('the gaps we chose not to close', () => {
+  // DAI's wards is a mapping at slot 0 with no zero-argument getter, and MKR's
+  // mint is gated by the DSAuth authority, which is not mint-specific: reading
+  // authority() as mint authority would report a mint capability on every DSAuth
+  // contract, including those with no mint function. Both stay gaps on purpose.
+  // These assertions lock the reasoning rather than the outcome, so they need no
+  // network and cannot rot when an endpoint is down.
+
+  it('never treats a selector sitting in bytecode as a reading of the capability', async () => {
+    // The shortcut this design refuses. A pattern matching mint(address,uint256)
+    // in the bytecode would close every remaining gap at once and make
+    // findDictionaryGaps return nothing by construction, deleting the instrument
+    // that found these four tokens in the first place.
+    const patterns = await loadPatterns();
+    const selectors = patterns
+      .map((p) => p.method.callSelector?.toLowerCase())
+      .filter((s): s is string => typeof s === 'string');
+
+    // mint(address,uint256) and setOwner(address). Both are write functions that
+    // take arguments, so a pattern claiming to call either would be reading nothing.
+    expect(selectors).not.toContain('0x40c10f19');
+    expect(selectors).not.toContain('0x13af4035');
+  });
+
+  it('keeps both unreadable functions in the privileged table so they stay reported', async () => {
+    // When a capability cannot be read, the gap scanner is the only thing between
+    // it and silence. Deleting these entries to make the census look clean would
+    // be the precise failure this project exists to prevent.
+    const { privilegedFunctionTable } = await import('../src/patterns/selectors.js');
+    const signatures = privilegedFunctionTable().functions.map((f) => f.signature);
+
+    expect(signatures).toContain('mint(address,uint256)');
+    expect(signatures).toContain('setOwner(address)');
+  });
+
+  it('reads every new pattern through a zero-argument getter', async () => {
+    // The constraint that shaped all three patterns: applyEvmPatterns sends the
+    // selector with no arguments, so a signature taking parameters would be
+    // called with empty calldata and revert, and resolve.ts records a revert as
+    // "function not present" — a false absence manufactured by our own reader.
+    const patterns = await loadPatterns();
+
+    for (const id of ['admin-dsauth', 'mint-oz-mintable', 'mint-capped-schedule']) {
+      const pattern = patterns.find((p) => p.id === id);
+      expect(pattern, `${id} should be loaded`).toBeDefined();
+      expect(pattern!.method.signature).toMatch(/^\w+\(\)/);
+    }
   });
 });
