@@ -14,6 +14,52 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.7, 2026-09-02
+
+The tail of the 0.1.6 pass, which merged before it was finished, plus the guide. Presentation and documentation only: no scoring code, no pattern or registry data, no published score moves.
+
+### Added
+
+**A guide, at `/guide`.** The dashboard assumed its reader already knew what minting, a proxy or an admin key was. Someone who does not is exactly the person the tool is for, and they were the only audience with nothing to read.
+
+It explains the screen top to bottom, defines every term it uses in plain words, and walks three real tokens: USDC, where three capabilities are expected and still real; MKR, whose administrator is invisible to the obvious check; and WBTC, whose "stop minting" function was overridden to do nothing, so trusting the flag gives the opposite of the truth.
+
+It is a page in the app rather than a document beside it, because the vocabulary it defines is the vocabulary on screen two clicks away, and because a second copy is a second thing to drift. Print styles are part of it, so the browser saves a clean PDF from the same source.
+
+Nothing countable is typed into it. The pattern count is read from the dictionary at build time, and four tests hold the prose to the code: it must explain every signal state the scorer can emit, name every axis, teach both of the distinctions the product exists to make, and count the dictionary rather than assert a number. When a capability or a state is added, the suite fails until the guide catches up — a guide that quietly falls behind is wrong with the authority of documentation, and its reader is the least equipped to notice.
+
+**Two figures.** Coverage is a ring, never drawn without its denominator, and deliberately not coloured by value — banding it would turn a measure of how much was read into a verdict on what was found. The three axes are a radar with the labelled bars beneath it, because a three-point radar alone shows a silhouette rather than a value.
+
+An unassessed axis is not plotted at all. At the origin it landed on the same pixel as a genuine zero, which is exactly the confusion the hatched meter track exists to prevent, reintroduced in the figure; its spoke is dashed and labelled `n/a` instead. Each assessed point carries its own value as text, so severity is never encoded by colour alone — the amber and green in use measure ΔE 7.7 under protanopia, below the 8 floor, and a reader with that form of colour blindness cannot separate them.
+
+Both are hand-drawn SVG, roughly forty lines each. A ring is one circle with a dash offset and a three-point radar is three points at fixed angles; a charting library earns its weight through generality that a fixed shape cannot use.
+
+### Fixed
+
+**The separator between signal records never rendered.** `.table tbody tr:last-child td` out-specified `.signals .reason-cell`, and every record's second row is its own tbody's last row, so the rule meant to keep records apart was overridden on every one of them — merging the findings list into the single grey block that separator exists to prevent. The generic rule now excludes `.signals`.
+
+**The central caveat disappeared on phones.** "Not a safety rating" was set to truncate with an ellipsis and then to `display: none` below 640px, so it was clipped at medium widths and gone entirely on the devices least able to spare it. The topbar grows to fit it.
+
+**`role="button"` on a `<tr>` broke the table it was meant to make accessible.** It overrides the implicit row role, so cells stop being cells, column headers are discarded, and the row collapses into one flat button label — undoing the semantics that were the reason for keeping a table. The lists are `role="grid"`, which legitimises a focusable, selectable row, and rows carry `aria-selected`.
+
+**The capability column still could not fit `upgradeability`.** Removing `overflowWrap` stopped it breaking mid-word, but the `<col>` was a fixed 116px under `table-layout: fixed`, so the word spilled into the next column instead. It is 150px.
+
+**`--text-faint` sat within 4% of `--text-dim`,** collapsing two secondary tiers into one grey. It is `#7c8798`, a visible step apart and still clear of the contrast floor at 5.51/5.19/4.79. `--text-dim` returns to `#8a97ad`, which measured 6.78/6.39/5.90 and never needed changing; 0.1.6's entry describes a `#9fabc0` that is now reverted.
+
+**`Figures.tsx` set `fontSize` inline at 11 and 10px,** breaking both rules 0.1.6 introduced: no inline pixel sizes, and nothing below 12px. The 10px case was the `n/a` marker on an unassessed axis.
+
+### Changed
+
+**Density returns to the internal spec.** Row height, panel padding, topbar height, sidebar width and the prose measure had each been loosened by a few pixels; they are back to the specified rhythm. Density and illegibility are separable, and only the latter was the complaint — so the tight rhythm is kept exactly and only the bottom of the type scale moves, where labels were being set at 10 and 11px in the faintest grey in the palette.
+
+**The signals list is a table again.** 0.1.6 replaced it with a list of articles to fix a real problem — a multi-sentence paragraph crushed into the fifth column of five — and lost the scoped headers doing it. Two rows per record satisfies both: the scannable fields stay a real table, and the reasoning spans the full width beneath at prose measure, always visible. Capability names render lowercase; as a row header they were inheriting the uppercase treatment of the column headers, which made the page disagree with the identifiers it was describing.
+
+### Removed
+
+**`coveragePct`,** dead once the ring took over the calculation.
+
+---
+
 ## 0.1.6, 2026-09-02
 
 A readability and accessibility pass on the web app. No scoring code was touched, no pattern or registry data changed, and no published score moves.

@@ -1204,3 +1204,68 @@ describe('the gaps we chose not to close', () => {
     }
   });
 });
+
+/**
+ * The guide has to keep up with the product.
+ *
+ * It is the one page written for someone who does not already know the
+ * vocabulary, which makes it the page that hurts most when it falls behind: it
+ * is wrong with the authority of documentation, and its reader is the one least
+ * able to notice. Features will keep landing, so these hold the prose to what
+ * the scorer actually emits rather than trusting anyone to remember.
+ */
+describe('the guide keeps up with the product', () => {
+  const guidePath = join(REPO_ROOT, 'apps/web/app/guide/page.tsx');
+
+  it('explains every state a signal can carry', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { signalStateSchema } = await import('../src/scoring/schema.js');
+    const guide = await readFile(guidePath, 'utf8');
+
+    for (const state of signalStateSchema.options) {
+      expect(
+        guide.includes(state),
+        `the guide never explains ${state}, so a reader meets it first on a real report`
+      ).toBe(true);
+    }
+  });
+
+  it('names every axis a score is reported on', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { axisSchema } = await import('../src/scoring/schema.js');
+    const guide = await readFile(guidePath, 'utf8');
+
+    for (const axis of axisSchema.options) {
+      expect(
+        guide.toLowerCase().includes(axis),
+        `the guide does not mention the ${axis} axis`
+      ).toBe(true);
+    }
+  });
+
+  it('counts the dictionary rather than stating a number that will rot', async () => {
+    // The pattern count changes every time someone contributes one, which is
+    // exactly the kind of fact that goes stale in prose and is never noticed.
+    const { readFile } = await import('node:fs/promises');
+    const guide = await readFile(guidePath, 'utf8');
+    const patterns = await loadPatterns();
+
+    expect(guide).toMatch(/patternCount/);
+    expect(
+      new RegExp(`There are ${patterns.length}\\b`).test(guide),
+      'the guide hardcodes the current pattern count instead of counting it'
+    ).toBe(false);
+  });
+
+  it('teaches the two distinctions the product exists to make', async () => {
+    // Absence versus safety, and expected versus absent. A reader who misses
+    // these misreads every report, however well the rest is written.
+    const { readFile } = await import('node:fs/promises');
+    const guide = await readFile(guidePath, 'utf8');
+
+    expect(guide).toMatch(/absence is never safety/i);
+    expect(guide).toMatch(/expected power is still a power/i);
+    // n/a and 0 look alike and mean opposite things.
+    expect(guide).toMatch(/n\/a/i);
+  });
+});

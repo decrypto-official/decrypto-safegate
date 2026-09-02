@@ -1,9 +1,11 @@
 /*
  * Safegate design system.
  *
- * This file is the design system. An earlier header cited a DESIGN.md that was
- * never committed to this repository, so the rules it referred to are written
- * out here instead, where the code that must obey them can be read beside them.
+ * The binding rules live in an internal design document that is deliberately
+ * unpublished, so the ones this file enforces are stated here for anyone
+ * reading only the repository. Where the implementation diverges from that
+ * document, the divergence is noted at the token concerned rather than left to
+ * be discovered later.
  *
  * Rules enforced structurally rather than left to the discipline of whoever
  * writes the next component:
@@ -38,8 +40,18 @@
      AA needs 4.5:1 for body text; the large-text exemption starts around 24px
      and so applies to nothing here. */
   --text: #e6ebf4;        /* 16.75 / 15.78 / 14.56 */
-  --text-dim: #9fabc0;    /*  8.64 /  8.15 /  7.52 — clears GitHub's 7:1 target */
-  --text-faint: #8794a8;  /*  6.52 /  6.14 /  5.67 — was #55627a at 3.26/3.07/2.83, failing everywhere */
+  --text-dim: #8a97ad;    /*  6.78 /  6.39 /  5.90 — as specified */
+  /* DIVERGENCE from the specified #55627a, which measures 3.26 / 3.07 / 2.83
+     and so fails the 4.5:1 floor the same design document sets for text, at
+     every surface it is used on: the specified palette contradicted the
+     specified accessibility rule. Raised to the nearest value in the same hue
+     that clears it, and used at 12px rather than 10px.
+
+     #8794a8 was the first pass and sat within 4% of --text-dim, which collapsed
+     the two secondary tiers into one: "no source" and the axis beside it, or a
+     nav label and a nav item, became the same grey. This is a visible step
+     darker and still clears the floor on every surface. */
+  --text-faint: #7c8798;  /*  5.51 /  5.19 /  4.79 */
 
   /* Semantic states. Never used decoratively. */
   --present: #ff5c5c;   /* capability exists, nothing justifies it */
@@ -53,16 +65,26 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-  /* Type scale. Rooted at 14px, the body size shared by Primer, Geist, Carbon
-     and Ant for dense product UI. Nothing in the app may go below --fs-label. */
+  /* Type scale.
+   *
+   * DIVERGENCE from the internal design spec, and the largest one here. That
+   * spec sets a deliberately small, terminal-like scale, and it is the scale
+   * the dashboard was built on — and the one reported as hard to read.
+   *
+   * Density and illegibility are not the same property. The tight rhythm is
+   * kept: row height, panel padding and section gap are all unchanged from the
+   * spec. What moves is the bottom of the type scale, where labels were being
+   * set at 10 and 11px in the faintest grey in the palette. The top of the
+   * scale moves toward the spec rather than away from it.
+   *
+   * Nothing in the app may go below --fs-label. */
   --fs-label: 12px;   /* uppercase micro-labels, table headers */
   --fs-meta: 13px;    /* metadata, tags, provenance */
-  --fs-body: 14px;    /* default */
-  --fs-prose: 15px;   /* explanatory paragraphs — the reading text */
+  --fs-body: 14px;    /* default, table body */
+  --fs-prose: 15px;   /* reading text: reasoning, limitations */
   --fs-h: 16px;
-  --fs-lg: 20px;
-  --fs-xl: 26px;
-  --fs-display: 34px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;      /* page and record titles, as specified */
 
   /* Three weights, not two. Everything emphasised sat at 600, so nothing could
      be emphasised less than maximally and the page read flat. */
@@ -70,17 +92,15 @@
   --fw-medium: 500;
   --fw-bold: 600;
 
-  --lh-tight: 1.35;
   --lh-body: 1.5;
   --lh-prose: 1.65;   /* prose is read, not scanned; it gets the room */
 
-  --measure: 78ch;
+  --measure: 70ch;
 
-  --row-h: 40px;
+  --row-h: 36px;
   --pad: 16px;
-  --pad-lg: 20px;
-  --topbar-h: 52px;
-  --sidebar-w: 248px;
+  --topbar-h: 48px;
+  --sidebar-w: 240px;
 }
 
 *,
@@ -133,7 +153,7 @@ body {
     'sidebar topbar'
     'sidebar mobilenav'
     'sidebar content';
-  grid-template-rows: var(--topbar-h) auto 1fr;
+  grid-template-rows: auto auto 1fr;
   height: 100dvh;
   width: 100%;
 }
@@ -148,28 +168,29 @@ body {
   overflow-y: auto;
 }
 
-/* The tagline is one line or it is nothing. The bar is a fixed --topbar-h, so
-   at narrow widths the sentence wrapped to three lines and was clipped by it. */
+/* "Not a safety rating" is the product's central caveat, so it neither
+   truncates nor disappears. It was being clipped at medium widths and hidden
+   entirely below 640px, which removed the disclaimer on exactly the devices
+   least able to spare it. The bar grows instead. */
 .topbar-note {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   min-width: 0;
 }
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .topbar-note {
-    display: none;
+    font-size: var(--fs-meta);
   }
 }
 
 .topbar {
   grid-area: topbar;
+  min-height: var(--topbar-h);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 var(--pad);
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 8px var(--pad);
   min-width: 0;
 }
 
@@ -189,7 +210,7 @@ body {
   .shell {
     grid-template-columns: 1fr;
     grid-template-areas: 'topbar' 'mobilenav' 'content';
-    grid-template-rows: var(--topbar-h) auto 1fr;
+    grid-template-rows: auto auto 1fr;
   }
   .sidebar {
     display: none;
@@ -292,7 +313,7 @@ body {
   margin: 0;
 }
 .panel-body {
-  padding: var(--pad-lg);
+  padding: var(--pad);
 }
 
 /* Fluid grid: panels reflow instead of leaving dead space at any width. */
@@ -432,6 +453,12 @@ body {
 .table col.c-cap { width: 168px; }
 .table col.c-axis { width: 92px; }
 .table col.c-src { width: 152px; }
+/* The dictionary list's capability column. 150px, not the 116px it began as:
+   `upgradeability` is ~95px of glyphs at this size with no hyphen to break at,
+   and under table-layout: fixed a narrower track either broke it mid-word or
+   spilled it into the next column. Declared here with the other column widths
+   rather than inline on the <col>, so every width in the app is in one place. */
+.table col.c-capability { width: 150px; }
 .table th {
   text-align: left;
   font-size: var(--fs-label);
@@ -448,7 +475,18 @@ body {
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
-.table tbody tr:last-child td {
+/* tbody:last-of-type, not every tbody.
+ *
+ * This was `.table tbody tr:last-child td`, which is the last row of EVERY
+ * tbody. A flat table has one, so it read correctly there; .signals gives each
+ * record its own tbody, so the rule fired on all of them and out-specified the
+ * separator between records, merging the list into the single block that
+ * separator exists to prevent. Excluding .signals by negation fixed the symptom
+ * and left one selector trying to describe two table shapes.
+ *
+ * Scoping to the last tbody states the thing actually meant — the table's final
+ * row — and is true of both shapes without special-casing either. */
+.table tbody:last-of-type tr:last-child td {
   border-bottom: none;
 }
 .table tbody tr:hover {
@@ -574,78 +612,42 @@ body {
   }
 }
 
-/* ---------- findings: prose that is not tabular data ----------
+/* ---------- signals: one record, two rows ----------
  *
- * The signals list used to be a five-column table whose last column held a
- * multi-sentence paragraph. Tables are for values you compare down a column,
- * and nobody compares paragraphs that way — the reasoning was being squeezed
- * into whatever width the four fixed columns left over, at 12px.
- *
- * Here the scannable fields stay on one line and the reasoning sits beneath
- * them at full prose size. Nothing is hidden or collapsed: the product rule is
- * that a bare score must be impossible to obtain, so reasoning is never put
- * behind a disclosure control. It is laid out to be read instead. */
-.findings {
-  display: flex;
-  flex-direction: column;
-}
-.finding {
-  padding: 20px var(--pad-lg);
-  /* --border-strong, not --border. These are the page's primary content unit,
-     and at 1px hairline the four findings read as one continuous grey block
-     rather than four separate readings. */
-  border-bottom: 1px solid var(--border-strong);
-}
-.finding:last-child {
+ * The spec wants a table here, with real table markup. The problem it had was
+ * never the table: it was a paragraph living in the fifth column of five.
+ * Splitting each record across two rows keeps the scannable fields tabular and
+ * gives the prose the full width, at measure. */
+.signals tbody.signal > tr:first-child > td,
+.signals tbody.signal > tr:first-child > th {
   border-bottom: none;
+  padding-bottom: 4px;
 }
-.finding:hover {
-  background: var(--surface-raised);
-}
-.finding-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-.finding-cap {
-  margin: 0; /* it is an h3 now, for heading navigation; it must not look like one */
-  font-family: var(--font-mono);
-  font-size: var(--fs-h);
-  font-weight: var(--fw-bold);
-  color: var(--text);
-  letter-spacing: -0.01em;
-}
-.finding-meta {
-  margin-left: auto;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: var(--fs-meta);
-  color: var(--text-faint);
-}
-/* The state chip carries the row. Give it a fixed column so the eye can run
-   straight down the states without reading anything else. */
-.finding-state {
-  min-width: 104px;
-}
-
-/* A key/value strip for dense metadata that genuinely is tabular. */
-.kv {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 16px;
+.signals .signal-cap {
+  /* th, for the row-header semantics, but .table th is an uppercase tracked
+     micro-label and capability names are data. They are lowercase identifiers
+     that appear verbatim in patterns/ and in the API, so upper-casing them in
+     one view makes the page disagree with the thing it is describing. */
   font-size: var(--fs-body);
-}
-.kv dt {
-  color: var(--text-faint);
+  font-weight: var(--fw-bold);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+  text-align: left;
   white-space: nowrap;
 }
-.kv dd {
-  margin: 0;
-  color: var(--text);
+.signals .reason-cell {
+  padding-top: 0;
+  padding-bottom: 14px;
+  /* --border-strong between records, not the 1px hairline: these are the page's
+     primary content unit and at a hairline they read as one grey block. */
+  border-bottom: 1px solid var(--border-strong);
 }
+.signals tbody.signal:hover > tr > td,
+.signals tbody.signal:hover > tr > th {
+  background: var(--surface-raised);
+}
+
 
 .tag {
   display: inline-block;
@@ -663,6 +665,176 @@ body {
   font-size: var(--fs-body);
   color: var(--text-dim);
   word-break: break-all;
+}
+
+/* ---------- the guide ----------
+ *
+ * The only place in the app with long-form reading text, so it is the only
+ * place with heading rhythm and a measure. Everything else here is a dashboard
+ * and is scanned rather than read. */
+.guide-body {
+  max-width: var(--measure);
+}
+.guide-body h2 {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+  margin: 32px 0 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.guide-body > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.guide-body h3 {
+  font-size: var(--fs-h);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 22px 0 6px;
+}
+.guide-body p {
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+  margin: 0 0 12px;
+}
+.guide-body code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--text);
+}
+.guide-body .callout {
+  margin: 12px 0;
+}
+.guide-body .note {
+  color: var(--text);
+}
+.steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+}
+.steps strong,
+.guide-body p strong {
+  color: var(--text);
+  font-weight: var(--fw-bold);
+}
+
+/* Term and definition. The label column is fixed so the definitions align down
+   the page and the list reads as a reference rather than as prose. */
+.kv-list {
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+.term {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.term dt {
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+.term dd {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-prose);
+  line-height: var(--lh-prose);
+}
+@media (min-width: 720px) {
+  .term {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 20px;
+    align-items: baseline;
+  }
+}
+
+.table.states td {
+  color: var(--text-dim);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.table.states th[scope='row'] {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--fs-body);
+}
+.print-hint {
+  margin-top: 24px;
+  font-size: var(--fs-meta);
+  color: var(--text-faint);
+}
+
+/* Saving the guide as a PDF is the browser's print dialog, so print is a real
+   output here rather than an afterthought: ink on white, no app chrome, and no
+   page breaks landing between a heading and the text it introduces. */
+@media print {
+  .sidebar,
+  .topbar,
+  .mobile-nav,
+  .print-hint {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff;
+    color: #111;
+    font-size: 11pt;
+  }
+  .shell {
+    display: block;
+    height: auto;
+  }
+  .content {
+    overflow: visible;
+    padding: 0;
+  }
+  .panel {
+    border: none;
+    background: none;
+  }
+  .panel-body {
+    padding: 0;
+  }
+  .guide-body,
+  .guide-body p,
+  .term dd,
+  .steps {
+    color: #111;
+    max-width: none;
+  }
+  .guide-body h2,
+  .guide-body h3,
+  .term dt,
+  .guide-body p strong {
+    color: #000;
+  }
+  .callout {
+    background: #f4f5f7;
+    border-left-color: #999;
+    break-inside: avoid;
+  }
+  .term,
+  .table.states tr {
+    break-inside: avoid;
+  }
+  .guide-body h2,
+  .guide-body h3 {
+    break-after: avoid;
+  }
 }
 
 /* ---------- form ---------- */

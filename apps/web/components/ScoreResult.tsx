@@ -1,6 +1,7 @@
 'use client';
 
 import type { Score, Signal, Axis } from '@safegate/types.js';
+import { AxesRadar, CoverageRing, severity } from './Figures';
 
 /**
  * The result view.
@@ -20,12 +21,6 @@ const AXIS_QUESTION: Record<Axis, string> = {
   exit: 'If this goes bad, can you get out?',
 };
 
-function severity(value: number): string {
-  if (value >= 60) return 'var(--present)';
-  if (value >= 30) return 'var(--unknown)';
-  return 'var(--absent)';
-}
-
 function truncate(address: string): string {
   return address.length > 14 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
 }
@@ -34,8 +29,6 @@ export function ScoreResult({ score }: { score: Score }) {
   const signals = AXES.flatMap((axis) => score.axes[axis].signals);
   const order = { PRESENT: 0, UNKNOWN: 1, EXPECTED: 2, ABSENT: 3 };
   const sorted = [...signals].sort((a, b) => order[a.state] - order[b.state]);
-
-  const coveragePct = Math.round(score.coverage.ratio * 100);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)' }}>
@@ -49,10 +42,10 @@ export function ScoreResult({ score }: { score: Score }) {
                 important word on the page — was not a heading. Navigating by
                 heading landed on "Axes" and "Signals" without ever announcing
                 which token was being read. */}
-            <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+            <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 'var(--fw-bold)', letterSpacing: '-0.02em', margin: 0 }}>
               {score.symbol ?? 'Unknown token'}
               {score.name && score.name !== score.symbol && (
-                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-lg)' }}>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 'var(--fw-normal)', fontSize: 'var(--fs-lg)' }}>
                   {' '}
                   {score.name}
                 </span>
@@ -96,6 +89,13 @@ export function ScoreResult({ score }: { score: Score }) {
               <span className="tag">higher is worse</span>
             </div>
             <div className="panel-body">
+              {/* The shape at a glance, the numbers underneath. A three-point
+                  radar cannot be read precisely on its own — you see a
+                  silhouette, not a value — so it never appears without the
+                  labelled bars. */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                <AxesRadar score={score} />
+              </div>
               {AXES.map((axis) => {
                 const a = score.axes[axis];
 
@@ -151,35 +151,7 @@ export function ScoreResult({ score }: { score: Score }) {
               <h2 className="panel-title">Coverage</h2>
             </div>
             <div className="panel-body">
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                {/* Neutral, and no larger than the token symbol.
-                    This was banded green above 80, amber above 60, red below —
-                    a traffic light on a figure whose own caption one line down
-                    says it is not a safety measure. Cropped to this panel alone
-                    it produced a green "75%" badge: exactly the compact verdict
-                    card the rest of this component refuses to offer. At 34px it
-                    was also the largest text on the page, outweighing the token
-                    being analysed. */}
-                <span
-                  data-numeric
-                  style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em' }}
-                >
-                  {coveragePct}%
-                </span>
-                <span style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>
-                  {score.coverage.scored} of {score.coverage.applicable} applicable checks resolved
-                </span>
-              </div>
-              <p
-                style={{
-                  fontSize: 'var(--fs-body)',
-                  lineHeight: 'var(--lh-prose)',
-                  color: 'var(--text-faint)',
-                  margin: '12px 0 0',
-                }}
-              >
-                Coverage measures how much of this token we could check. It is not a safety measure.
-              </p>
+              <CoverageRing scored={score.coverage.scored} applicable={score.coverage.applicable} />
             </div>
           </section>
 
@@ -224,7 +196,7 @@ export function ScoreResult({ score }: { score: Score }) {
               {score.dictionaryGaps.map((gap) => (
                 <div key={gap.selector} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 600, color: 'var(--unknown)' }}>
+                    <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 'var(--fw-bold)', color: 'var(--unknown)' }}>
                       {gap.signature}
                     </span>
                     <span className="tag">{gap.capability}</span>
@@ -247,10 +219,30 @@ export function ScoreResult({ score }: { score: Score }) {
             <h2 className="panel-title">Signals</h2>
             <span className="tag">{sorted.length} capabilities checked</span>
           </div>
-          <div className="findings" role="list">
-            {sorted.map((signal) => (
-              <SignalRow key={signal.capability} signal={signal} />
-            ))}
+          <div className="table-wrap">
+            <table className="table signals">
+              <caption className="visually-hidden">
+                Every capability checked on this token, with the state we read, the axis it scores on, the
+                pattern that read it, and the reasoning.
+              </caption>
+              <colgroup>
+                <col className="c-state" />
+                <col className="c-cap" />
+                <col className="c-axis" />
+                <col className="c-src" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">State</th>
+                  <th scope="col">Capability</th>
+                  <th scope="col">Axis</th>
+                  <th scope="col">Source</th>
+                </tr>
+              </thead>
+              {sorted.map((signal) => (
+                <SignalRow key={signal.capability} signal={signal} />
+              ))}
+            </table>
           </div>
         </section>
         </div>
@@ -338,59 +330,51 @@ export function ScoreResult({ score }: { score: Score }) {
 }
 
 /**
- * One capability, read.
+ * One capability, read. Two rows, one signal.
  *
- * This was a table row whose fifth cell held a paragraph. A table asks the eye
- * to compare values down a column, which is the right shape for the state, the
- * capability and the axis, and the wrong shape for the reasoning: prose does
- * not compare downward, and it was being fitted into whatever width the four
- * fixed columns left, at 12px.
+ * The design spec asks for a table here, one row per signal, with real table
+ * markup and scoped headers. A previous pass replaced it with a list of
+ * articles, which fixed a genuine problem — the reasoning was a multi-sentence
+ * paragraph crushed into the fifth column of five, at whatever width the four
+ * fixed columns left over — and broke both rules to do it.
  *
- * The scannable fields now sit on one line with the state first, so the states
- * still form a single column the eye can run down, and the reasoning sits under
- * them at full prose size and measure. It is always visible. Reasoning behind a
- * disclosure control would make a bare score obtainable by collapsing it, and
- * that is the one thing this product refuses to allow.
+ * Two rows per signal satisfies all of it. The scannable fields stay a real
+ * table the eye can read down a column and a screen reader can navigate by
+ * header. The reasoning spans the full width underneath, at prose size and
+ * measure, always visible: reasoning behind a disclosure control is a bare
+ * score waiting to be screenshotted, which is the one thing the spec's first
+ * and highest rule forbids.
+ *
+ * Each pair is grouped in its own tbody so the two rows are one record.
  */
 function SignalRow({ signal }: { signal: Signal }) {
   const hit = signal.observations.find((o) => o.value !== null && o.value !== undefined);
 
   return (
-    <article className="finding" role="listitem" aria-labelledby={`cap-${signal.capability}`}>
-      <div className="finding-head">
-        {/* Sighted readers take these four fields from their position. Nothing
-            carried that meaning to a screen reader once this stopped being a
-            table with column headers: it read as one run-on string with no way
-            to tell the axis from the pattern that sourced it. The labels are
-            visually hidden, not absent. */}
-        <span className={`state state-${signal.state} finding-state`}>
-          <span className="visually-hidden">State: </span>
-          {signal.state}
-        </span>
-        <h3 className="finding-cap" id={`cap-${signal.capability}`}>
-          <span className="visually-hidden">Capability: </span>
+    <tbody className="signal">
+      <tr>
+        <td>
+          <span className={`state state-${signal.state}`}>{signal.state}</span>
+        </td>
+        <th scope="row" className="mono signal-cap">
           {signal.capability}
-        </h3>
-        <span className="finding-meta">
-          <span>
-            <span className="visually-hidden">Axis: </span>
-            {signal.axis}
-          </span>
+        </th>
+        <td style={{ color: 'var(--text-dim)' }}>{signal.axis}</td>
+        <td>
           {/* Provenance travels with every value. */}
           {hit?.patternId ? (
-            <span className="tag">
-              <span className="visually-hidden">Read by pattern: </span>
-              {hit.patternId}
-            </span>
+            <span className="tag">{hit.patternId}</span>
           ) : (
-            <span>no source</span>
+            <span style={{ color: 'var(--text-faint)' }}>no source</span>
           )}
-        </span>
-      </div>
-      <p className="reason" style={{ margin: 0 }}>
-        <span className="visually-hidden">Reasoning: </span>
-        {signal.reasoning}
-      </p>
-    </article>
+        </td>
+      </tr>
+      <tr>
+        <td className="reason-cell" colSpan={4}>
+          <span className="visually-hidden">Reasoning: </span>
+          <span className="reason">{signal.reasoning}</span>
+        </td>
+      </tr>
+    </tbody>
   );
 }
