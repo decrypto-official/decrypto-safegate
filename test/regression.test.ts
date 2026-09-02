@@ -440,11 +440,19 @@ describe('data integrity', () => {
     }
   });
 
-  it('seeds 20 tokens', async () => {
+  it('seeds 21 tokens', async () => {
     const registry = await loadRegistry();
-    expect(registry).toHaveLength(20);
+    expect(registry).toHaveLength(21);
     expect(registry.filter((e) => e.chain === 'ethereum')).toHaveLength(12);
-    expect(registry.filter((e) => e.chain === 'solana')).toHaveLength(8);
+    expect(registry.filter((e) => e.chain === 'solana')).toHaveLength(9);
+  });
+
+  it('seeds at least one Token-2022 mint', async () => {
+    // Without one, every Token-2022 pattern and the whole Solana gap scan are
+    // dead code in CI: the eight original Solana entries all use the legacy
+    // program, so the tests would pass without executing the feature.
+    const registry = await loadRegistry();
+    expect(registry.some((e) => e.address === PYUSD_SOL)).toBe(true);
   });
 
   it('finds entries case-insensitively on EVM', async () => {
@@ -1460,5 +1468,79 @@ describe('Token-2022 gaps: what we have never classified', () => {
       const entry = extensions.find((e) => e.extension === p.method.extension);
       expect(p.capability).toBe(entry!.capability);
     }
+  });
+});
+
+/**
+ * PYUSD, the registry's first Token-2022 entry.
+ *
+ * Seeded because without it the whole Token-2022 path is dead code in CI: all
+ * eight Solana entries before it use the legacy program, so every extension
+ * pattern and the Solana gap scan would pass vacuously, which is exactly how
+ * the WBTC lock came to pass while asserting nothing.
+ */
+describe('PYUSD: a registry entry that refuses to justify everything', () => {
+  it('marks the two capabilities a fiat stablecoin cannot operate without', async () => {
+    const score = await analyse('solana', PYUSD_SOL);
+    const byCapability = Object.fromEntries(
+      Object.values(score.axes)
+        .flatMap((a) => a.signals)
+        .map((s) => [s.capability, s])
+    );
+
+    expect(byCapability['mint-authority']!.state).toBe('EXPECTED');
+    expect(byCapability['freeze-authority']!.state).toBe('EXPECTED');
+  }, TIMEOUT);
+
+  it('leaves the permanent delegate reported as a real power', async () => {
+    // The entry's most consequential judgement, and the one most likely to be
+    // softened later by someone who reads the issuer's justification and stops
+    // there. The permanent delegate is documented and statutorily grounded and
+    // would qualify on its own — but the transfer hook authority resolves the
+    // same capability and is, in the issuer's own words, for "potential future
+    // use". Marking the capability expected would stretch a legal justification
+    // for seizure over an unexplained power to run arbitrary code on every
+    // transfer, which is precisely the laundering the registry must not do.
+    const score = await analyse('solana', PYUSD_SOL);
+    const signal = Object.values(score.axes)
+      .flatMap((a) => a.signals)
+      .find((s) => s.capability === 'transfer-restriction');
+
+    expect(signal!.state).toBe('PRESENT');
+    expect(signal!.state).not.toBe('EXPECTED');
+  }, TIMEOUT);
+
+  it('justifies nothing it did not have to', async () => {
+    // Four live powers on this mint have no justification recorded, three of
+    // them described by the issuer as optionality rather than necessity. A
+    // future edit that quietly adds them to expectedCapabilities would turn the
+    // entry into the endorsement the registry is designed not to be.
+    const entry = findEntry(await loadRegistry(), 'solana', PYUSD_SOL);
+    expect(entry).toBeDefined();
+
+    const expected = entry!.expectedCapabilities.map((c) => c.capability).sort();
+    expect(expected).toEqual(['freeze-authority', 'mint-authority']);
+
+    // And both justifications must say what limits the power, including where
+    // nothing does.
+    for (const c of entry!.expectedCapabilities) {
+      expect(c.constrainedBy ?? '').not.toBe('');
+    }
+  });
+
+  it('records that the powers were actually used, not merely held', async () => {
+    // A registry entry that only describes what an issuer may do reads as
+    // theory. This one carries the seizure transaction and the freeze count,
+    // because "has exercised it" is the difference between a capability and a
+    // practice, and it is the part a reader can check for themselves.
+    const entry = findEntry(await loadRegistry(), 'solana', PYUSD_SOL);
+    const onchain = entry!.evidence.filter((e) => e.kind === 'onchain');
+
+    expect(onchain.length).toBeGreaterThanOrEqual(2);
+    const text = JSON.stringify(entry);
+    // The seizure transaction signature, so the claim is checkable.
+    expect(text).toMatch(/2EoBhRCgGGo58z6tSnFQc7KJi6TyKNYXhnV7yZiQKdrs1d4UcqqrgwrAEwXye1Hnqs3ke7jWs5dM82DWhhZcwik/);
+    // And the concentration finding, which is the entry's real subject.
+    expect(text).toMatch(/1 of 4 signers|1 of 4/i);
   });
 });
