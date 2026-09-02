@@ -110,7 +110,7 @@ export default function MethodologyPage() {
                   <td className="mono" style={{ color: 'var(--text)' }}>
                     {cap}
                   </td>
-                  <td style={{ color: 'var(--text-dim)', fontSize: 11 }}>{CAPABILITY_AXIS[cap]}</td>
+                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>{CAPABILITY_AXIS[cap]}</td>
                   <td data-numeric style={{ textAlign: 'right', color: 'var(--text)' }}>
                     {CAPABILITY_WEIGHT[cap]}
                   </td>
@@ -157,7 +157,7 @@ export default function MethodologyPage() {
               className="mono"
               style={{
                 margin: 0,
-                fontSize: 12,
+                fontSize: 'var(--fs-body)',
                 color: 'var(--text-dim)',
                 background: 'var(--bg)',
                 padding: 12,

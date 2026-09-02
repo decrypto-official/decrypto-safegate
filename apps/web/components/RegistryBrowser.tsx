@@ -61,7 +61,19 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
               {visible.map((entry) => (
                 <tr
                   key={entry.id}
+                  className="row-button"
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={entry.id === selected?.id}
                   onClick={() => setSelectedId(entry.id)}
+                  onKeyDown={(e) => {
+                    // Same as the pattern list: this is the only route to any
+                    // entry but the first, so it has to answer the keyboard.
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedId(entry.id);
+                    }
+                  }}
                   style={{
                     cursor: 'pointer',
                     background: entry.id === selected?.id ? 'var(--surface-raised)' : undefined,
@@ -70,9 +82,12 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
                 >
                   <td className="mono" style={{ color: 'var(--text)' }}>
                     {entry.symbol}
-                    <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>{entry.chain}</div>
+                    <div style={{ fontSize: 'var(--fs-label)', color: 'var(--text-faint)' }}>{entry.chain}</div>
                   </td>
-                  <td style={{ color: 'var(--text-dim)', fontSize: 11, overflowWrap: 'anywhere' }}>
+                  {/* No overflowWrap: it breaks mid-word, and archetypes like
+                      `crypto-collateralised-stablecoin` should break at their
+                      hyphens instead. */}
+                  <td style={{ color: 'var(--text-dim)', fontSize: 'var(--fs-meta)' }}>
                     {entry.archetype}
                   </td>
                   <td data-numeric style={{ textAlign: 'right', color: 'var(--text-dim)' }}>
@@ -99,15 +114,15 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
         <div className="panel-body">
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'baseline' }}>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, letterSpacing: '-0.02em' }}>
                 {entry.symbol}{' '}
-                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 14 }}>{entry.name}</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-body)' }}>{entry.name}</span>
               </div>
               <div className="addr">
                 {entry.chain} {entry.address}
               </div>
             </div>
-            <div style={{ marginLeft: 'auto', textAlign: 'right', fontSize: 11, color: 'var(--text-faint)' }}>
+            <div style={{ marginLeft: 'auto', textAlign: 'right', fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
               <div className="tag">{entry.archetype}</div>
               <div style={{ marginTop: 4 }}>
                 verified {entry.verifiedAt} by {entry.approvedBy}
@@ -120,7 +135,7 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
             </div>
           </div>
 
-          <div style={{ marginTop: 12, display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12 }}>
+          <div style={{ marginTop: 12, display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 'var(--fs-body)' }}>
             <span style={{ color: 'var(--text-dim)' }}>
               Issuer: <span style={{ color: 'var(--text)' }}>{entry.issuer.name}</span>
             </span>
@@ -131,7 +146,7 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
               {entry.issuer.regulated ? 'regulated issuer' : 'not a regulated issuer'}
             </span>
             {entry.issuer.website && (
-              <a href={entry.issuer.website} target="_blank" rel="noreferrer noopener" style={{ fontSize: 12 }}>
+              <a href={entry.issuer.website} target="_blank" rel="noreferrer noopener" style={{ fontSize: 'var(--fs-body)' }}>
                 {entry.issuer.website.replace(/^https?:\/\//, '')}
               </a>
             )}
@@ -169,7 +184,7 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
                     {cap.justification}
                   </div>
                   {cap.constrainedBy && (
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
                       Constrained by: {cap.constrainedBy}
                     </div>
                   )}
@@ -193,13 +208,13 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
                   {ev.kind}
                 </span>
                 {ev.observedAt && (
-                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{ev.observedAt}</span>
+                  <span style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>{ev.observedAt}</span>
                 )}
                 <div className="reason" style={{ marginTop: 4 }}>
                   {ev.detail}
                 </div>
                 {ev.url && (
-                  <a href={ev.url} target="_blank" rel="noreferrer noopener" style={{ fontSize: 11 }}>
+                  <a href={ev.url} target="_blank" rel="noreferrer noopener" style={{ fontSize: 'var(--fs-meta)' }}>
                     {ev.url.replace(/^https?:\/\//, '').slice(0, 60)}
                   </a>
                 )}

@@ -43,12 +43,21 @@ export function ScoreResult({ score }: { score: Score }) {
       <div className="panel">
         <div className="panel-body" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'baseline' }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
+            {/* An h1, not a div. The only h1 on this route lived in the
+                pre-search intro and unmounted as soon as a score arrived, so
+                the result view had no h1 at all and the token's name — the most
+                important word on the page — was not a heading. Navigating by
+                heading landed on "Axes" and "Signals" without ever announcing
+                which token was being read. */}
+            <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
               {score.symbol ?? 'Unknown token'}
               {score.name && score.name !== score.symbol && (
-                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 15 }}> {score.name}</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-lg)' }}>
+                  {' '}
+                  {score.name}
+                </span>
               )}
-            </div>
+            </h1>
             <div className="addr">
               {score.chain} {truncate(score.address)}
             </div>
@@ -57,16 +66,19 @@ export function ScoreResult({ score }: { score: Score }) {
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             {score.registryEntry ? (
               <>
-                <div className="tag" style={{ color: 'var(--expected)', borderColor: 'var(--expected)' }}>
-                  registry: {score.registryEntry.archetype}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>
+                {/* Plain. Tinted with --expected this was the most saturated
+                    shape above the fold, so the first thing the eye reached on
+                    a risk report was a piece of provenance metadata rather than
+                    the axes. --expected also means a specific thing about a
+                    capability, and this is not one. */}
+                <div className="tag">registry: {score.registryEntry.archetype}</div>
+                <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 6 }}>
                   verified {score.registryEntry.verifiedAt} by {score.registryEntry.approvedBy}
                 </div>
               </>
             ) : (
               /* Neutral, not a warning. Most legitimate tokens have no entry. */
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+              <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
                 No registry entry. Scored on structure alone.
               </div>
             )}
@@ -95,7 +107,14 @@ export function ScoreResult({ score }: { score: Score }) {
                   <div key={axis} style={{ marginBottom: 14 }}>
                     <div className="meter" style={{ marginBottom: 4 }}>
                       <span className="meter-label">{axis}</span>
-                      <div className="meter-track">
+                      {/* An unassessed axis gets a hatched track, not an empty
+                          one. Empty read identically to a genuine zero: Exit
+                          scoring 0 (we checked, nothing found) and Transparency
+                          resolving nothing produced the same flat grey bar, and
+                          the bar is the element with the most visual weight per
+                          axis. Anyone scanning bars rather than numbers could
+                          not tell "confirmed clear" from "we know nothing". */}
+                      <div className={assessed ? 'meter-track' : 'meter-track meter-track-unread'}>
                         {assessed && (
                           <div
                             className="meter-fill"
@@ -103,15 +122,20 @@ export function ScoreResult({ score }: { score: Score }) {
                           />
                         )}
                       </div>
+                      {/* n/a is neutral, never amber. --unknown means "we could
+                          not check this capability"; reusing it for an
+                          unassessed axis put "nothing resolved" in the same
+                          colour as Control's resolved 50, so the two read as
+                          the same severity band at a glance. */}
                       <span
                         className="meter-value"
-                        style={{ color: assessed ? severity(a.value) : 'var(--unknown)' }}
+                        style={{ color: assessed ? severity(a.value) : 'var(--text-faint)' }}
                       >
                         {assessed ? a.value : 'n/a'}
                       </span>
                     </div>
                     {/* The coverage denominator is never separable from the value. */}
-                    <div style={{ fontSize: 11, color: 'var(--text-faint)', paddingLeft: 106 }}>
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', paddingLeft: 116 }}>
                       {assessed
                         ? `${a.coverage.scored}/${a.coverage.applicable} checks resolved`
                         : 'nothing resolved on this axis'}
@@ -128,21 +152,32 @@ export function ScoreResult({ score }: { score: Score }) {
             </div>
             <div className="panel-body">
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                {/* Neutral, and no larger than the token symbol.
+                    This was banded green above 80, amber above 60, red below —
+                    a traffic light on a figure whose own caption one line down
+                    says it is not a safety measure. Cropped to this panel alone
+                    it produced a green "75%" badge: exactly the compact verdict
+                    card the rest of this component refuses to offer. At 34px it
+                    was also the largest text on the page, outweighing the token
+                    being analysed. */}
                 <span
                   data-numeric
-                  style={{
-                    fontSize: 30,
-                    fontWeight: 600,
-                    color: coveragePct >= 80 ? 'var(--absent)' : coveragePct >= 60 ? 'var(--unknown)' : 'var(--present)',
-                  }}
+                  style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em' }}
                 >
                   {coveragePct}%
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                <span style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>
                   {score.coverage.scored} of {score.coverage.applicable} applicable checks resolved
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: '10px 0 0' }}>
+              <p
+                style={{
+                  fontSize: 'var(--fs-body)',
+                  lineHeight: 'var(--lh-prose)',
+                  color: 'var(--text-faint)',
+                  margin: '12px 0 0',
+                }}
+              >
                 Coverage measures how much of this token we could check. It is not a safety measure.
               </p>
             </div>
@@ -168,8 +203,9 @@ export function ScoreResult({ score }: { score: Score }) {
           </section>
         </div>
 
+        <div className="result-main">
         {/* What the contract can do that no pattern reads. Placed above the
-            signals table on purpose: a reader who stops at the signals would
+            signals list on purpose: a reader who stops at the signals would
             otherwise take an incomplete reading for a complete one. */}
         {score.dictionaryGaps.length > 0 && (
           <section className="panel">
@@ -186,17 +222,17 @@ export function ScoreResult({ score }: { score: Score }) {
               </div>
 
               {score.dictionaryGaps.map((gap) => (
-                <div key={gap.selector} style={{ marginBottom: 12 }}>
+                <div key={gap.selector} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span data-numeric style={{ fontSize: 13, color: 'var(--unknown)' }}>
+                    <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 600, color: 'var(--unknown)' }}>
                       {gap.signature}
                     </span>
                     <span className="tag">{gap.capability}</span>
-                    <span data-numeric style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    <span data-numeric style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
                       {gap.selector}
                     </span>
                   </div>
-                  <div className="reason" style={{ marginTop: 3 }}>
+                  <div className="reason" style={{ marginTop: 6 }}>
                     {gap.note}
                   </div>
                 </div>
@@ -211,32 +247,13 @@ export function ScoreResult({ score }: { score: Score }) {
             <h2 className="panel-title">Signals</h2>
             <span className="tag">{sorted.length} capabilities checked</span>
           </div>
-          <div className="table-wrap">
-          <table className="table">
-            <colgroup>
-              <col className="c-state" />
-              <col className="c-cap" />
-              <col className="c-axis" />
-              <col className="c-src" />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>State</th>
-                <th>Capability</th>
-                <th>Axis</th>
-                <th>Source</th>
-                <th>Reasoning</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((signal) => (
-                <SignalRow key={signal.capability} signal={signal} />
-              ))}
-            </tbody>
-          </table>
+          <div className="findings" role="list">
+            {sorted.map((signal) => (
+              <SignalRow key={signal.capability} signal={signal} />
+            ))}
           </div>
         </section>
+        </div>
       </div>
 
       {/* disagreements: loud by design */}
@@ -312,7 +329,7 @@ export function ScoreResult({ score }: { score: Score }) {
         </div>
       </section>
 
-      <div style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
+      <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
         methodology {score.methodologyVersion} &nbsp; snapshot {score.inputSnapshotHash} &nbsp;{' '}
         {score.computedAt}
       </div>
@@ -320,27 +337,60 @@ export function ScoreResult({ score }: { score: Score }) {
   );
 }
 
+/**
+ * One capability, read.
+ *
+ * This was a table row whose fifth cell held a paragraph. A table asks the eye
+ * to compare values down a column, which is the right shape for the state, the
+ * capability and the axis, and the wrong shape for the reasoning: prose does
+ * not compare downward, and it was being fitted into whatever width the four
+ * fixed columns left, at 12px.
+ *
+ * The scannable fields now sit on one line with the state first, so the states
+ * still form a single column the eye can run down, and the reasoning sits under
+ * them at full prose size and measure. It is always visible. Reasoning behind a
+ * disclosure control would make a bare score obtainable by collapsing it, and
+ * that is the one thing this product refuses to allow.
+ */
 function SignalRow({ signal }: { signal: Signal }) {
   const hit = signal.observations.find((o) => o.value !== null && o.value !== undefined);
 
   return (
-    <tr>
-      <td>
-        <span className={`state state-${signal.state}`}>{signal.state}</span>
-      </td>
-      <td className="mono" style={{ whiteSpace: 'nowrap' }}>
-        {signal.capability}
-      </td>
-      <td style={{ color: 'var(--text-faint)', fontSize: 11 }}>{signal.axis}</td>
-      <td>
-        {/* Provenance travels with every value. */}
-        {hit?.patternId ? (
-          <span className="tag">{hit.patternId}</span>
-        ) : (
-          <span style={{ color: 'var(--text-faint)', fontSize: 11 }}>no source</span>
-        )}
-      </td>
-      <td className="reason">{signal.reasoning}</td>
-    </tr>
+    <article className="finding" role="listitem" aria-labelledby={`cap-${signal.capability}`}>
+      <div className="finding-head">
+        {/* Sighted readers take these four fields from their position. Nothing
+            carried that meaning to a screen reader once this stopped being a
+            table with column headers: it read as one run-on string with no way
+            to tell the axis from the pattern that sourced it. The labels are
+            visually hidden, not absent. */}
+        <span className={`state state-${signal.state} finding-state`}>
+          <span className="visually-hidden">State: </span>
+          {signal.state}
+        </span>
+        <h3 className="finding-cap" id={`cap-${signal.capability}`}>
+          <span className="visually-hidden">Capability: </span>
+          {signal.capability}
+        </h3>
+        <span className="finding-meta">
+          <span>
+            <span className="visually-hidden">Axis: </span>
+            {signal.axis}
+          </span>
+          {/* Provenance travels with every value. */}
+          {hit?.patternId ? (
+            <span className="tag">
+              <span className="visually-hidden">Read by pattern: </span>
+              {hit.patternId}
+            </span>
+          ) : (
+            <span>no source</span>
+          )}
+        </span>
+      </div>
+      <p className="reason" style={{ margin: 0 }}>
+        <span className="visually-hidden">Reasoning: </span>
+        {signal.reasoning}
+      </p>
+    </article>
   );
 }

@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </aside>
 
           <header className="topbar">
-            <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+            <div className="topbar-note" style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>
               Structural capability analysis. Not a safety rating.
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -33,6 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="tag">solana</span>
             </div>
           </header>
+
+          {/* Only rendered visibly below 1024px, where .sidebar is hidden. */}
+          <div className="mobile-nav">
+            <Nav variant="bar" />
+          </div>
 
           <main className="content">{children}</main>
         </div>

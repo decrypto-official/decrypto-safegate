@@ -27,7 +27,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   return (
     <div className="panel">
       <div className="panel-body">
-        <h1 style={{ fontSize: 22, margin: '0 0 10px', letterSpacing: '-0.02em', color: 'var(--unknown)' }}>
+        <h1 style={{ fontSize: 'var(--fs-xl)', margin: '0 0 10px', letterSpacing: '-0.02em', color: 'var(--unknown)' }}>
           This page could not be loaded
         </h1>
 
@@ -43,7 +43,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         </p>
 
         {error.digest && (
-          <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 14 }}>
+          <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginBottom: 14 }}>
             server reference <span data-numeric>{error.digest}</span>
             {' — the full error is in the server log under this id'}
           </div>
@@ -53,7 +53,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           onClick={reset}
           style={{
             font: 'inherit',
-            fontSize: 12,
+            fontSize: 'var(--fs-body)',
             color: 'var(--text)',
             background: 'var(--surface-raised)',
             border: '1px solid var(--border-strong)',

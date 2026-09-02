@@ -23,11 +23,11 @@ export default async function DisclosurePage() {
         lead="Any commercial relationship between the maintainer and an entity rated by Safegate. Generated from the registry rather than written by hand, so it cannot quietly fall out of date."
         stats={[
           { label: 'entries checked', value: entries.length },
-          { label: 'commercial ties', value: disclosed.length, tone: clean ? 'good' : 'warn' },
+          { label: 'commercial ties', value: disclosed.length, note: 'declared, not audited' },
         ]}
       />
 
-      <div className={clean ? 'callout' : 'callout callout-warn'} style={{ fontSize: 13 }}>
+      <div className={clean ? 'callout' : 'callout callout-warn'} style={{ fontSize: 'var(--fs-body)' }}>
         {clean ? (
           <>
             <strong style={{ color: 'var(--absent)' }}>No commercial relationships exist</strong> with any
@@ -72,8 +72,8 @@ export default async function DisclosurePage() {
                     <td className="mono" style={{ color: 'var(--text)' }}>
                       {e.symbol}
                     </td>
-                    <td style={{ fontSize: 11, color: 'var(--text-faint)' }}>{e.chain}</td>
-                    <td style={{ fontSize: 12, color: 'var(--text-dim)' }}>{e.issuer.name}</td>
+                    <td style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>{e.chain}</td>
+                    <td style={{ fontSize: 'var(--fs-body)', color: 'var(--text-dim)' }}>{e.issuer.name}</td>
                     <td className="reason">{e.commercialRelationship}</td>
                   </tr>
                 ))}

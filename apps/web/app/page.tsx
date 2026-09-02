@@ -98,7 +98,7 @@ export default function LookupPage() {
           </form>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>try:</span>
+            <span style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>try:</span>
             {EXAMPLES.map((ex) => (
               <button
                 key={`${ex.chain}-${ex.address}`}
@@ -151,7 +151,7 @@ export default function LookupPage() {
       {!score && !loading && !error && (
         <section className="panel">
           <div className="panel-body">
-            <h1 style={{ fontSize: 22, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 'var(--fs-xl)', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
               What can this token actually do to you?
             </h1>
             <p className="reason" style={{ margin: '0 0 16px' }}>
@@ -160,29 +160,39 @@ export default function LookupPage() {
               check. It never tells you a token is safe, because structure cannot answer that.
             </p>
 
-            <div className="grid-fluid">
-              <div className="callout">
-                <strong style={{ color: 'var(--text)' }}>Absence is never safety.</strong>
-                <br />
-                If a check could not resolve, it reads{' '}
-                <span className="state state-UNKNOWN" style={{ display: 'inline-flex' }}>
-                  UNKNOWN
-                </span>{' '}
-                and the coverage figure drops. It never quietly counts as clean.
+            {/* A stacked list, not three cards in a row.
+                These were three equal-width cards under a bold question, which
+                is the single most recognisable shape of a generated marketing
+                page, and it was the first thing anyone saw. The words are
+                unchanged; only the arrangement is. Stacked, each rule gets the
+                full measure to be read at, which suits a sentence better than a
+                third of the width does. */}
+            <dl className="rules">
+              <div>
+                <dt>Absence is never safety.</dt>
+                <dd>
+                  If a check could not resolve, it reads{' '}
+                  <span className="state state-UNKNOWN" style={{ display: 'inline-flex' }}>
+                    UNKNOWN
+                  </span>{' '}
+                  and the coverage figure drops. It never quietly counts as clean.
+                </dd>
               </div>
-              <div className="callout">
-                <strong style={{ color: 'var(--text)' }}>An expected power is still a power.</strong>
-                <br />
-                Circle can freeze your USDC. The registry explains why that capability exists. It does not
-                pretend it is absent.
+              <div>
+                <dt>An expected power is still a power.</dt>
+                <dd>
+                  Circle can freeze your USDC. The registry explains why that capability exists. It does not
+                  pretend it is absent.
+                </dd>
               </div>
-              <div className="callout">
-                <strong style={{ color: 'var(--text)' }}>Reproducible by anyone.</strong>
-                <br />
-                The method and weights are published, and the scorer is a pure function. You can recompute any
-                score without asking us.
+              <div>
+                <dt>Reproducible by anyone.</dt>
+                <dd>
+                  The method and weights are published, and the scorer is a pure function. You can recompute
+                  any score without asking us.
+                </dd>
               </div>
-            </div>
+            </dl>
           </div>
         </section>
       )}

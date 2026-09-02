@@ -17,7 +17,7 @@ export default async function PatternsPage() {
           { label: 'patterns', value: patterns.length },
           { label: 'evm', value: patterns.filter((p) => p.chainFamily === 'evm').length },
           { label: 'solana', value: patterns.filter((p) => p.chainFamily === 'solana').length },
-          { label: 'with warnings', value: warned, tone: 'warn' },
+          { label: 'document a false negative', value: warned },
         ]}
       />
       <PatternBrowser patterns={patterns} />

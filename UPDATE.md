@@ -14,6 +14,42 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.6, 2026-09-02
+
+A readability and accessibility pass on the web app. No scoring code was touched, no pattern or registry data changed, and no published score moves.
+
+### Fixed
+
+**Three places where the interface made the mistake the product exists to prevent.** These were found by design review and are not cosmetic.
+
+An **unassessed axis wore the same amber as a resolved score**. `--unknown` means "we could not check this", and it was also the colour for a middling number, so Transparency resolving nothing and Control scoring 50 read as the same severity band. The meter track made it worse: an unassessed axis rendered an empty track, and an empty track is pixel-identical to a fill of width zero, so Exit genuinely scoring 0 and Transparency knowing nothing looked the same in the element carrying the most visual weight per axis. Anyone scanning bars rather than numbers could not tell "confirmed clear" from "we know nothing". `n/a` is now neutral, and an unread track is hatched.
+
+**Coverage was a traffic light** — green above 80, amber above 60, red below — on a figure whose own caption one line down says it is not a safety measure. Cropped to its own panel it produced a green "75%" badge, which is precisely the compact verdict card `ScoreResult`'s docstring says the product refuses to offer. It is now neutral, and no longer the largest text on the page.
+
+**The registry page reported 0 commercial ties in `--absent` green**, the colour meaning "we checked and it is not there". Zero declared ties can only honestly mean none were declared, not that none exist. `PageHeader`'s `tone` prop existed solely to paint counts in state colours and has been removed; the figure now reads "declared, not audited".
+
+**Accessibility defects.** The pattern and registry lists were mouse-only: rows carried `onClick` with no `tabIndex`, role or key handler, and those lists are the only route to any record but the first, so most of the dictionary and registry could not be reached without a mouse. Below 1024px the sidebar was `display: none` with nothing in its place, so every destination except the brand link was unreachable on a phone; a horizontal nav now occupies that row. The result view had no `h1` at all — the only one on the route lived in the pre-search intro and unmounted when a score arrived — so the token's name was not a heading and heading navigation went straight to "Axes" without announcing the subject. The findings list lost its column headers when it stopped being a table, leaving four fields distinguished only by position; they now carry visually hidden labels. Filter buttons showed their state through background colour alone and now set `aria-pressed`.
+
+**`--text-faint` failed WCAG AA everywhere it was used.** It measured 3.26 on `--bg`, 3.07 on `--surface` and 2.83 on `--surface-raised` against a 4.5 floor, and appeared 24 times across the components at 10 and 11px for table headers, nav labels and metadata. The large-text exemption begins around 24px and applied to none of it. It is now `#8794a8` at 6.52/6.14/5.67, and `--text-dim` moves to `#9fabc0` to clear the 7:1 target GitHub sets for its dark theme. The ratios are recorded beside the tokens.
+
+**`overflowWrap: anywhere` on the capability column** broke `upgradeability` into `upgradeabili/ty`. It breaks at any character, and that word has no hyphen to break at.
+
+### Changed
+
+**Body type is 14px, not 13px, and comes from a scale.** Every dense-data design system worth copying puts body text at 14px — GitHub Primer, Vercel Geist, IBM Carbon's productive set, Ant Design. Linear runs 13px, but as caption and secondary text rather than as body. Before this there were 25 hardcoded `fontSize: 11` and four `fontSize: 10` inline across the components, each chosen locally, which is why nothing lined up and why raising the base alone would have fixed nothing. All 39 are now scale tokens and no pixel size is set inline anywhere.
+
+**The signals table is a findings list.** The density complaint was never word count: it was a five-column table whose fifth column held a multi-sentence paragraph, fitted into whatever width the four fixed columns left over, at 12px. A table asks the eye to compare values down a column, which suits state, capability and axis and does not suit prose. Scannable fields now sit on one line with the state first, so the states still form a column to run down, and the reasoning sits beneath at full prose size, line height and measure.
+
+**Nothing was hidden to achieve that.** Reasoning and limitations stay visible without interaction. Collapsing them behind a disclosure control is exactly how a bare score becomes obtainable, and that is the one thing this product refuses to allow, so progressive disclosure was rejected here despite being the standard answer to prose in a dense UI.
+
+**Two shapes that read as a generated interface.** Callouts were a rounded box bordered on all four sides with a tinted left edge, nested inside an already-bordered panel; they are now a flat rule against a tinted ground, which is what an aside is. The home page led with three equal-width cards under a bold question, the most recognisable shape of a generated marketing page and the first thing anyone saw; the words are unchanged and the arrangement is now a stacked list.
+
+**The summary rail sticks.** It is short and the findings column is long, so it ran out partway down and left dead space beside the tail of the list. Keeping it on screen while the findings are read is the reason for putting them side by side.
+
+**`globals.css` cited a `DESIGN.md` that was never committed to this repository.** The rules it referred to are written out in the stylesheet header instead, beside the code that has to obey them.
+
+---
+
 ## 0.1.5, 2026-09-02
 
 Acts on the first real measurement from the census 0.1.4 added. Three of the five dictionary gaps it found on mainnet are now read; the two that remain are documented as deliberate rather than pending.
