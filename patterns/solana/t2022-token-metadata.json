@@ -1,0 +1,31 @@
+{
+  "id": "t2022-token-metadata",
+  "title": "Token-2022 in-place metadata",
+  "chainFamily": "solana",
+  "capability": "metadata-mutability",
+  "method": {
+    "kind": "account-extension",
+    "extension": "tokenMetadata",
+    "extensionField": "updateAuthority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "An authority that can rewrite the token's name, symbol, URI and additional metadata fields in place, on the mint itself.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "This is the only Token-2022 extension that can be added to a mint after it has been initialised, because it is variable-length. A mint without it today can gain it later, so its absence is weaker evidence than the absence of any other extension in this dictionary.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT, updateAuthority 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk, name PayPal USD",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "Distinct from the metadata pointer: one moves where the metadata is read from, the other rewrites what it says. A token could revoke either and keep the other, and reporting them as one capability would hide that.",
+  "references": [
+    "https://github.com/solana-program/token-2022/blob/main/interface/src/extension/mod.rs"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

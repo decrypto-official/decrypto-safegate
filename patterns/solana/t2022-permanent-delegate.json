@@ -1,0 +1,39 @@
+{
+  "id": "t2022-permanent-delegate",
+  "title": "Token-2022 permanent delegate",
+  "chainFamily": "solana",
+  "capability": "transfer-restriction",
+  "method": {
+    "kind": "account-extension",
+    "extension": "permanentDelegate",
+    "extensionField": "delegate",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "A single address holding standing authority to transfer or burn any holder's balance, at any time, without that holder's consent or involvement.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "Read as transfer-restriction rather than freeze-authority because the effect on a holder is stricter than freezing: a freeze stops you moving your tokens, a permanent delegate lets someone else move them out. It is scored on the exit axis for the same reason. Note also that this cannot be added to a mint after creation, so its absence from an existing mint is durable, while its presence is not revocable by the holder.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT, delegate 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk, the same address holding every other authority on this mint",
+      "verifiedAt": "2026-09-02"
+    },
+    {
+      "chain": "solana",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "symbol": "USDC",
+      "observed": "UNKNOWN by this route: a legacy Token program mint carries no extensions, so this pattern cannot look. Recorded as not looked rather than as verified absent",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "The most severe capability in the SPL ecosystem, and until now completely unread. The dictionary's only Token-2022 pattern matched the whole extension array to fee-control, so on a mint carrying a permanent delegate Safegate reported a fee mechanism and said nothing at all about the delegate. A reader was told the least severe true thing about the token while the most severe one was invisible.",
+  "references": [
+    "https://spl.solana.com/token-2022/extensions#permanent-delegate",
+    "https://solana.com/developers/guides/token-extensions/permanent-delegate"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

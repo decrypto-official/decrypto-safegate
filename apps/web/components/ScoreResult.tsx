@@ -187,10 +187,13 @@ export function ScoreResult({ score }: { score: Score }) {
             </div>
             <div className="panel-body">
               <div className="callout callout-warn" style={{ marginBottom: 14 }}>
-                <strong style={{ color: 'var(--unknown)' }}>This score is incomplete.</strong> The contract
-                answers to these privileged functions, and no pattern in the dictionary reads them. That means
-                we could not determine who holds them — not that nobody does. They are excluded from every
-                axis and from the coverage figure.
+                <strong style={{ color: 'var(--unknown)' }}>This score is incomplete.</strong>{' '}
+                {score.dictionaryGaps.every((g) => g.surface === 'solana-extension')
+                  ? `This mint is configured with these powers right now, and no pattern in the dictionary
+                     reads them. That means we could not determine who holds them — not that nobody does.`
+                  : `The contract answers to these privileged functions, and no pattern in the dictionary
+                     reads them. That means we could not determine who holds them — not that nobody does.`}{' '}
+                They are excluded from every axis and from the coverage figure.
               </div>
 
               {score.dictionaryGaps.map((gap) => (
@@ -199,10 +202,15 @@ export function ScoreResult({ score }: { score: Score }) {
                     <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 'var(--fw-bold)', color: 'var(--unknown)' }}>
                       {gap.signature}
                     </span>
-                    <span className="tag">{gap.capability}</span>
-                    <span data-numeric style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
-                      {gap.selector}
-                    </span>
+                    {/* A null capability means we found a power and cannot say what
+                        kind. Rendering the bare value would print nothing at all,
+                        turning the most honest finding on the page into a blank. */}
+                    <span className="tag">{gap.capability ?? 'not classified'}</span>
+                    {gap.selector !== gap.signature && (
+                      <span data-numeric style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)' }}>
+                        {gap.selector}
+                      </span>
+                    )}
                   </div>
                   <div className="reason" style={{ marginTop: 6 }}>
                     {gap.note}

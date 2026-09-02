@@ -98,12 +98,36 @@ export function score(input: ScoreInput): Score {
   // denominator, and quietly moving it in would change every published score
   // without a methodology version to explain why.
   if (dictionaryGaps.length > 0) {
-    const capabilities = [...new Set(dictionaryGaps.map((g) => g.capability))];
+    // An unclassified extension has no capability to name. Saying so beats
+    // rendering "null" into a sentence a reader is meant to act on.
+    const named = [...new Set(dictionaryGaps.map((g) => g.capability))].filter(
+      (c): c is NonNullable<typeof c> => c !== null
+    );
+    const unclassified = dictionaryGaps.filter((g) => g.capability === null).length;
+    const capabilities = [
+      ...named,
+      ...(unclassified > 0 ? [`${unclassified} of a kind this dictionary does not yet classify`] : []),
+    ];
+    const n = dictionaryGaps.length;
+    const plural = n === 1 ? '' : 's';
+
+    // The two surfaces support different claims and must not share a sentence.
+    // A selector in bytecode means the contract could do this; an extension on
+    // a mint means it is configured to, now. Saying "exposes" of both would
+    // understate the Solana case, and saying "is configured with" of both would
+    // overstate the EVM one — and overstating is the worse of the two here,
+    // because it invents certainty the reading does not have.
+    const configured = dictionaryGaps.every((g) => g.surface === 'solana-extension');
+
     limitations.unshift(
-      `This contract exposes ${dictionaryGaps.length} privileged function${dictionaryGaps.length === 1 ? '' : 's'} ` +
-        `that no pattern in the dictionary reads, affecting ${capabilities.join(', ')}. ` +
-        `Those capabilities are unaccounted for, not absent, and they are not included in any axis ` +
-        `or in the coverage figure. Read dictionaryGaps before treating this score as complete.`
+      (configured
+        ? `This mint is configured with ${n} extension${plural} that no pattern in the dictionary reads, ` +
+          `affecting ${capabilities.join(', ')}. Those powers are switched on now and are unreported, `
+        : `This contract exposes ${n} privileged function${plural} ` +
+          `that no pattern in the dictionary reads, affecting ${capabilities.join(', ')}. ` +
+          `Those capabilities are unaccounted for, not absent, `) +
+        `and they are not included in any axis or in the coverage figure. ` +
+        `Read dictionaryGaps before treating this score as complete.`
     );
   }
 

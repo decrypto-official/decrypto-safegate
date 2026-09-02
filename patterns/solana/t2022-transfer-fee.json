@@ -1,0 +1,31 @@
+{
+  "id": "t2022-transfer-fee",
+  "title": "Token-2022 transfer fee",
+  "chainFamily": "solana",
+  "capability": "fee-control",
+  "method": {
+    "kind": "account-extension",
+    "extension": "transferFeeConfig",
+    "returnType": "string"
+  },
+  "detects": "A fee charged on every transfer, and an authority able to change its rate and to withdraw the fees withheld from holders.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "extension-present",
+  "knownFalseNegative": "A rate of 0 basis points does not mean no fee control. The authority is a separate field from the rate, and the ceiling is 10000 basis points, which is 100 per cent of the transfer. Scoring the current rate rather than the authority would report a token whose owner can take the entirety of every transfer as having no fee control at all. Two epochs of notice are required before a new rate takes effect, which is a real mitigation and is reported as a detail rather than as an absence. Note also that the state carries both olderTransferFee and newerTransferFee: a mint charging nothing today may already have a rate scheduled, so both are summarised.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT at 0 basis points in both the older and newer fee, with transferFeeConfigAuthority and withdrawWithheldAuthority both 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "The dictionary previously matched the entire extension array to fee-control, so this was the one capability a Token-2022 mint could report, and it reported it from the wrong evidence. Reading the extension itself makes the finding true for the right reason and frees the other extensions to be read as themselves.",
+  "references": [
+    "https://github.com/solana-program/token-2022/blob/main/interface/src/extension/transfer_fee/mod.rs",
+    "https://github.com/solana-program/token-2022/blob/main/program/src/extension/transfer_fee/processor.rs"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

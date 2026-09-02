@@ -14,6 +14,57 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.1.8, 2026-09-02
+
+Token-2022 is read properly. This closes a live false negative on the most severe capability in the SPL ecosystem, and it gives the census a Solana surface, so the gap scan now covers 20 of 20 registry tokens instead of 12.
+
+Published scores move for the eight Solana tokens in the registry. See **Which scores move** below.
+
+### Fixed
+
+**A permanent delegate was invisible, and a fee mechanism was reported in its place.** The dictionary held one pattern for the whole of Token-2022, matching the entire extension array to `fee-control`. On a mint carrying a `permanentDelegate` — a single address able to transfer or burn **any holder's balance, at any time, with no action or consent from that holder** — Safegate reported a transfer fee and said nothing at all about the delegate.
+
+PYUSD is the case that makes this concrete. It carries eight extensions, all with the same authority. Safegate reported one capability: fee control, at a rate of **0 basis points**. The reader was told the least severe true thing about the token while the most severe one stayed unmentioned. It now reports seven capabilities, each read from its own extension.
+
+**The reasoning string rendered `[object Object]`.** The single pattern matched an array, and the array went into the sentence shown to the reader — eight times over on PYUSD.
+
+**A Token-2022 read on a legacy mint claimed a verified absence.** The old pattern's field path resolved to nothing on a legacy Token mint, which the resolver recorded as "we checked and it is not there" rather than "there is nothing here to check". Every legacy Solana token therefore reported `fee-control` as **ABSENT** — and since one definite miss outweighs any number of could-not-looks, that single false reading was enough to score the whole exit axis as a clean 0. Eight tokens were claiming an axis they had never been assessed on.
+
+### Added
+
+**Seven Token-2022 patterns**, one per extension, replacing the single catch-all. Each reads the authority named in that extension rather than inferring one from the array's existence: `permanentDelegate`, `mintCloseAuthority`, `transferHook`, `transferFeeConfig`, `confidentialTransferMint`, `metadataPointer`, `tokenMetadata`. Every one is verified against a real mainnet mint.
+
+Two of the mappings are worth stating outright, because both were arrived at against a first instinct:
+
+- **`mintCloseAuthority` is upgradeability, not administration.** Closing a mint requires zero supply, which looks like a constraint and is not an independent one when the same key also holds the permanent delegate: burning the supply and then closing the mint is one actor's sequence. The address can then be re-initialised as a *different token with different rules*, and every wallet, price feed and integrator keys off that address. That is upgradeability in the most literal sense available on Solana.
+- **`transferFeeConfig` is PRESENT at 0 basis points.** The authority is a separate field from the rate, and the ceiling is 100% of the transfer. Scoring the current rate rather than the authority would report a token whose owner can take the entirety of every transfer as having no fee control at all. The two-epoch delay before a new rate takes effect is reported as a mitigating detail, never as an absence. The same reasoning covers `transferHook` with a null `programId` — with the difference, noted in the pattern, that installing a hook takes effect immediately and has no delay at all.
+
+**A gap scan for Solana**, the counterpart of the bytecode scan and a firmer one. Bytecode says a contract *could* dispatch a function; a mint's extension list says it *is configured to*, now, with each authority named in the account. The limitation text and the CLI and dashboard headlines say which of the two they are describing, rather than sharing a sentence that would understate one or overstate the other.
+
+**An extension nobody has classified is reported with no capability named.** Token-2022 gains extension types regularly, and an allowlist that silently skips what it does not recognise would guarantee that the newest power on a mint is the one we miss — this project's own absence-is-never-safety rule, broken in the instrument built to enforce it. The same applies to `unparseableExtension`, the node's own marker for data it could not decode. Both are reported as unread rather than resolved into a guess.
+
+### Changed
+
+**A legacy Token mint counts as scanned, not as inapplicable.** Its entire privileged surface is `mintAuthority` and `freezeAuthority`, both of which the dictionary reads. "We scanned it and nothing is unread" is true, and is a stronger statement than declining to look. The census covers 20 of 20 registry tokens as a result, where it previously covered 12 and reported the other 8 as out of scope.
+
+**A Token-2022 pattern makes no finding at all about a legacy mint.** Neither available answer was honest. Recording a value would claim a check that could not have found anything. Recording "could not look" would add a capability to the coverage denominator that the mint could never have scored, making every legacy token appear less covered purely because the dictionary learned about a program it does not use. The observation is not emitted.
+
+### Which scores move
+
+All eight Solana registry tokens — USDC, USDT, JitoSOL, mSOL, ORCA, RAY, JUP, PYTH — move identically, and in one direction only:
+
+| | before | after |
+|---|---|---|
+| Exit axis | `0` (assessed) | `n/a` (unassessed) |
+| Coverage | 3 of 4 | 2 of 3 |
+| Gap scan | `not-applicable` | `ran`, no gaps |
+
+No axis value rises and none falls. The exit axis stops reporting a clean `0` that rested entirely on the false `fee-control` absence described above. Nothing on Ethereum moves.
+
+No weights, no axis mapping and no formula changed. `METHODOLOGY_VERSION` stays `0.1.0`.
+
+---
+
 ## 0.1.7, 2026-09-02
 
 The tail of the 0.1.6 pass, which merged before it was finished, plus the guide. Presentation and documentation only: no scoring code, no pattern or registry data, no published score moves.
@@ -57,6 +108,7 @@ Both are hand-drawn SVG, roughly forty lines each. A ring is one circle with a d
 ### Removed
 
 **`coveragePct`,** dead once the ring took over the calculation.
+
 
 ---
 

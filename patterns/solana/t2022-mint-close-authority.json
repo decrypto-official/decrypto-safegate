@@ -1,0 +1,32 @@
+{
+  "id": "t2022-mint-close-authority",
+  "title": "Token-2022 mint close authority",
+  "chainFamily": "solana",
+  "capability": "upgradeability",
+  "method": {
+    "kind": "account-extension",
+    "extension": "mintCloseAuthority",
+    "extensionField": "closeAuthority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "An address that can close the mint account once supply reaches zero, freeing the address to be re-initialised as a different token with different rules.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "Read as upgradeability rather than admin-authority because the consequence is that the token at a fixed address can be replaced wholesale. Every integrator, wallet and price feed keys off the mint address, and this power invalidates that assumption. The zero-supply precondition looks like a constraint and is not an independent one when the same party also holds the permanent delegate or the mint authority: burning the supply to zero and then closing the mint is a single actor's sequence. Check who holds the other authorities before reading the precondition as protection.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT, closeAuthority 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk, the same key that holds the permanent delegate and every other authority on this mint",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "Without this a token can be closed and a different token re-initialised at the same address, and nothing in the score would have mentioned that the address itself is not a durable identity.",
+  "references": [
+    "https://github.com/solana-program/token-2022/blob/main/program/src/processor.rs",
+    "https://neodyme.io/en/blog/token-2022/"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

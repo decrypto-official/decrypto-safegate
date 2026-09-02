@@ -10,6 +10,7 @@ import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode } from './sources
 import { solanaClient, fetchMint } from './sources/solana.js';
 import { loadPatterns, applyEvmPatterns, applySolanaPatterns } from './patterns/resolve.js';
 import { findDictionaryGaps } from './patterns/selectors.js';
+import { findExtensionGaps } from './patterns/extensions.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
 import { normalise } from './signals/normalise.js';
 import { score } from './scoring/model2.js';
@@ -30,7 +31,8 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   let rawForHash: unknown;
   const unverified: UnverifiedReference[] = [];
   let dictionaryGaps: DictionaryGap[] = [];
-  // Solana has no bytecode analogue to scan, so that branch never changes this.
+  // Each branch sets this. 'not-applicable' survives only where a chain really
+  // offers nothing to scan, which is now no chain at all.
   let gapScan: GapScanStatus = 'not-applicable';
 
   if (chain === 'ethereum') {
@@ -67,6 +69,24 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     symbol = entry?.symbol;
     name = entry?.name;
     rawForHash = { mint: mint.mintAuthority, freeze: mint.freezeAuthority, program: mint.programId };
+
+    // The Solana equivalent of the bytecode scan, and a firmer one: see the
+    // header of patterns/extensions.ts. Three outcomes, and the middle one is
+    // the reason this is not simply `ran`:
+    //
+    //   raw === null        we could not read the mint. 'failed'.
+    //   no extension list   a legacy Token mint, whose entire privileged
+    //                       surface is mintAuthority and freezeAuthority and is
+    //                       fully read by the dictionary. 'ran', no gaps — a
+    //                       real finding, not an absence of one.
+    //   an extension list   a Token-2022 mint. 'ran', gaps are whatever is
+    //                       configured on it that no pattern reads.
+    if (mint.raw === null) {
+      gapScan = 'failed';
+    } else {
+      gapScan = 'ran';
+      dictionaryGaps = findExtensionGaps(mint.raw, patterns, observations);
+    }
 
     // Holder concentration is not obtainable from our own reading: the public RPC
     // permanently rate limits getTokenLargestAccounts. Rather than quietly omitting

@@ -123,15 +123,24 @@ function render(s: Score): void {
   }
 
   if (s.dictionaryGaps.length > 0) {
+    // The two surfaces do not support the same headline. Bytecode says the
+    // contract could do this; an extension list says the mint is configured to.
+    const allExtensions = s.dictionaryGaps.every((g) => g.surface === 'solana-extension');
     console.log(
       `\n${BOLD}${YELLOW}NOT READ BY ANY PATTERN${RESET} ` +
-        `${DIM}(the contract can do these; we cannot see who holds them)${RESET}`
+        `${DIM}(${
+          allExtensions
+            ? 'these are switched on now; we cannot see who holds them'
+            : 'the contract can do these; we cannot see who holds them'
+        })${RESET}`
     );
     for (const gap of s.dictionaryGaps) {
-      console.log(
-        `  ${YELLOW}?${RESET} ${BOLD}${gap.signature}${RESET} ` +
-          `${DIM}[${gap.capability}] ${gap.selector}${RESET}`
-      );
+      // A null capability is not a missing field. It means we found a power and
+      // cannot say what kind, which has to read as a statement, not a blank.
+      const label = gap.capability ?? 'not classified by this dictionary';
+      // On Solana the selector is the extension name, so printing both repeats it.
+      const suffix = gap.selector === gap.signature ? '' : ` ${gap.selector}`;
+      console.log(`  ${YELLOW}?${RESET} ${BOLD}${gap.signature}${RESET} ${DIM}[${label}]${suffix}${RESET}`);
       console.log(`      ${DIM}${wrap(gap.note, 74, 6)}${RESET}`);
     }
   }
