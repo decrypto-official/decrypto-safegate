@@ -70,7 +70,7 @@ export function CoverageRing({ scored, applicable }: { scored: number; applicabl
           textAnchor="middle"
           dominantBaseline="central"
           fill="var(--text)"
-          fontWeight="600"
+          fontWeight="var(--fw-bold)"
           fontFamily="var(--font-mono)"
           style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-lg)' }}
         >
@@ -117,6 +117,14 @@ export function AxesRadar({ score }: { score: Score }) {
       value: a.value,
       x: c + r * Math.cos(angles[i]),
       y: c + r * Math.sin(angles[i]),
+      // The value label rides its own spoke rather than sitting straight above
+      // the point. A genuine zero plots at the origin, so with two low axes the
+      // labels stacked on each other, and with three they would land on one
+      // pixel. Pushed out along the axis they belong to, each stays legible and
+      // stays attributable to its own axis. Clamped inside the rim so it cannot
+      // collide with the axis name.
+      vx: c + Math.min(r + 15, maxR - 6) * Math.cos(angles[i]),
+      vy: c + Math.min(r + 15, maxR - 6) * Math.sin(angles[i]),
       lx: c + (maxR + 22) * Math.cos(angles[i]),
       ly: c + (maxR + 22) * Math.sin(angles[i]),
     };
@@ -174,7 +182,37 @@ export function AxesRadar({ score }: { score: Score }) {
 
       {points.map((p) => (
         <g key={p.axis}>
-          {p.assessed && <circle cx={p.x} cy={p.y} r="3.5" fill={severity(p.value)} />}
+          {p.assessed && (
+            <>
+              <circle cx={p.x} cy={p.y} r="3.5" fill={severity(p.value)} />
+              {/* The value, on the point.
+               *
+               * severity() paints a point amber or green, and those two — the
+               * colour for "could not check" and the colour for "verified not
+               * present" — are the least separable pair in this palette under
+               * protanopia, measured at ΔE 7.7 where 8 is the floor. Everywhere
+               * else that pair carries a second cue: the signals table prints
+               * the state, the meters have a bar length and a numeral. On the
+               * radar the fill was the only carrier, so roughly one man in
+               * twelve could not read it.
+               *
+               * A number is the right second cue rather than a shape, because
+               * it also answers the objection to radars generally: three points
+               * give a silhouette, not a value. Three labels is not a number on
+               * every point. */}
+              <text
+                x={p.vx}
+                y={p.vy}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="var(--text)"
+                fontFamily="var(--font-mono)"
+                style={{ fontSize: 'var(--fs-label)', fontVariantNumeric: 'tabular-nums' }}
+              >
+                {p.value}
+              </text>
+            </>
+          )}
           <text
             x={p.lx}
             y={p.ly}

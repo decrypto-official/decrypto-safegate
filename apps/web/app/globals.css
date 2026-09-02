@@ -92,7 +92,6 @@
   --fw-medium: 500;
   --fw-bold: 600;
 
-  --lh-tight: 1.35;
   --lh-body: 1.5;
   --lh-prose: 1.65;   /* prose is read, not scanned; it gets the room */
 
@@ -454,6 +453,12 @@ body {
 .table col.c-cap { width: 168px; }
 .table col.c-axis { width: 92px; }
 .table col.c-src { width: 152px; }
+/* The dictionary list's capability column. 150px, not the 116px it began as:
+   `upgradeability` is ~95px of glyphs at this size with no hyphen to break at,
+   and under table-layout: fixed a narrower track either broke it mid-word or
+   spilled it into the next column. Declared here with the other column widths
+   rather than inline on the <col>, so every width in the app is in one place. */
+.table col.c-capability { width: 150px; }
 .table th {
   text-align: left;
   font-size: var(--fs-label);
@@ -470,10 +475,18 @@ body {
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
-/* Not .signals: there every record's second row is its tbody's last row, so
-   this rule out-specified the separator between records and merged the whole
-   list into one block — the exact thing that separator exists to prevent. */
-.table:not(.signals) tbody tr:last-child td {
+/* tbody:last-of-type, not every tbody.
+ *
+ * This was `.table tbody tr:last-child td`, which is the last row of EVERY
+ * tbody. A flat table has one, so it read correctly there; .signals gives each
+ * record its own tbody, so the rule fired on all of them and out-specified the
+ * separator between records, merging the list into the single block that
+ * separator exists to prevent. Excluding .signals by negation fixed the symptom
+ * and left one selector trying to describe two table shapes.
+ *
+ * Scoping to the last tbody states the thing actually meant — the table's final
+ * row — and is true of both shapes without special-casing either. */
+.table tbody:last-of-type tr:last-child td {
   border-bottom: none;
 }
 .table tbody tr:hover {
@@ -630,29 +643,11 @@ body {
      primary content unit and at a hairline they read as one grey block. */
   border-bottom: 1px solid var(--border-strong);
 }
-.signals tbody.signal:last-child .reason-cell {
-  border-bottom: none;
-}
 .signals tbody.signal:hover > tr > td,
 .signals tbody.signal:hover > tr > th {
   background: var(--surface-raised);
 }
 
-/* A key/value strip for dense metadata that genuinely is tabular. */
-.kv {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 16px;
-  font-size: var(--fs-body);
-}
-.kv dt {
-  color: var(--text-faint);
-  white-space: nowrap;
-}
-.kv dd {
-  margin: 0;
-  color: var(--text);
-}
 
 .tag {
   display: inline-block;

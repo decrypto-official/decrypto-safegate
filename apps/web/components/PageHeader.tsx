@@ -30,7 +30,7 @@ export function PageHeader({
                     absent — reading as "clean" when it can only honestly mean
                     "none declared". That is this product's own absence-is-not-
                     safety error, committed in its own interface. */}
-                <div data-numeric style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, color: 'var(--text)' }}>
+                <div data-numeric style={{ fontSize: 'var(--fs-xl)', fontWeight: 'var(--fw-bold)', color: 'var(--text)' }}>
                   {s.value}
                 </div>
                 <div

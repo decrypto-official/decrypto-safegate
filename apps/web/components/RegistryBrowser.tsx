@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { selectableRow } from './selectableRow';
 import type { RegistryEntry } from '@safegate/registry/lookup.js';
 
 /**
@@ -66,23 +67,7 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
               {visible.map((entry) => (
                 <tr
                   key={entry.id}
-                  className="row-button"
-                  tabIndex={0}
-                  aria-selected={entry.id === selected?.id}
-                  onClick={() => setSelectedId(entry.id)}
-                  onKeyDown={(e) => {
-                    // Same as the pattern list: this is the only route to any
-                    // entry but the first, so it has to answer the keyboard.
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSelectedId(entry.id);
-                    }
-                  }}
-                  style={{
-                    cursor: 'pointer',
-                    background: entry.id === selected?.id ? 'var(--surface-raised)' : undefined,
-                    boxShadow: entry.id === selected?.id ? 'inset 2px 0 0 var(--accent)' : undefined,
-                  }}
+                  {...selectableRow(entry.id === selected?.id, () => setSelectedId(entry.id))}
                 >
                   <td className="mono" style={{ color: 'var(--text)' }}>
                     {entry.symbol}
@@ -118,9 +103,9 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
         <div className="panel-body">
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'baseline' }}>
             <div>
-              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 'var(--fw-bold)', letterSpacing: '-0.02em' }}>
                 {entry.symbol}{' '}
-                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-body)' }}>{entry.name}</span>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 'var(--fw-normal)', fontSize: 'var(--fs-body)' }}>{entry.name}</span>
               </div>
               <div className="addr">
                 {entry.chain} {entry.address}

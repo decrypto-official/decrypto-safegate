@@ -30,7 +30,6 @@ export function ScoreResult({ score }: { score: Score }) {
   const order = { PRESENT: 0, UNKNOWN: 1, EXPECTED: 2, ABSENT: 3 };
   const sorted = [...signals].sort((a, b) => order[a.state] - order[b.state]);
 
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)' }}>
       {/* header */}
@@ -43,10 +42,10 @@ export function ScoreResult({ score }: { score: Score }) {
                 important word on the page — was not a heading. Navigating by
                 heading landed on "Axes" and "Signals" without ever announcing
                 which token was being read. */}
-            <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+            <h1 style={{ fontSize: 'var(--fs-xl)', fontWeight: 'var(--fw-bold)', letterSpacing: '-0.02em', margin: 0 }}>
               {score.symbol ?? 'Unknown token'}
               {score.name && score.name !== score.symbol && (
-                <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 'var(--fs-lg)' }}>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 'var(--fw-normal)', fontSize: 'var(--fs-lg)' }}>
                   {' '}
                   {score.name}
                 </span>
@@ -197,7 +196,7 @@ export function ScoreResult({ score }: { score: Score }) {
               {score.dictionaryGaps.map((gap) => (
                 <div key={gap.selector} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 600, color: 'var(--unknown)' }}>
+                    <span data-numeric style={{ fontSize: 'var(--fs-h)', fontWeight: 'var(--fw-bold)', color: 'var(--unknown)' }}>
                       {gap.signature}
                     </span>
                     <span className="tag">{gap.capability}</span>

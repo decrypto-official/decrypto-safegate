@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { selectableRow } from './selectableRow';
 import type { Pattern } from '@safegate/patterns/resolve.js';
 
 /**
@@ -52,12 +53,7 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
           <table className="table" role="grid" style={{ minWidth: 0 }}>
             <colgroup>
               <col />
-              {/* 150, not 116. `upgradeability` is ~95px of glyphs at 13px with
-                  no hyphen to break at, and under table-layout: fixed a 116px
-                  track either broke it mid-word or spilled into the next
-                  column. Widening .master-detail did not help: this col is what
-                  constrains it. */}
-              <col style={{ width: 150 }} />
+<col className="c-capability" />
               <col style={{ width: 30 }} />
             </colgroup>
             <thead>
@@ -73,24 +69,7 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
               {visible.map((pattern) => (
                 <tr
                   key={pattern.id}
-                  className="row-button"
-                  tabIndex={0}
-                  aria-selected={pattern.id === selected?.id}
-                  onClick={() => setSelectedId(pattern.id)}
-                  onKeyDown={(e) => {
-                    // This list is the only way to reach any pattern but the
-                    // first. Without a key handler the rest of the dictionary
-                    // was unreachable without a mouse.
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSelectedId(pattern.id);
-                    }
-                  }}
-                  style={{
-                    cursor: 'pointer',
-                    background: pattern.id === selected?.id ? 'var(--surface-raised)' : undefined,
-                    boxShadow: pattern.id === selected?.id ? 'inset 2px 0 0 var(--accent)' : undefined,
-                  }}
+                  {...selectableRow(pattern.id === selected?.id, () => setSelectedId(pattern.id))}
                 >
                   <td className="mono" style={{ color: 'var(--text)', overflowWrap: 'anywhere' }}>
                     {pattern.id}
@@ -128,7 +107,7 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
       <section className="panel">
         <div className="panel-body">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-            <div className="mono" style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>
+            <div className="mono" style={{ fontSize: 'var(--fs-lg)', fontWeight: 'var(--fw-bold)' }}>
               {pattern.id}
             </div>
             <span className="tag">{pattern.chainFamily}</span>
