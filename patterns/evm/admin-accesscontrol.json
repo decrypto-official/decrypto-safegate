@@ -1,27 +1,35 @@
 {
   "id": "admin-accesscontrol",
-  "title": "OpenZeppelin AccessControl DEFAULT_ADMIN_ROLE",
+  "title": "OpenZeppelin AccessControl DEFAULT_ADMIN_ROLE()",
   "chainFamily": "evm",
   "capability": "admin-authority",
   "method": {
     "kind": "call-selector",
-    "callSelector": "0x91d14854",
-    "signature": "hasRole(bytes32,address) returns (bool)",
-    "returnType": "bool"
+    "callSelector": "0xa217fddf",
+    "signature": "DEFAULT_ADMIN_ROLE() returns (bytes32)",
+    "returnType": "bytes32"
   },
-  "detects": "Role-based admin. Presence of hasRole indicates a role system, where privileges are held per-role rather than by a single owner.",
+  "detects": "A role-based admin system. The getter exists only on contracts that inherit AccessControl, where privileges are held per role rather than by a single owner.",
   "nonEmptyMeans": "capability-present",
-  "knownFalseNegative": "hasRole requires you to already know which address to ask about, so it cannot enumerate role holders from a single call. Renouncing Ownable while retaining a MINTER_ROLE is a real and common pattern, and an Ownable-only reader will miss it entirely.",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "Before 0.2.0 this pattern called hasRole(bytes32,address) with no arguments, which always reverts, so it could never fire and every contract read as having no role system. The getter proves a role system exists; it cannot enumerate who holds which role, so a contract that renounced Ownable while keeping a MINTER_ROLE is reported as having admin authority without naming the holder. A role system whose every role has been renounced still answers this call.",
   "coversExamples": [
     {
       "chain": "ethereum",
-      "address": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
-      "symbol": "ENS",
-      "observed": "18709 bytes, role-based access probed",
-      "verifiedAt": "2026-07-22"
+      "address": "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+      "symbol": "GHO",
+      "observed": "DEFAULT_ADMIN_ROLE() returns 0x00..00, the role system is present",
+      "verifiedAt": "2026-09-06"
+    },
+    {
+      "chain": "ethereum",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "observed": "reverts, USDC does not use AccessControl",
+      "verifiedAt": "2026-09-06"
     }
   ],
-  "rationale": "Role systems are how modern tokens hold privileges. They are invisible to owner()-only detection, which is precisely how 'renounced ownership' becomes security theatre.",
+  "rationale": "Role systems are how most tokens written since 2020 hold privileges, and they are invisible to owner()-only detection, which is how renounced ownership becomes theatre. Without a working read of this shape, a token administered through roles reports no admin at all.",
   "references": [
     "https://docs.openzeppelin.com/contracts/5.x/api/access#AccessControl"
   ],

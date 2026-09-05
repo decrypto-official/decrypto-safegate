@@ -13,7 +13,7 @@
 import type { Axis, AxisResult, Disagreement, DictionaryGap, GapScanStatus, Score, Signal, UnverifiedReference, Chain } from '../types.js';
 import { CAPABILITY_WEIGHT } from '../signals/normalise.js';
 
-export const METHODOLOGY_VERSION = '0.1.0';
+export const METHODOLOGY_VERSION = '0.2.0';
 
 const AXES: Axis[] = ['control', 'transparency', 'exit'];
 
@@ -66,7 +66,7 @@ export function score(input: ScoreInput): Score {
 
   if (applicable > 0 && scored / applicable < 0.6) {
     limitations.unshift(
-      `Coverage is ${pct(scored / applicable)}. Fewer than two thirds of the applicable checks resolved, ` +
+      `Coverage is ${pct(scored / applicable)}. Fewer than 60% of the applicable checks resolved, ` +
         `so this score is weak evidence. Read the unresolved signals rather than the numbers.`
     );
   }

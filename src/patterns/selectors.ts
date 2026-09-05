@@ -66,11 +66,16 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   { signature: 'freeze(address)', capability: 'freeze-authority', implies: 'an individual holder can be frozen' },
   { signature: 'freezeAccount(address,bool)', capability: 'freeze-authority', implies: 'an individual account can be frozen' },
 
-  // Restricting transfer, for everyone or for one holder.
+  // Blocking one holder is freeze authority, the same capability a Solana
+  // freeze authority holds. Since 0.2.0 the dictionary reads it through the
+  // isBlacklisted getters, and the write functions stay here so a contract
+  // with a blacklist and no readable getter is still reported.
+  { signature: 'blacklist(address)', capability: 'freeze-authority', implies: 'an address can be blocked from transacting' },
+  { signature: 'addBlackList(address)', capability: 'freeze-authority', implies: 'an address can be added to a block list' },
+  { signature: 'blockAccount(address)', capability: 'freeze-authority', implies: 'an account can be blocked' },
+
+  // Restricting transfer for everyone.
   { signature: 'pause()', capability: 'transfer-restriction', implies: 'all transfers can be halted' },
-  { signature: 'blacklist(address)', capability: 'transfer-restriction', implies: 'an address can be blocked from transacting' },
-  { signature: 'addBlackList(address)', capability: 'transfer-restriction', implies: 'an address can be added to a block list' },
-  { signature: 'blockAccount(address)', capability: 'transfer-restriction', implies: 'an account can be blocked' },
 
   // Economics.
   { signature: 'setFee(uint256)', capability: 'fee-control', implies: 'a transfer fee can be changed' },

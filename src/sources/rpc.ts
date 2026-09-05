@@ -1,9 +1,14 @@
 /**
  * Minimal JSON-RPC client with endpoint failover.
  *
- * Failover is not defensive padding. Public RPC endpoints go away or move behind
- * an API key without notice, so a single hardcoded endpoint is a guaranteed
- * future outage.
+ * Public endpoints go away or move behind keys without notice, so a single
+ * hardcoded endpoint is a guaranteed future outage.
+ *
+ * Two kinds of error come back from a JSON-RPC call and they mean opposite
+ * things. An execution revert is an answer: the contract has no such function.
+ * Anything else (rate limit, timeout, method not found, internal error) is the
+ * endpoint failing to answer. Before 0.2.0 both were treated as reverts, so a
+ * throttled endpoint turned every probe into "checked, not there".
  */
 
 export interface RpcConfig {
@@ -19,11 +24,30 @@ export const DEFAULT_EVM_ENDPOINTS = [
 
 export const DEFAULT_SOLANA_ENDPOINTS = ['https://api.mainnet-beta.solana.com'];
 
+/** `revert`: the contract answered by reverting. `rpc`: no endpoint could answer. */
+export type RpcErrorKind = 'revert' | 'rpc';
+
 export class RpcError extends Error {
-  constructor(message: string, readonly endpoint?: string, readonly code?: number) {
+  constructor(
+    message: string,
+    readonly kind: RpcErrorKind,
+    readonly endpoint?: string,
+    readonly code?: number
+  ) {
     super(message);
     this.name = 'RpcError';
   }
+}
+
+/**
+ * Whether a JSON-RPC error object is an EVM execution revert.
+ *
+ * Geth-family nodes use code 3 with "execution reverted". Some others use
+ * -32000 with a message containing "revert". Everything else is transport.
+ */
+export function isRevertError(code?: number, message?: string): boolean {
+  if (code === 3) return true;
+  return typeof message === 'string' && /revert/i.test(message);
 }
 
 export class RpcClient {
@@ -38,7 +62,8 @@ export class RpcClient {
 
   /**
    * Try each endpoint in turn. Returns the first success.
-   * Throws only when every endpoint fails, and reports why.
+   * A revert is returned immediately as an RpcError of kind 'revert'.
+   * Any other failure moves to the next endpoint; if all fail, kind 'rpc'.
    */
   async call<T = unknown>(method: string, params: unknown[]): Promise<T> {
     const failures: string[] = [];
@@ -70,29 +95,34 @@ export class RpcClient {
         try {
           body = JSON.parse(text);
         } catch {
-          // Dead endpoints often return an HTML error page rather than JSON.
           failures.push(`${endpoint}: non-JSON response (${text.slice(0, 60)})`);
           continue;
         }
 
         if (body.error) {
-          // A JSON-RPC error is a real answer from a working endpoint, so do not
-          // fail over. `eth_call` reverting is meaningful information, not an outage.
-          throw new RpcError(body.error.message ?? 'rpc error', endpoint, body.error.code);
+          if (isRevertError(body.error.code, body.error.message)) {
+            throw new RpcError(body.error.message ?? 'execution reverted', 'revert', endpoint, body.error.code);
+          }
+          failures.push(`${endpoint}: rpc error ${body.error.code ?? '?'} ${body.error.message ?? ''}`.trim());
+          continue;
         }
 
         return body.result as T;
       } catch (err) {
         if (err instanceof RpcError) throw err;
-        failures.push(`${this.endpoints.indexOf(endpoint) >= 0 ? endpoint : '?'}: ${(err as Error).message}`);
+        failures.push(`${endpoint}: ${(err as Error).message}`);
       }
     }
 
-    throw new RpcError(`all endpoints failed: ${failures.join('; ')}`);
+    throw new RpcError(`all endpoints failed: ${failures.join('; ')}`, 'rpc');
   }
 }
 
-/** eth_call that treats a revert as a value, because a revert IS information. */
+/**
+ * eth_call that treats a revert as a value, because a revert IS information.
+ * `data` is the full calldata: selector plus any ABI-encoded arguments.
+ * Transport failures propagate so the caller records "could not look".
+ */
 export async function ethCall(
   client: RpcClient,
   to: string,
@@ -102,7 +132,7 @@ export async function ethCall(
     const result = await client.call<string>('eth_call', [{ to, data }, 'latest']);
     return { ok: true, data: result };
   } catch (err) {
-    if (err instanceof RpcError && err.code !== undefined) {
+    if (err instanceof RpcError && err.kind === 'revert') {
       return { ok: false, reverted: true, message: err.message };
     }
     throw err;
@@ -115,6 +145,23 @@ export async function ethGetStorageAt(client: RpcClient, address: string, slot: 
 
 export async function ethGetCode(client: RpcClient, address: string): Promise<string> {
   return client.call<string>('eth_getCode', [address, 'latest']);
+}
+
+/**
+ * What kind of thing sits at an EVM address, from its code.
+ *
+ * `none`: no code, an externally owned account or nothing at all.
+ * `eip7702-delegation`: the 23-byte designator (0xef0100 + address) that an
+ * EOA carries after delegating under EIP-7702. Not a token contract.
+ * `contract`: anything else.
+ */
+export type CodeKind = 'none' | 'eip7702-delegation' | 'contract';
+
+export function classifyCode(code: string | null | undefined): CodeKind {
+  const clean = (code ?? '').replace(/^0x/, '').toLowerCase();
+  if (clean.length === 0) return 'none';
+  if (/^ef0100[0-9a-f]{40}$/.test(clean)) return 'eip7702-delegation';
+  return 'contract';
 }
 
 /** A 32-byte word holds an address in its low 20 bytes. Zero means unset. */

@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { analyse } from '@safegate/pipeline.js';
 import { PatternLoadError } from '@safegate/patterns/resolve.js';
 import { RegistryLoadError } from '@safegate/registry/lookup.js';
+import { UnscoreableAddressError } from '@safegate/errors.js';
 import type { Chain } from '@safegate/types.js';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,11 @@ export async function GET(request: Request): Promise<NextResponse> {
       headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' },
     });
   } catch (err) {
+    // A wallet, an empty address or a non-mint account has nothing to score.
+    // Before 0.2.0 it got a clean 0 on every axis instead of this.
+    if (err instanceof UnscoreableAddressError) {
+      return NextResponse.json({ error: err.message, reason: err.reason }, { status: 404 });
+    }
     // A missing dictionary or registry is a deployment fault on our side. It must
     // never degrade to a 200 with an empty score, because an empty score reads as
     // a clean bill of health.

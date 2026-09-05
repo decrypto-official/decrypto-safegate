@@ -6,14 +6,17 @@
 
 import { createHash } from 'node:crypto';
 import type { Chain, DictionaryGap, GapScanStatus, Observation, Score, UnverifiedReference } from './types.js';
-import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode } from './sources/rpc.js';
-import { solanaClient, fetchMint } from './sources/solana.js';
-import { loadPatterns, applyEvmPatterns, applySolanaPatterns } from './patterns/resolve.js';
+import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode, classifyCode } from './sources/rpc.js';
+import { solanaClient, fetchMint, fetchTokenMetadata, type TokenMetaRecord } from './sources/solana.js';
+import { loadPatterns, applyEvmPatterns, applySolanaPatterns, fillMissingCapabilities } from './patterns/resolve.js';
 import { findDictionaryGaps } from './patterns/selectors.js';
 import { findExtensionGaps } from './patterns/extensions.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
 import { normalise } from './signals/normalise.js';
 import { score } from './scoring/model2.js';
+import { UnscoreableAddressError } from './errors.js';
+
+export { UnscoreableAddressError } from './errors.js';
 
 export interface AnalyseOptions {
   evmEndpoints?: string[];
@@ -28,33 +31,39 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   let observations: Observation[];
   let symbol: string | undefined;
   let name: string | undefined;
-  let rawForHash: unknown;
   const unverified: UnverifiedReference[] = [];
   let dictionaryGaps: DictionaryGap[] = [];
-  // Each branch sets this. 'not-applicable' survives only where a chain really
-  // offers nothing to scan, which is now no chain at all.
   let gapScan: GapScanStatus = 'not-applicable';
 
   if (chain === 'ethereum') {
     const client = new RpcClient({ endpoints: options.evmEndpoints ?? DEFAULT_EVM_ENDPOINTS });
-    observations = await applyEvmPatterns(client, address, patterns);
-    // Both reads depend only on the address, so they go out together rather
-    // than costing two sequential round trips on the request path.
-    //
-    // The bytecode read asks what the contract can do that our dictionary
-    // cannot see. It is reported beside the score and never folded into it:
-    // see the note in scoring/model2.ts. A failure here must not cost the
-    // caller their score — not knowing our own blind spots is worse than not
-    // reporting them, but it is not worse than returning nothing — so it
-    // degrades to null and the score stands on the readings we did get.
-    const [symbolRead, bytecode] = await Promise.all([
+
+    // Code first. An address with no contract scores 0 on every axis at full
+    // coverage, because every probe reads "checked, nothing there". That is the
+    // best-looking result the tool can print, so it must not be printed for a
+    // wallet. If the code read itself fails we cannot tell, and proceed with
+    // the gap scan marked failed, as before.
+    const bytecode = await ethGetCode(client, address).catch(() => null);
+    if (bytecode !== null) {
+      const kind = classifyCode(bytecode);
+      if (kind === 'none') {
+        throw new UnscoreableAddressError(chain, address, 'no-code',
+          `${address} has no contract code on Ethereum. It is a wallet or an unused address, not a token, so there is nothing to score.`);
+      }
+      if (kind === 'eip7702-delegation') {
+        throw new UnscoreableAddressError(chain, address, 'eip7702-delegation',
+          `${address} is a wallet carrying an EIP-7702 delegation, not a token contract, so there is nothing to score.`);
+      }
+    }
+
+    const [patternReads, symbolRead] = await Promise.all([
+      applyEvmPatterns(client, address, patterns),
       readErc20Symbol(client, address),
-      ethGetCode(client, address).catch(() => null),
     ]);
+    observations = fillMissingCapabilities(patternReads, 'evm', patterns);
 
     symbol = symbolRead ?? entry?.symbol;
     name = entry?.name;
-    rawForHash = observations.map((o) => [o.patternId, o.value]);
 
     if (bytecode === null) {
       gapScan = 'failed';
@@ -65,41 +74,63 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
   } else {
     const client = solanaClient(options.solanaEndpoints);
     const mint = await fetchMint(client, address);
-    observations = await applySolanaPatterns(mint.raw, null, patterns);
-    symbol = entry?.symbol;
-    name = entry?.name;
-    rawForHash = { mint: mint.mintAuthority, freeze: mint.freezeAuthority, program: mint.programId };
 
-    // The Solana equivalent of the bytecode scan, and a firmer one: see the
-    // header of patterns/extensions.ts. Three outcomes, and the middle one is
-    // the reason this is not simply `ran`:
-    //
-    //   raw === null        we could not read the mint. 'failed'.
-    //   no extension list   a legacy Token mint, whose entire privileged
-    //                       surface is mintAuthority and freezeAuthority and is
-    //                       fully read by the dictionary. 'ran', no gaps — a
-    //                       real finding, not an absence of one.
-    //   an extension list   a Token-2022 mint. 'ran', gaps are whatever is
-    //                       configured on it that no pattern reads.
-    if (mint.raw === null) {
-      gapScan = 'failed';
-    } else {
-      gapScan = 'ran';
-      dictionaryGaps = findExtensionGaps(mint.raw, patterns, observations);
+    if (!mint.exists) {
+      throw new UnscoreableAddressError(chain, address, 'no-account',
+        `${address} has no account on Solana. Nothing exists at this address, so there is nothing to score.`);
+    }
+    if (mint.accountType !== 'mint') {
+      const what =
+        mint.accountType === 'account'
+          ? 'a token holder account'
+          : mint.accountType
+            ? `a ${mint.accountType} account`
+            : 'an account the node could not parse as a token';
+      throw new UnscoreableAddressError(chain, address, 'not-a-mint',
+        `${address} is ${what}, not a token mint, so there is nothing to score.`);
     }
 
-    // Holder concentration is not obtainable from our own reading: the public RPC
-    // permanently rate limits getTokenLargestAccounts. Rather than quietly omitting
-    // it, we declare the gap. A RugCheck figure can be attached here by the caller
-    // and will be displayed BESIDE our UNKNOWN, never merged into the score.
+    // The metadata account is where name, symbol, URI and their update
+    // authority live. Before 0.2.0 it was never fetched, so metadata
+    // mutability was UNKNOWN on every Solana token. A failed read stays
+    // UNKNOWN; a missing account is a verified absence.
+    let tokenMeta: TokenMetaRecord | null = null;
+    try {
+      tokenMeta = await fetchTokenMetadata(client, address);
+    } catch {
+      tokenMeta = null;
+    }
+
+    const patternReads = await applySolanaPatterns(
+      mint.raw,
+      tokenMeta ? (tokenMeta as unknown as Record<string, unknown>) : null,
+      patterns
+    );
+    observations = fillMissingCapabilities(patternReads, 'solana', patterns, {
+      legacySolanaMint: !mint.isToken2022,
+    });
+
+    symbol = entry?.symbol ?? tokenMeta?.symbol ?? undefined;
+    name = entry?.name ?? tokenMeta?.name ?? undefined;
+
+    // The Solana counterpart of the bytecode scan. A legacy Token mint counts
+    // as scanned with no gaps: its whole privileged surface is the two
+    // authorities the dictionary reads.
+    gapScan = 'ran';
+    dictionaryGaps = findExtensionGaps(mint.raw, patterns, observations);
+
+    // Holder concentration is not obtainable from our own reading: the public
+    // RPC rate limits getTokenLargestAccounts. Declared rather than omitted.
+    // No third-party figure is fetched; the value stays null.
     unverified.push({
       label: 'Holder concentration',
       value: null,
       source: 'rugcheck',
       caveat:
         'We could not verify holder concentration ourselves. The public Solana RPC rate limits the ' +
-        'call required (getTokenLargestAccounts). Any figure shown here comes from a third party and ' +
-        'has not been independently confirmed by Safegate. It is not included in the score.',
+        'call required (getTokenLargestAccounts). No third-party figure is fetched in this version. ' +
+        'Any figure shown here comes from a third party, has not been independently confirmed by Safegate, ' +
+        'and is not included in the score.',
     });
   }
 
@@ -127,15 +158,30 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     registryEntry: entry
       ? { id: entry.id, archetype: entry.archetype, approvedBy: entry.approvedBy, verifiedAt: entry.verifiedAt }
       : null,
-    inputSnapshotHash: hash(rawForHash),
+    inputSnapshotHash: snapshotHash(observations),
     computedAt: new Date().toISOString(),
     dictionaryGaps,
     gapScan,
   });
 }
 
-function hash(value: unknown): string {
-  return 'sha256:' + createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 32);
+/**
+ * The input snapshot hash, recomputable by anyone from the observations in
+ * the published score.
+ *
+ * Canonical form: every on-chain observation as
+ * `[capability, patternId or null, value]`, where a value that could not be
+ * read is the string "unavailable", sorted by capability then pattern id,
+ * JSON-serialised, SHA-256, first 32 hex characters. The same rule on both
+ * chains. Timestamps and method notes are excluded so two reads of an
+ * unchanged contract hash identically.
+ */
+export function snapshotHash(observations: Observation[]): string {
+  const canonical = observations
+    .filter((o) => o.source === 'onchain')
+    .map((o) => [o.capability, o.patternId ?? null, o.value === undefined ? 'unavailable' : o.value] as const)
+    .sort((a, b) => a[0].localeCompare(b[0]) || String(a[1]).localeCompare(String(b[1])));
+  return 'sha256:' + createHash('sha256').update(JSON.stringify(canonical)).digest('hex').slice(0, 32);
 }
 
 /** symbol() = 0x95d89b41. Handles both the string and the older bytes32 encoding (MKR). */
@@ -143,18 +189,23 @@ async function readErc20Symbol(client: RpcClient, address: string): Promise<stri
   try {
     const result = await ethCall(client, address, '0x95d89b41');
     if (!result.ok) return undefined;
-    const hex = result.data.replace(/^0x/, '');
-    if (hex.length === 64) {
-      // bytes32, right-padded with zeros
-      const bytes = Buffer.from(hex, 'hex');
-      const text = bytes.toString('utf8').replace(/\0+$/, '');
-      return text || undefined;
-    }
-    const offset = parseInt(hex.slice(0, 64), 16) * 2;
-    const length = parseInt(hex.slice(offset, offset + 64), 16) * 2;
-    const text = Buffer.from(hex.slice(offset + 64, offset + 64 + length), 'hex').toString('utf8');
-    return text || undefined;
+    return decodeSymbol(result.data);
   } catch {
     return undefined;
   }
+}
+
+/** Decode the return data of symbol(): a dynamic string, or a bytes32 on older contracts. */
+export function decodeSymbol(data: string): string | undefined {
+  const hex = data.replace(/^0x/, '');
+  if (hex.length === 0) return undefined;
+  if (hex.length === 64) {
+    const text = Buffer.from(hex, 'hex').toString('utf8').replace(/\0+$/, '');
+    return text || undefined;
+  }
+  const offset = parseInt(hex.slice(0, 64), 16) * 2;
+  const length = parseInt(hex.slice(offset, offset + 64), 16) * 2;
+  if (!Number.isFinite(offset) || !Number.isFinite(length) || length > hex.length) return undefined;
+  const text = Buffer.from(hex.slice(offset + 64, offset + 64 + length), 'hex').toString('utf8');
+  return text || undefined;
 }
