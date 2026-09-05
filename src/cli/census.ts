@@ -3,7 +3,7 @@
  * How often does the dictionary actually fall short?
  *
  * 0.1.4 added detection of privileged functions no pattern reads, and left one
- * question open on purpose (METHODOLOGY.md §10): should an unreadable capability
+ * question open on purpose (METHODOLOGY.md §7, Beyond the dictionary): should an unreadable capability
  * reduce the coverage figure? That decision moves every published score, so it
  * needs to be made on real numbers rather than an estimate — how often gaps
  * occur, and how many at a time.
@@ -179,7 +179,7 @@ function render(rows: TokenCensus[], summary: CensusSummary): void {
   }
 
   console.log(
-    `\n${DIM}These are the numbers METHODOLOGY.md §10 defers to. A high rate argues ` +
+    `\n${DIM}These are the numbers behind the gap rule in METHODOLOGY.md §7. A high rate argues ` +
       `\n  that gaps should reduce coverage; a rate near zero argues the dictionary ` +
       `\n  already covers the seed set and the question is not urgent.${RESET}\n`
   );

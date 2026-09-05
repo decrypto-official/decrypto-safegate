@@ -1,10 +1,13 @@
 name: CI
 
-# Runs on every push and pull request. Everything here is offline: no public
-# RPC endpoint is touched, so a bad minute on a node cannot block a merge.
-# Live reads run nightly in live.yml.
+# Runs once per commit: on push to main, on pull requests, and by hand.
+# Pushing to a branch that is also a PR used to start two runs for one
+# commit, and the cancelled one showed on the PR as a failure.
+# Everything here is offline: no public RPC endpoint is touched, so a bad
+# minute on a node cannot block a merge. Live reads run nightly in live.yml.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 

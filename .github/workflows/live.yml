@@ -30,11 +30,11 @@ jobs:
 
       # Measures, never gates. A token with gaps is a finding, not a fault.
       - name: Dictionary gap census
-        run: npm run census
+        run: npm run -s census
         continue-on-error: true
 
       - name: Seed-set scores
-        run: npm run seed-scores -- --json > seed-scores.json
+        run: npm run -s seed-scores -- --json > seed-scores.json
         continue-on-error: true
 
       - uses: actions/upload-artifact@v4

@@ -1016,7 +1016,7 @@ describe('the documents match the code', () => {
 /**
  * The gap census.
  *
- * METHODOLOGY.md §10 defers a decision — should a dictionary gap reduce
+ * METHODOLOGY.md §7 keeps a question open — should a dictionary gap reduce
  * coverage? — until there are real numbers. The census produces them, so its
  * arithmetic is load-bearing on that decision. Wrong numbers here would argue
  * for the wrong answer, convincingly.

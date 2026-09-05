@@ -85,7 +85,7 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
           ? 'a token holder account'
           : mint.accountType
             ? `a ${mint.accountType} account`
-            : 'an account the node could not parse as a token';
+            : `an account owned by ${mint.programId || 'an unknown program'} that the node returned without parsing; Safegate reads only parsed token mints`;
       throw new UnscoreableAddressError(chain, address, 'not-a-mint',
         `${address} is ${what}, not a token mint, so there is nothing to score.`);
     }
