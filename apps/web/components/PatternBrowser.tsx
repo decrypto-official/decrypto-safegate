@@ -164,6 +164,11 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
                   {m.signature && (
                     <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 3 }}>{m.signature}</div>
                   )}
+                  {m.callArgs && (
+                    <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 3 }}>
+                      with argument <span className="mono">{m.callArgs}</span>
+                    </div>
+                  )}
                 </Field>
               )}
               {m.accountField && (

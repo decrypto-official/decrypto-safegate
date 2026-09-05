@@ -13,7 +13,7 @@
 import type { Axis, AxisResult, Disagreement, DictionaryGap, GapScanStatus, Score, Signal, UnverifiedReference, Chain } from '../types.js';
 import { CAPABILITY_WEIGHT } from '../signals/normalise.js';
 
-export const METHODOLOGY_VERSION = '0.1.0';
+export const METHODOLOGY_VERSION = '0.2.0';
 
 const AXES: Axis[] = ['control', 'transparency', 'exit'];
 
@@ -66,7 +66,7 @@ export function score(input: ScoreInput): Score {
 
   if (applicable > 0 && scored / applicable < 0.6) {
     limitations.unshift(
-      `Coverage is ${pct(scored / applicable)}. Fewer than two thirds of the applicable checks resolved, ` +
+      `Coverage is ${pct(scored / applicable)}. Fewer than 60% of the applicable checks resolved, ` +
         `so this score is weak evidence. Read the unresolved signals rather than the numbers.`
     );
   }
@@ -93,10 +93,11 @@ export function score(input: ScoreInput): Score {
   // cover, and because a reader who sees only the axes would otherwise take an
   // incomplete reading for a complete one.
   //
-  // It deliberately does not reduce coverage. Coverage counts the checks we
-  // know how to make; a capability we have no pattern for was never in that
-  // denominator, and quietly moving it in would change every published score
-  // without a methodology version to explain why.
+  // It deliberately does not reduce coverage. Since 0.2.0 coverage already
+  // counts every capability, with an unread one as UNKNOWN. A gap is a
+  // function the dictionary cannot read on a capability that is already
+  // resolved or already UNKNOWN, so folding it into coverage would count the
+  // same blind spot twice.
   if (dictionaryGaps.length > 0) {
     // An unclassified extension has no capability to name. Saying so beats
     // rendering "null" into a sentence a reader is meant to act on.

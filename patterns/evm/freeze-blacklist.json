@@ -1,0 +1,32 @@
+{
+  "id": "freeze-blacklist",
+  "title": "Per-address blacklist, isBlacklisted(address)",
+  "chainFamily": "evm",
+  "capability": "freeze-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xfe575a87",
+    "callArgs": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "signature": "isBlacklisted(address) returns (bool)",
+    "returnType": "bool"
+  },
+  "detects": "A blacklist mechanism. The contract can block an individual holder from transacting, which is what a Solana freeze authority does. The probe asks about the zero address; the answer for that address is irrelevant, the function answering at all is what proves the mechanism exists.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "Only the OpenZeppelin-style spelling. Tether spells it isBlackListed, read by freeze-blacklist-tether. A contract that keeps a blacklist with no public getter is invisible here and is left to the gap scan, which watches for blacklist(address) and addBlackList(address) in bytecode.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "observed": "isBlacklisted(0x0) returns false, the mechanism is present",
+      "verifiedAt": "2026-09-06"
+    }
+  ],
+  "rationale": "Until 0.2.0 no EVM pattern read a freeze capability at all, so USDC and USDT on Ethereum, both of which freeze on lawful order and have used it, reported no such power. The capability was not even in the coverage denominator.",
+  "references": [
+    "https://github.com/circlefin/stablecoin-evm/blob/master/contracts/v1/Blacklistable.sol"
+  ],
+  "addedAt": "2026-09-06",
+  "addedBy": "decrypto"
+}

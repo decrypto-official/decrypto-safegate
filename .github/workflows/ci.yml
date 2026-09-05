@@ -1,16 +1,13 @@
 name: CI
 
-# Runs on every branch, not just main. Five commits reached the 0.1.4 branch
-# and only the first was ever tested: with `push` limited to main, the rest
-# depended entirely on the pull_request event firing, and it did not. Whatever
-# the cause on a given push, a branch-wide push trigger does not rely on it,
-# and workflow_dispatch gives a way to force a run without an empty commit.
-#
-# The concurrency key is the commit rather than the ref, so the push event and
-# the pull_request event for the same commit collapse into one run instead of
-# testing identical trees twice.
+# Runs once per commit: on push to main, on pull requests, and by hand.
+# Pushing to a branch that is also a PR used to start two runs for one
+# commit, and the cancelled one showed on the PR as a failure.
+# Everything here is offline: no public RPC endpoint is touched, so a bad
+# minute on a node cannot block a merge. Live reads run nightly in live.yml.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -21,12 +18,15 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['20', '22']
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - run: npm ci
@@ -34,14 +34,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # Enforces the contribution rules in CONTRIBUTING.md: schema validity,
-      # two evidence kinds per registry entry, no duplicate addresses,
-      # mandatory disclosure field.
+      # The contribution rules in CONTRIBUTING.md, enforced by a machine.
       - name: Validate patterns and registry
         run: npm run validate
 
-      # These read live public RPC endpoints on purpose. Mocking them would
-      # test the mocks rather than our reading of the chain.
+      # DISCLOSURE.md is generated from the registry. A stale copy fails here.
+      - name: Check disclosure is current
+        run: npm run disclosure:check
+
+      # Offline suite. Live regression locks are gated behind SAFEGATE_LIVE=1
+      # and run in live.yml.
       - name: Test
         run: npm test
 
@@ -49,23 +51,9 @@ jobs:
         run: npm ci
         working-directory: apps/web
 
-      # `next build` succeeding is not enough. The engine reads patterns/ and
-      # registry/ from disk at request time, and if those are missing from the
-      # traced output every route still returns 200 while serving nothing. The
-      # build script runs verify-trace, which reads the trace manifests and fails
-      # if the data is absent.
+      # `next build` succeeding is not enough: the engine reads patterns/ and
+      # registry/ from disk at request time. The build script runs verify-trace,
+      # which fails if that data is missing from the traced output.
       - name: Build web and verify bundled data
         run: npm run build
         working-directory: apps/web
-
-      # Measures, never gates. METHODOLOGY.md section 10 defers a decision —
-      # should a dictionary gap reduce coverage? — until there are real numbers
-      # from mainnet, and this is where they come from. It walks the registry
-      # seed set and reports what the scan found per token.
-      #
-      # continue-on-error because a public RPC endpoint having a bad minute must
-      # not block a merge, and because a token WITH gaps is a finding rather
-      # than a fault. Read the output; do not treat a red mark here as a failure.
-      - name: Dictionary gap census
-        run: npm run census
-        continue-on-error: true

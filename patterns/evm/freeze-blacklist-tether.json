@@ -1,0 +1,32 @@
+{
+  "id": "freeze-blacklist-tether",
+  "title": "Per-address blacklist, isBlackListed(address)",
+  "chainFamily": "evm",
+  "capability": "freeze-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xe47d6060",
+    "callArgs": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "signature": "isBlackListed(address) returns (bool)",
+    "returnType": "bool"
+  },
+  "detects": "Tether's spelling of the blacklist getter. Same capability as freeze-blacklist: an individual holder can be blocked from transacting.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "A different capitalisation hashes to a different selector, which is the only reason this file exists beside freeze-blacklist. Any third spelling is invisible to both and left to the gap scan.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "symbol": "USDT",
+      "observed": "isBlackListed(0x0) answers, the mechanism is present",
+      "verifiedAt": "2026-09-06"
+    }
+  ],
+  "rationale": "USDT is the most held stablecoin on Ethereum and freezes addresses routinely. Its getter is spelled differently from Circle's, and without this file the most widely used freeze mechanism on the chain reads as absent.",
+  "references": [
+    "https://etherscan.io/address/0xdAC17F958D2ee523a2206206994597C13D831ec7#code"
+  ],
+  "addedAt": "2026-09-06",
+  "addedBy": "decrypto"
+}

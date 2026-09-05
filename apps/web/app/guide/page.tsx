@@ -108,8 +108,9 @@ export default async function GuidePage() {
 
           <h3>3. Coverage</h3>
           <p>
-            The ring says how much of the token we managed to check — for example <strong>3 of 4</strong>{' '}
-            checks resolved. It is not a safety score. A token can be 100% checked and deeply risky, or 50%
+            The ring says how much of the token we managed to check — for example <strong>5 of 7</strong>{' '}
+            checks resolved. Every token is checked against the same seven powers; a power no pattern can read
+            yet on that chain shows as UNKNOWN and counts against the ring. It is not a safety score. A token can be 100% checked and deeply risky, or 50%
             checked and fine. It tells you how much weight the rest of the page can carry.
           </p>
 

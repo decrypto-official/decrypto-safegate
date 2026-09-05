@@ -32,6 +32,11 @@
       "capability": "admin-authority",
       "justification": "Circle controls the proxy admin and the owner role, which is how a regulated issuer administers blacklisting, pausing and reserve operations.",
       "constrainedBy": "Circle corporate governance and US regulatory supervision"
+    },
+    {
+      "capability": "freeze-authority",
+      "justification": "The issuer is legally required to be able to freeze an individual holder on lawful order, including sanctions enforcement. Circle has exercised this.",
+      "constrainedBy": "Court and regulator orders"
     }
   ],
   "evidence": [
@@ -49,6 +54,11 @@
       "kind": "onchain",
       "detail": "owner() returns 0xfcb19e6a322b27c06842a71e8c725399f049ae3a and paused() returns false, confirming a live pause mechanism that is not currently engaged.",
       "observedAt": "2026-07-22"
+    },
+    {
+      "kind": "onchain",
+      "detail": "isBlacklisted(address) answers eth_call, so the per-address blacklist mechanism is present. Read directly on 2026-09-06 via the pattern that reads it.",
+      "observedAt": "2026-09-06"
     }
   ],
   "caveats": [
