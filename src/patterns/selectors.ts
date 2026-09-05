@@ -196,6 +196,7 @@ export function findDictionaryGaps(
     if (alreadyFound.has(fn.capability)) continue;
 
     gaps.push({
+      surface: 'evm-selector',
       selector,
       signature: fn.signature,
       capability: fn.capability,

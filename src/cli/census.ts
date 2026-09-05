@@ -39,7 +39,12 @@ export interface TokenCensus {
   symbol: string;
   gapScan: GapScanStatus | 'error';
   gapCount: number;
-  capabilities: Capability[];
+  /**
+   * `unclassified` is not a capability. It marks a Token-2022 extension this
+   * dictionary has never mapped, which is a finding in its own right and must
+   * not be quietly folded into one of the seven real capabilities.
+   */
+  capabilities: (Capability | 'unclassified')[];
   signatures: string[];
   /** Present only when the token could not be read at all. */
   error?: string;
@@ -83,8 +88,8 @@ export function summarise(rows: TokenCensus[]): CensusSummary {
     errored: rows.filter((r) => r.gapScan === 'error').length,
     withGaps: withGaps.length,
     totalGaps: rows.reduce((n, r) => n + r.gapCount, 0),
-    // Denominator is tokens actually scanned. Dividing by all tokens would
-    // dilute the rate with Solana entries the scan never applied to.
+    // Denominator is tokens actually scanned, which since 0.1.8 is every token
+    // we could read on either chain.
     gapRate: scanned.length === 0 ? 0 : withGaps.length / scanned.length,
     byCapability,
   };
@@ -104,7 +109,7 @@ async function censusOne(entry: {
       symbol: entry.symbol,
       gapScan: score.gapScan,
       gapCount: score.dictionaryGaps.length,
-      capabilities: [...new Set(score.dictionaryGaps.map((g) => g.capability))],
+      capabilities: [...new Set(score.dictionaryGaps.map((g) => g.capability ?? ('unclassified' as const)))],
       signatures: score.dictionaryGaps.map((g) => g.signature),
     };
   } catch (err) {
@@ -135,11 +140,11 @@ function render(rows: TokenCensus[], summary: CensusSummary): void {
       continue;
     }
     if (row.gapScan === 'failed') {
-      console.log(`  ${RED}!${RESET} ${label} ${RED}bytecode unreadable, not scanned${RESET}`);
+      console.log(`  ${RED}!${RESET} ${label} ${RED}surface unreadable, not scanned${RESET}`);
       continue;
     }
     if (row.gapScan === 'not-applicable') {
-      console.log(`  ${DIM}-${RESET} ${label} ${DIM}scan does not apply on this chain${RESET}`);
+      console.log(`  ${DIM}-${RESET} ${label} ${DIM}nothing on this chain to scan${RESET}`);
       continue;
     }
     if (row.gapCount === 0) {
@@ -157,7 +162,7 @@ function render(rows: TokenCensus[], summary: CensusSummary): void {
   console.log(`\n${BOLD}SUMMARY${RESET}`);
   console.log(`  tokens           ${summary.tokens}`);
   console.log(`  scanned          ${summary.scanned}`);
-  console.log(`  not applicable   ${summary.notApplicable} ${DIM}(no bytecode to read)${RESET}`);
+  console.log(`  not applicable   ${summary.notApplicable} ${DIM}(no surface to read)${RESET}`);
   console.log(`  unreadable       ${summary.failed + summary.errored}`);
   console.log(
     `  with gaps        ${summary.withGaps} of ${summary.scanned} scanned ` +

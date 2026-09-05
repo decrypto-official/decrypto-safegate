@@ -1,0 +1,31 @@
+{
+  "id": "t2022-metadata-pointer",
+  "title": "Token-2022 metadata pointer",
+  "chainFamily": "solana",
+  "capability": "metadata-mutability",
+  "method": {
+    "kind": "account-extension",
+    "extension": "metadataPointer",
+    "extensionField": "authority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "An authority that can repoint the mint at a different metadata account, changing the name, symbol and image every wallet and explorer shows for this token.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "A metadataAddress equal to the mint itself is the ordinary arrangement alongside the tokenMetadata extension and is not evidence of reduced mutability: the content at that address is still governed by tokenMetadata.updateAuthority, which is read separately. This pattern reads only who can move the pointer.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT, authority 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk, pointing at the mint itself",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "A token's public identity is what a holder recognises it by. An address that can rewrite it after people have looked is a transparency capability, and nothing else in the dictionary reads it on Token-2022.",
+  "references": [
+    "https://github.com/solana-program/token-2022/blob/main/interface/src/extension/mod.rs"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

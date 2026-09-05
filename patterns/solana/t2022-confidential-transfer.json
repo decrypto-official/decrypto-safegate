@@ -1,0 +1,31 @@
+{
+  "id": "t2022-confidential-transfer",
+  "title": "Token-2022 confidential transfer authority",
+  "chainFamily": "solana",
+  "capability": "admin-authority",
+  "method": {
+    "kind": "account-extension",
+    "extension": "confidentialTransferMint",
+    "extensionField": "authority",
+    "returnType": "pubkey-or-null"
+  },
+  "detects": "An authority governing confidential transfers: which accounts may use them, and the auditor key able to decrypt the amounts of those that do.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "Read as admin-authority, not as a transfer restriction: the approval gate applies only to the confidential path, and a holder refused approval can still transfer normally. The auditorElgamalPubkey field is reported as a detail rather than scored, because it is a surveillance key rather than a control key. Whether that key can be rotated or added on a live mint is not clearly stated in the documentation reachable at the time of writing, and is deliberately not asserted here in either direction.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT, authority 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk, autoApproveNewAccounts false and no auditor key set",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "An authority that decides who may transact confidentially, and who may read those transactions, is a power over holders. Without this pattern it was invisible.",
+  "references": [
+    "https://github.com/solana-program/token-2022/blob/main/interface/src/extension/confidential_transfer/mod.rs"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}

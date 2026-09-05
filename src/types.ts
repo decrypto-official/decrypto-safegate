@@ -101,12 +101,33 @@ export type GapScanStatus = 'ran' | 'not-applicable' | 'failed';
  * reads. Evidence that our reading is incomplete, not evidence of a capability.
  */
 export interface DictionaryGap {
-  /** The 4-byte selector as it appears in the bytecode. */
+  /**
+   * Which surface this was found on, because the two carry different weight.
+   *
+   * `evm-selector` means a 4-byte selector appears in the contract's runtime
+   * bytecode: the contract can dispatch that function. It does not prove the
+   * capability is live, only that our answer is incomplete.
+   *
+   * `solana-extension` means a Token-2022 extension is configured on the mint
+   * right now. That is a stronger statement — not "this contract could do
+   * something we cannot read" but "this mint is set up to, and we cannot read
+   * it" — and the note says so.
+   */
+  surface: 'evm-selector' | 'solana-extension';
+  /** The raw identifier on that surface: a 4-byte selector, or an extension name. */
   selector: string;
-  /** The canonical signature it was derived from. */
+  /** Human-readable: a canonical function signature, or the extension name. */
   signature: string;
-  /** The capability this function would belong to, if we could read it. */
-  capability: Capability;
+  /**
+   * The capability this would belong to, if we could read it.
+   *
+   * `null` only for an extension the dictionary has never classified — a
+   * Token-2022 extension shipped after this table was written. Naming a
+   * capability for it would be a guess, and dropping it would hide the newest
+   * thing on the mint, which is the most likely place for an unread power to
+   * be. So it is reported with the capability left open.
+   */
+  capability: Capability | null;
   note: string;
 }
 
@@ -183,7 +204,12 @@ export interface Score {
    * the same conflation of absence with safety that the rest of this file
    * exists to prevent, so it is not left to inference.
    *
-   * `not-applicable` on Solana, which has no bytecode analogue to read.
+   * `not-applicable` is now reached by no chain we support: EVM reads runtime
+   * bytecode, and Solana reads the mint's Token-2022 extension list, with a
+   * legacy mint counting as scanned because its whole privileged surface is the
+   * two authorities the dictionary already reads. The state is kept because a
+   * chain added later may genuinely offer nothing to scan, and because older
+   * stored scores still carry it.
    * `failed` when the bytecode could not be fetched.
    */
   gapScan: GapScanStatus;

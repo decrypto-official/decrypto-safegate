@@ -32,6 +32,7 @@ const WBTC_ETH = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
 const ENS_ETH = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72';
 const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const RAY_SOL = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
+const PYUSD_SOL = '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo';
 
 describe('USDC on Ethereum: the proxy false negative', () => {
   it(
@@ -439,11 +440,19 @@ describe('data integrity', () => {
     }
   });
 
-  it('seeds 20 tokens', async () => {
+  it('seeds 21 tokens', async () => {
     const registry = await loadRegistry();
-    expect(registry).toHaveLength(20);
+    expect(registry).toHaveLength(21);
     expect(registry.filter((e) => e.chain === 'ethereum')).toHaveLength(12);
-    expect(registry.filter((e) => e.chain === 'solana')).toHaveLength(8);
+    expect(registry.filter((e) => e.chain === 'solana')).toHaveLength(9);
+  });
+
+  it('seeds at least one Token-2022 mint', async () => {
+    // Without one, every Token-2022 pattern and the whole Solana gap scan are
+    // dead code in CI: the eight original Solana entries all use the legacy
+    // program, so the tests would pass without executing the feature.
+    const registry = await loadRegistry();
+    expect(registry.some((e) => e.address === PYUSD_SOL)).toBe(true);
   });
 
   it('finds entries case-insensitively on EVM', async () => {
@@ -770,6 +779,7 @@ describe('a dictionary gap is reported but never scored', () => {
   };
 
   const gap = {
+    surface: 'evm-selector' as const,
     selector: '0xd0e30db0',
     signature: 'setMinter(address)',
     capability: 'mint-authority' as const,
@@ -991,7 +1001,10 @@ describe('the documents match the code', () => {
     expect(limitations).toMatch(/dictionaryGaps/);
     // ...while still admitting the residual gap, which has not gone away.
     expect(limitations).toMatch(/can still under-report its capabilities/i);
-    expect(limitations).toMatch(/EVM-only|no bytecode analogue/i);
+    // The scan stopped being EVM-only in 0.1.8, so the document must describe
+    // both surfaces and must not claim the Solana one covers more than it does.
+    expect(limitations).toMatch(/extension list/i);
+    expect(limitations).toMatch(/outside what the extension list can tell us/i);
   });
 });
 
@@ -1267,5 +1280,267 @@ describe('the guide keeps up with the product', () => {
     expect(guide).toMatch(/expected power is still a power/i);
     // n/a and 0 look alike and mean opposite things.
     expect(guide).toMatch(/n\/a/i);
+  });
+});
+
+/**
+ * Token-2022, where the extension list is the privileged surface.
+ *
+ * Before 0.1.8 the dictionary held one pattern for the whole of Token-2022. It
+ * matched the entire extension array to fee-control, so on a mint carrying a
+ * permanent delegate — an address that can move or burn any holder's balance —
+ * Safegate reported a fee mechanism and said nothing at all about the delegate.
+ * The reader was told the least severe true thing about the token while the most
+ * severe one stayed invisible. These lock the shape that replaced it.
+ */
+describe('Token-2022: the extension list is the surface', () => {
+  it('reads a permanent delegate on a real mainnet mint', async () => {
+    const score = await analyse('solana', PYUSD_SOL);
+    const signal = Object.values(score.axes)
+      .flatMap((a) => a.signals)
+      .find((s) => s.capability === 'transfer-restriction');
+
+    expect(signal).toBeDefined();
+    expect(signal!.state).toBe('PRESENT');
+    // The resolved delegate, not merely "something was found". An assertion
+    // that only ruled out ABSENT would pass on a transport failure, because a
+    // failure resolves to UNKNOWN and UNKNOWN is not ABSENT.
+    const found = signal!.observations.find((o) => o.patternId === 't2022-permanent-delegate');
+    expect(found?.value).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
+  }, TIMEOUT);
+
+  it('reports fee control on a mint whose fee is currently zero', async () => {
+    // The Solana form of "expected power is still a power". PYUSD charges 0
+    // basis points and holds a live authority that can raise it to 100%, two
+    // epochs later. Scoring the rate rather than the authority would report no
+    // fee control at all.
+    const score = await analyse('solana', PYUSD_SOL);
+    const signal = Object.values(score.axes)
+      .flatMap((a) => a.signals)
+      .find((s) => s.capability === 'fee-control');
+
+    expect(signal?.state).toBe('PRESENT');
+    expect(signal?.reasoning).toMatch(/mechanism present/i);
+    // And the summary has to carry the actual configuration, not an object
+    // rendered into the sentence a reader is meant to act on.
+    expect(signal?.reasoning).not.toMatch(/\[object Object\]/);
+  }, TIMEOUT);
+
+  it('scans a legacy mint rather than declaring the question inapplicable', async () => {
+    // A legacy Token mint's whole privileged surface is mintAuthority and
+    // freezeAuthority, both of which the dictionary reads. "We scanned it and
+    // there is nothing unread" is a stronger and truer statement than "this
+    // chain has nothing to scan", which is what it used to say.
+    const score = await analyse('solana', USDC_SOL);
+    expect(score.gapScan).toBe('ran');
+    expect(score.dictionaryGaps).toEqual([]);
+  }, TIMEOUT);
+
+  it('does not let a Token-2022 pattern make a finding about a legacy mint', async () => {
+    // The regression this nearly shipped with. A Token-2022 pattern returning
+    // "checked, not there" on a legacy mint flipped whole capabilities to
+    // ABSENT on the strength of a check that could not have found anything —
+    // and one definite miss outweighs any number of could-not-looks. USDC read
+    // as having verified-absent metadata mutability while the Metaplex account,
+    // the only place that answer lives, went unread.
+    const score = await analyse('solana', USDC_SOL);
+    const signals = Object.values(score.axes).flatMap((a) => a.signals);
+
+    for (const signal of signals) {
+      for (const observation of signal.observations) {
+        expect(observation.patternId ?? '').not.toMatch(/^t2022-/);
+      }
+    }
+
+    const metadata = signals.find((s) => s.capability === 'metadata-mutability');
+    expect(metadata?.state).toBe('UNKNOWN');
+  }, TIMEOUT);
+});
+
+/**
+ * The gap scanner on the Solana side, offline.
+ *
+ * These need no network: they are about what the scanner does with a list, and
+ * the list is the input.
+ */
+describe('Token-2022 gaps: what we have never classified', () => {
+  const mint = (...extensions: string[]) => ({
+    data: { parsed: { info: { extensions: extensions.map((e) => ({ extension: e, state: {} })) } } },
+  });
+
+  it('reports an extension the dictionary has never heard of, with no capability named', async () => {
+    // The failure this scanner exists to prevent, one level up. Token-2022
+    // gains extension types regularly; skipping the ones we do not recognise
+    // would guarantee that the newest power on a mint is the one we miss.
+    const { findExtensionGaps } = await import('../src/patterns/extensions.js');
+    const gaps = findExtensionGaps(mint('someExtensionShippedNextYear'), [], []);
+
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.capability).toBeNull();
+    expect(gaps[0]!.surface).toBe('solana-extension');
+    expect(gaps[0]!.note).toMatch(/unread, not absent/i);
+    // Naming a capability for it would be a guess, and a guess here is worse
+    // than an admission.
+    expect(gaps[0]!.note).toMatch(/never\s+classified/i);
+  });
+
+  it('reports an extension the node itself could not decode', async () => {
+    const { findExtensionGaps } = await import('../src/patterns/extensions.js');
+    const gaps = findExtensionGaps(mint('unparseableExtension'), [], []);
+
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.capability).toBeNull();
+    expect(gaps[0]!.note).toMatch(/could not decode/i);
+  });
+
+  it('says a Solana gap is switched on, not merely possible', async () => {
+    // The wording carries a claim the EVM scanner cannot make. Bytecode says
+    // the contract could do this; an extension list says the mint is set up to,
+    // now. Collapsing the two would understate every Solana finding.
+    const { findExtensionGaps } = await import('../src/patterns/extensions.js');
+    const gaps = findExtensionGaps(mint('permanentDelegate'), [], []);
+
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.note).toMatch(/switched on now/i);
+  });
+
+  it('stays quiet about an extension a pattern already reads', async () => {
+    const { findExtensionGaps } = await import('../src/patterns/extensions.js');
+    const patterns = [
+      {
+        id: 't2022-permanent-delegate',
+        capability: 'transfer-restriction',
+        chainFamily: 'solana',
+        method: { kind: 'account-extension', extension: 'permanentDelegate' },
+      },
+    ] as unknown as Parameters<typeof findExtensionGaps>[1];
+
+    expect(findExtensionGaps(mint('permanentDelegate'), patterns, [])).toHaveLength(0);
+  });
+
+  it('distinguishes a legacy mint from an unread one', async () => {
+    // Neither has an extension list, and only one of them is a fact about the
+    // token. A legacy mint has nothing to scan; an unread account was not
+    // scanned. Both produce no gaps here, and the pipeline is what separates
+    // them into 'ran' and 'failed'.
+    const { findExtensionGaps, extensionNames } = await import('../src/patterns/extensions.js');
+    expect(extensionNames(null)).toBeNull();
+    expect(extensionNames({ data: { parsed: { info: {} } } })).toBeNull();
+    expect(findExtensionGaps(null, [], [])).toEqual([]);
+  });
+
+  it('classifies every extension it knows about, or declares that it does not', async () => {
+    // The same completeness rule selectors.ts holds itself to. An extension
+    // that is neither mapped nor deliberately excluded would be silently
+    // dropped, which is the invisible-gap problem this module exists to solve.
+    const { mintExtensionTable, findExtensionGaps } = await import('../src/patterns/extensions.js');
+    const { extensions, notACapability } = mintExtensionTable();
+
+    const mapped = new Set(extensions.map((e) => e.extension));
+    for (const name of notACapability) expect(mapped.has(name)).toBe(false);
+
+    // Every mapped extension must actually produce a gap when nothing reads it.
+    for (const e of extensions) {
+      const gaps = findExtensionGaps(mint(e.extension), [], []);
+      expect(gaps).toHaveLength(1);
+      expect(gaps[0]!.capability).toBe(e.capability);
+    }
+
+    // And every deliberately excluded one must produce none.
+    for (const name of notACapability) {
+      expect(findExtensionGaps(mint(name), [], [])).toHaveLength(0);
+    }
+  });
+
+  it('keeps a pattern for every extension it claims to read', async () => {
+    // A pattern naming an extension that is not in the table would read the
+    // capability while the scanner went on reporting it as a gap, and the two
+    // halves of the feature would disagree about the same mint.
+    const { mintExtensionTable } = await import('../src/patterns/extensions.js');
+    const { extensions } = mintExtensionTable();
+    const known = new Set(extensions.map((e) => e.extension));
+
+    const patterns = await loadPatterns();
+    for (const p of patterns.filter((x) => x.method.kind === 'account-extension')) {
+      expect(p.method.extension).toBeDefined();
+      expect(known.has(p.method.extension!)).toBe(true);
+      // And the pattern must agree with the table about what it means.
+      const entry = extensions.find((e) => e.extension === p.method.extension);
+      expect(p.capability).toBe(entry!.capability);
+    }
+  });
+});
+
+/**
+ * PYUSD, the registry's first Token-2022 entry.
+ *
+ * Seeded because without it the whole Token-2022 path is dead code in CI: all
+ * eight Solana entries before it use the legacy program, so every extension
+ * pattern and the Solana gap scan would pass vacuously, which is exactly how
+ * the WBTC lock came to pass while asserting nothing.
+ */
+describe('PYUSD: a registry entry that refuses to justify everything', () => {
+  it('marks the two capabilities a fiat stablecoin cannot operate without', async () => {
+    const score = await analyse('solana', PYUSD_SOL);
+    const byCapability = Object.fromEntries(
+      Object.values(score.axes)
+        .flatMap((a) => a.signals)
+        .map((s) => [s.capability, s])
+    );
+
+    expect(byCapability['mint-authority']!.state).toBe('EXPECTED');
+    expect(byCapability['freeze-authority']!.state).toBe('EXPECTED');
+  }, TIMEOUT);
+
+  it('leaves the permanent delegate reported as a real power', async () => {
+    // The entry's most consequential judgement, and the one most likely to be
+    // softened later by someone who reads the issuer's justification and stops
+    // there. The permanent delegate is documented and statutorily grounded and
+    // would qualify on its own — but the transfer hook authority resolves the
+    // same capability and is, in the issuer's own words, for "potential future
+    // use". Marking the capability expected would stretch a legal justification
+    // for seizure over an unexplained power to run arbitrary code on every
+    // transfer, which is precisely the laundering the registry must not do.
+    const score = await analyse('solana', PYUSD_SOL);
+    const signal = Object.values(score.axes)
+      .flatMap((a) => a.signals)
+      .find((s) => s.capability === 'transfer-restriction');
+
+    expect(signal!.state).toBe('PRESENT');
+    expect(signal!.state).not.toBe('EXPECTED');
+  }, TIMEOUT);
+
+  it('justifies nothing it did not have to', async () => {
+    // Four live powers on this mint have no justification recorded, three of
+    // them described by the issuer as optionality rather than necessity. A
+    // future edit that quietly adds them to expectedCapabilities would turn the
+    // entry into the endorsement the registry is designed not to be.
+    const entry = findEntry(await loadRegistry(), 'solana', PYUSD_SOL);
+    expect(entry).toBeDefined();
+
+    const expected = entry!.expectedCapabilities.map((c) => c.capability).sort();
+    expect(expected).toEqual(['freeze-authority', 'mint-authority']);
+
+    // And both justifications must say what limits the power, including where
+    // nothing does.
+    for (const c of entry!.expectedCapabilities) {
+      expect(c.constrainedBy ?? '').not.toBe('');
+    }
+  });
+
+  it('records that the powers were actually used, not merely held', async () => {
+    // A registry entry that only describes what an issuer may do reads as
+    // theory. This one carries the seizure transaction and the freeze count,
+    // because "has exercised it" is the difference between a capability and a
+    // practice, and it is the part a reader can check for themselves.
+    const entry = findEntry(await loadRegistry(), 'solana', PYUSD_SOL);
+    const onchain = entry!.evidence.filter((e) => e.kind === 'onchain');
+
+    expect(onchain.length).toBeGreaterThanOrEqual(2);
+    const text = JSON.stringify(entry);
+    // The seizure transaction signature, so the claim is checkable.
+    expect(text).toMatch(/2EoBhRCgGGo58z6tSnFQc7KJi6TyKNYXhnV7yZiQKdrs1d4UcqqrgwrAEwXye1Hnqs3ke7jWs5dM82DWhhZcwik/);
+    // And the concentration finding, which is the entry's real subject.
+    expect(text).toMatch(/1 of 4 signers|1 of 4/i);
   });
 });

@@ -13,12 +13,16 @@ import { RpcClient, ethCall, ethGetStorageAt, wordToAddress, isBurnAddress } fro
 import { findDataDir, DataRootError } from '../data-root.js';
 
 export interface PatternMethod {
-  kind: 'storage-slot' | 'call-selector' | 'account-field';
+  kind: 'storage-slot' | 'call-selector' | 'account-field' | 'account-extension';
   storageSlot?: string;
   slotDerivation?: string;
   callSelector?: string;
   signature?: string;
   accountField?: string;
+  /** account-extension: the `extension` string the RPC returns, e.g. `permanentDelegate`. */
+  extension?: string;
+  /** account-extension: the field to read inside that extension's `state` object. */
+  extensionField?: string;
   returnType: string;
 }
 
@@ -30,7 +34,7 @@ export interface Pattern {
   method: PatternMethod;
   detects: string;
   nonEmptyMeans?: 'capability-present' | 'capability-absent';
-  presenceIndicatedBy?: 'non-empty-value' | 'call-success';
+  presenceIndicatedBy?: 'non-empty-value' | 'call-success' | 'extension-present';
   knownFalseNegative?: string;
   coversExamples?: Array<{ chain: string; address: string; symbol: string; observed?: string }>;
   rationale: string;
@@ -230,6 +234,12 @@ export async function applySolanaPatterns(
   const now = new Date().toISOString();
 
   for (const pattern of patternsFor(patterns, 'solana')) {
+    if (pattern.method.kind === 'account-extension') {
+      const observation = readExtension(mintAccount, pattern, now);
+      if (observation !== null) observations.push(observation);
+      continue;
+    }
+
     const path = pattern.method.accountField;
     if (!path) continue;
 
@@ -260,6 +270,152 @@ export async function applySolanaPatterns(
   }
 
   return observations;
+}
+
+/**
+ * The Token-2022 extension list on a mint account, or null if there is none.
+ *
+ * Returns null for two different situations that must not be confused: a mint
+ * owned by the legacy Token program, which can never carry an extension, and a
+ * mint we could not read at all. The caller separates them; this only reports
+ * that no list is available.
+ */
+function extensionList(mintAccount: Record<string, unknown> | null): unknown[] | null {
+  if (mintAccount === null) return null;
+  const value = readPath(mintAccount, 'data.parsed.info.extensions');
+  return Array.isArray(value) ? value : null;
+}
+
+/**
+ * Read one Token-2022 extension off a mint.
+ *
+ * The three outcomes are deliberately distinct, because collapsing any two of
+ * them would be this project's own absence-is-never-safety error:
+ *
+ *   null       (returned, not a value) the mint is a legacy Token mint, so the
+ *              extension is not a question about it. No observation at all.
+ *   undefined  we never read the account. UNKNOWN, and it reduces coverage.
+ *   null       we read the account and the extension is genuinely not on it.
+ *              This is the one place on Solana where absence really is absence:
+ *              the extension list is the complete set of extensions a mint
+ *              carries, so a name missing from it is verified as not present,
+ *              not merely unobserved.
+ *   a value    the extension is configured, and this is its authority.
+ *
+ * `presenceIndicatedBy: extension-present` is the Solana counterpart of
+ * `call-success`. A transfer fee currently set to 0 basis points is still a fee
+ * mechanism with a live authority behind it, exactly as `paused()` returning
+ * false is still a pause mechanism. What is scored is the power, not whether it
+ * happens to be exercised at this instant.
+ */
+function readExtension(
+  mintAccount: Record<string, unknown> | null,
+  pattern: Pattern,
+  now: string
+): Observation | null {
+  const { extension, extensionField } = pattern.method;
+  const base = {
+    capability: pattern.capability,
+    source: 'onchain' as const,
+    patternId: pattern.id,
+    observedAt: now,
+  };
+
+  if (mintAccount === null) {
+    return { ...base, value: undefined, method: `extension ${extension} unavailable, account not fetched` };
+  }
+  if (!extension) {
+    return { ...base, value: undefined, method: 'pattern declares no extension to read' };
+  }
+
+  const list = extensionList(mintAccount);
+  if (list === null) {
+    // A legacy Token mint carries no extensions at all, so this pattern is not
+    // inapplicable-and-unknown, it is simply not a question about this mint.
+    // Returning null drops the observation entirely.
+    //
+    // Neither other answer is honest here. `null` as a value would mean "we
+    // checked and it is not there", and downstream a single definite miss
+    // outweighs any number of could-not-looks — so a Token-2022 pattern
+    // reporting null on a legacy mint would flip the capability to ABSENT on
+    // the strength of a check that could not have found anything. That is how
+    // USDC came to report metadata-mutability as absent while the Metaplex
+    // account, the only place the answer could live, went unread. And
+    // `undefined` would be no better: it would add a capability to the
+    // denominator that this mint could never have scored, so every legacy token
+    // would appear less covered purely because the dictionary learned about a
+    // program it does not use.
+    return null;
+  }
+
+  const found = list.find(
+    (e): e is { extension: string; state?: Record<string, unknown> } =>
+      typeof e === 'object' && e !== null && (e as { extension?: unknown }).extension === extension
+  );
+
+  if (!found) {
+    return { ...base, value: null, method: `${extension} is not among this mint's extensions` };
+  }
+
+  if (pattern.presenceIndicatedBy === 'extension-present') {
+    return {
+      ...base,
+      value: `mechanism present, ${describeExtension(found.state)}`,
+      method: `${extension} is configured on the mint, so the capability is built in`,
+    };
+  }
+
+  const raw = extensionField ? found.state?.[extensionField] : undefined;
+  const value = typeof raw === 'string' && raw.length > 0 ? raw : null;
+
+  return {
+    ...base,
+    value,
+    method: `${extension}.${extensionField ?? '?'}`,
+  };
+}
+
+/**
+ * One line describing an extension's current configuration.
+ *
+ * Kept short and free of judgement: it goes into the reasoning a reader sees,
+ * and its job is to stop `extension-present` reporting a bare "present" with no
+ * indication of what is actually set. Rendering the whole state object here is
+ * what produced a reasoning string of eight `[object Object]`s.
+ */
+function describeExtension(state: Record<string, unknown> | undefined): string {
+  if (!state) return 'no configuration recorded';
+
+  // One level of nesting is flattened rather than skipped, because the field
+  // that matters most on a transfer fee lives one level down: reporting only
+  // the authorities would let a mint with a 100% fee already scheduled in
+  // `newerTransferFee` summarise identically to one charging nothing.
+  const parts: string[] = [];
+  const push = (key: string, value: unknown): void => {
+    if (value === null) parts.push(`${key} not set`);
+    else if (typeof value === 'string')
+      parts.push(`${key} ${value.length > 12 ? value.slice(0, 10) + '...' : value}`);
+    else if (typeof value === 'number' || typeof value === 'boolean') parts.push(`${key} ${value}`);
+  };
+
+  for (const [key, value] of Object.entries(state)) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [inner, innerValue] of Object.entries(value as Record<string, unknown>)) {
+        push(`${key}.${inner}`, innerValue);
+      }
+    } else {
+      push(key, value);
+    }
+  }
+
+  // Authorities first. The summary is truncated, and who holds the power
+  // matters more to a reader than which epoch the current setting dates from —
+  // on a transfer fee the raw field order buries both authorities behind four
+  // bookkeeping numbers.
+  const rank = (part: string): number => (/authority|delegate/i.test(part) ? 0 : 1);
+  parts.sort((a, b) => rank(a) - rank(b));
+
+  return parts.length > 0 ? `currently ${parts.slice(0, 4).join(', ')}` : 'configuration not readable as a summary';
 }
 
 function readPath(root: Record<string, unknown>, path: string): unknown {

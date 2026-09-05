@@ -130,7 +130,13 @@ The contract's runtime bytecode carries the 4-byte selector of every function it
 
 **This is reported and never scored.** No axis, no coverage figure and no signal state moves because of it. Knowing that a function exists is not the same as reading who holds it, and treating the first as evidence of the second is exactly the inference the pattern dictionary exists to avoid. A gap says our answer is incomplete on a named capability; it does not say the capability is live.
 
-The scan itself is a capability that can be missing, so its status travels with the score as `gapScan`: `ran`, `not-applicable` (Solana, which has no bytecode analogue), or `failed`. An empty `dictionaryGaps` is only reassuring when this reads `ran`, and the other two states carry an explicit limitation saying we did not look.
+The scan itself is a capability that can be missing, so its status travels with the score as `gapScan`: `ran`, `not-applicable`, or `failed`. An empty `dictionaryGaps` is only reassuring when this reads `ran`, and the other two states carry an explicit limitation saying we did not look.
+
+Each chain has its own surface, and they do not support the same claim. On EVM it is the runtime bytecode: a 4-byte selector proves the contract can dispatch that function, which tells us our answer is incomplete without telling us the capability is live. On Solana it is the mint's Token-2022 extension list, which is not a set of things the mint could do but the set of things it is configured to do, each with its authority named in the account. An unread extension is therefore a firmer finding than an unread selector, and the limitation text says so rather than sharing a sentence with the EVM case.
+
+A mint owned by the legacy Token program has no extension list, and that counts as `ran` with no gaps rather than as `not-applicable`. Its entire privileged surface is `mintAuthority` and `freezeAuthority`, both of which the dictionary reads, so "we scanned it and nothing is unread" is true and is a stronger statement than declining to look.
+
+An extension the dictionary has never classified, or one the node itself could not decode, is reported as a gap with **no capability named**. Token-2022 gains extension types regularly; dropping the ones we do not recognise would guarantee that the newest power on a mint is the one we miss, and naming a capability for it would be a guess. Neither is acceptable, so it is reported as unread.
 
 The residual blind spot, still real: a privileged function whose signature is not in our table is invisible to this scan, exactly as it is to the dictionary. See [LIMITATIONS.md](LIMITATIONS.md) §5.
 

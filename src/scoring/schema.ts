@@ -110,12 +110,21 @@ export const axisResultSchema = z
 
 export const dictionaryGapSchema = z
   .object({
-    selector: z.string().regex(/^0x[0-9a-f]{8}$/),
+    // The surface decides how `selector` is shaped, so it is validated per case
+    // rather than by one permissive regex that would accept a malformed EVM
+    // selector as long as it looked like an extension name.
+    surface: z.enum(['evm-selector', 'solana-extension']),
+    selector: z.string().min(1),
     signature: z.string().min(1),
-    capability: capabilitySchema,
+    // Nullable only for an unclassified Token-2022 extension. See DictionaryGap.
+    capability: capabilitySchema.nullable(),
     note: z.string().min(1),
   })
-  .strict();
+  .strict()
+  .refine(
+    (g) => (g.surface === 'evm-selector' ? /^0x[0-9a-f]{8}$/.test(g.selector) : true),
+    { message: 'an evm-selector gap must carry a 4-byte selector', path: ['selector'] }
+  );
 
 export const scoreSchema = z
   .object({

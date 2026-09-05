@@ -1,0 +1,78 @@
+{
+  "id": "pyusd-solana",
+  "chain": "solana",
+  "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+  "symbol": "PYUSD",
+  "name": "PayPal USD",
+  "decimals": 6,
+  "issuer": {
+    "name": "Paxos Trust Company, National Association",
+    "jurisdiction": "United States",
+    "website": "https://www.paxos.com",
+    "regulated": true
+  },
+  "archetype": "fiat-stablecoin",
+  "expectedCapabilities": [
+    {
+      "capability": "mint-authority",
+      "justification": "A fiat-backed stablecoin is issued and redeemed 1:1 against reserves, so supply must move with deposits and redemptions. It cannot function without this.",
+      "constrainedBy": "OCC supervision of Paxos Trust Company, N.A. (charter 25379) and monthly independent examination of reserves by KPMG. Nothing on-chain ties a mint instruction to a reserve check: on 2025-10-15 Paxos minted roughly 300 trillion PYUSD in error and burned it 22 minutes later, which is direct evidence that no structural control prevents an arbitrary-size mint."
+    },
+    {
+      "capability": "freeze-authority",
+      "justification": "A US permitted stablecoin issuer must retain the technical ability to comply with a lawful order to freeze its stablecoin. Paxos has exercised this repeatedly on this mint.",
+      "constrainedBy": "Paxos's published terms limit freezing to a formal legal directive OR to a formal notification by a Paxos partner under previously agreed contractual terms. The second of those is not a legal constraint: it permits a freeze on private contract, with no court, regulator or law enforcement involved, and the contractual terms are not published."
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "onchain",
+      "detail": "Token-2022 mint carrying eight extensions, read from Solana mainnet on 2026-09-02 at slot 443733894. A single address, 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk, holds the freeze authority, permanent delegate, mint close authority, transfer fee config and withdraw-withheld authorities, transfer hook authority, metadata pointer authority, token metadata update authority and confidential transfer authority. That address is system-program owned with zero data: a single keypair, not a program, multisig or timelock. The mint authority is a Token-2022 multisig, 8Jornc27vtAYPkwDzsZVgLQchAYyC8nD7aCNPCDV8Qk2, requiring 1 of 4 signers, and 2apBGMsS is one of the four.",
+      "observedAt": "2026-09-02"
+    },
+    {
+      "kind": "whitepaper",
+      "detail": "PYUSD on Solana white paper, section 5.2, justifies the permanent delegate in the issuer's own words: it 'has unlimited delegate privileges over any account for that mint' and is 'critical for regulatory purposes, as it allows for seizing funds as required by law enforcement'. The same section describes the transfer fee as 'included as a fail-safe and initialized to 0', the transfer hook as 'initialized for potential future use', and the mint close authority as something that 'may never be needed'.",
+      "url": "https://www.paypalobjects.com/devdoc/community/PYUSD-Solana-White-Paper.pdf",
+      "observedAt": "2026-09-02"
+    },
+    {
+      "kind": "regulatory-filing",
+      "detail": "OCC conditional approval dated 2025-12-12 converting Paxos Trust Company, LLC (NYDFS-chartered) into Paxos Trust Company, N.A., charter 25379. Conditions are imposed in writing by a Federal banking agency and are enforceable under 12 USC 1818, including a requirement to conform stablecoin activity to the GENIUS Act at the OCC's sole discretion, and compliance-program conditions imposed in light of a prior NYDFS consent order. The ultimate parent is Kabompo Holdings, Ltd., a Cayman Islands company.",
+      "url": "https://www.occ.gov/news-issuances/news-releases/2025/nr-occ-2025-125e.pdf",
+      "observedAt": "2026-09-02"
+    },
+    {
+      "kind": "documentation",
+      "detail": "Paxos terms and conditions on illegal activity state that seizure occurs only on formal written legal directive, that 'seizure may not occur under any circumstances absent such a legal directive', that seized tokens move to a segregated Paxos wallet, and that frozen or seized tokens 'may become wholly and permanently unrecoverable and unusable'. These terms apply to all holders, including people who are not Paxos customers.",
+      "url": "https://www.paxos.com/terms-and-conditions/illegal-activity",
+      "observedAt": "2026-09-02"
+    },
+    {
+      "kind": "onchain",
+      "detail": "The permanent delegate has been used in production. Transaction 2EoBhRCgGGo58z6tSnFQc7KJi6TyKNYXhnV7yZiQKdrs1d4UcqqrgwrAEwXye1Hnqs3ke7jWs5dM82DWhhZcwik, on 2026-04-17 at slot 413888434, is a single transferChecked instruction signed only by 2apBGMsS, moving 450030.24 PYUSD out of a third party's account. The source account was frozen the same day. Separately, at least fourteen freeze actions are recorded against this mint and thirteen accounts are frozen as at 2026-09-02.",
+      "observedAt": "2026-09-02"
+    },
+    {
+      "kind": "audit",
+      "detail": "Monthly independent examinations of PYUSD reserves under AICPA attestation standards, performed by KPMG LLP for periods from 2025-02-28 onward and by WithumSmith+Brown before that, with the examiner's appointment approved by the prudential regulator. These are point-in-time examinations of reserves, not audits of the issuer, and they say nothing about the authorities held on the mint.",
+      "url": "https://www.paxos.com/pyusd-transparency",
+      "observedAt": "2026-09-02"
+    }
+  ],
+  "caveats": [
+    "Being listed here does not mean the token cannot lose value or depeg.",
+    "An expected capability is still a capability. The issuer can use it, and on this mint it has.",
+    "Only two capabilities are recorded as expected. Fee control, upgradeability through the mint close authority, admin authority over confidential transfers, and metadata mutability are all live powers held by the same single key, and the issuer's own documentation describes three of them as optionality rather than necessity: a fail-safe, potential future use, and something that may never be needed. They are deliberately not justified here.",
+    "Transfer restriction is deliberately NOT recorded as expected, and this is the entry's most consequential judgement. The permanent delegate is documented, statutorily grounded and would qualify on its own. But the transfer hook authority resolves the same capability and is undocumented optionality, and the registry cannot justify one without also justifying the other. Marking the capability expected would extend a legal justification for seizure to cover an unexplained power to install arbitrary code on every transfer.",
+    "The concentration is the finding. One keypair holds nine authorities with no timelock, no threshold and no on-chain governance, and the mint multisig requires only one of its four signers, of which that keypair is one. There is no published key management, quorum or change-control disclosure.",
+    "No individual PYUSD freeze or seizure appears to have been publicly announced, including the April 2026 seizure above. Paxos did publish an announcement when it froze PAXG at federal law enforcement direction in November 2022, so the asymmetry is a transparency finding rather than an absence of precedent.",
+    "This entry covers the Solana Token-2022 mint only. The Ethereum deployment is a different contract with different mechanics and is not described here.",
+    "The issuer's own developer documentation and the PayPal white paper still name Paxos Trust Company, LLC and NYDFS, while the terms and the OCC record name Paxos Trust Company, N.A. This entry follows the regulator's record.",
+    "On-chain authorities can change at any time. Every finding here is as at the verification date and slot recorded above."
+  ],
+  "verifiedAt": "2026-09-02",
+  "reviewDue": "2027-03-02",
+  "approvedBy": "decrypto",
+  "commercialRelationship": null
+}

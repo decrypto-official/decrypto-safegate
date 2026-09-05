@@ -23,14 +23,19 @@ const patternSchema = z.object({
   chainFamily: z.enum(['evm', 'solana']),
   capability: z.enum(CAPABILITIES),
   method: z.object({
-    kind: z.enum(['storage-slot', 'call-selector', 'account-field']),
+    kind: z.enum(['storage-slot', 'call-selector', 'account-field', 'account-extension']),
     storageSlot: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
     callSelector: z.string().regex(/^0x[0-9a-fA-F]{8}$/).optional(),
     accountField: z.string().optional(),
+    extension: z.string().optional(),
+    extensionField: z.string().optional(),
     returnType: z.string(),
-  }),
+  }).refine(
+    (m) => m.kind !== 'account-extension' || typeof m.extension === 'string',
+    { message: 'kind=account-extension requires an extension name', path: ['extension'] }
+  ),
   detects: z.string().min(10),
-  presenceIndicatedBy: z.enum(['non-empty-value', 'call-success']).optional(),
+  presenceIndicatedBy: z.enum(['non-empty-value', 'call-success', 'extension-present']).optional(),
   // Required, and required to be substantive. "adds coverage" is not a rationale.
   rationale: z.string().min(40, 'rationale must explain what breaks without this pattern'),
   coversExamples: z.array(z.object({

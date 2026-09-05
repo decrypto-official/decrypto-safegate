@@ -1,0 +1,30 @@
+{
+  "id": "t2022-transfer-hook",
+  "title": "Token-2022 transfer hook",
+  "chainFamily": "solana",
+  "capability": "transfer-restriction",
+  "method": {
+    "kind": "account-extension",
+    "extension": "transferHook",
+    "returnType": "string"
+  },
+  "detects": "An authority that can install an arbitrary program which runs on every transfer of this token and can cause the transfer to fail.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "extension-present",
+  "knownFalseNegative": "A null programId means no hook is installed right now. It does not mean none can be, and installing one takes effect immediately with no delay, unlike a transfer fee change which is scheduled two epochs ahead. A dormant transfer hook is therefore a faster route to blocking every transfer than a dormant fee is to taxing one. The reverse case is worse still and is why this pattern scores on the extension rather than on any field: a null authority with a non-null programId means the hook is installed and can never be removed.",
+  "coversExamples": [
+    {
+      "chain": "solana",
+      "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+      "symbol": "PYUSD",
+      "observed": "PRESENT, authority 2apBGMsS6ti9RyF5TwQTDswXBWskiJP2LD4cUEDqYJjk with programId null: no hook installed, a live authority able to install one",
+      "verifiedAt": "2026-09-02"
+    }
+  ],
+  "rationale": "Reading only programId would report a token whose owner can halt all transfers at will as having no transfer restriction whatsoever, which is the same error as reading paused() and reporting no pause mechanism.",
+  "references": [
+    "https://github.com/solana-program/token-2022/blob/main/program/src/extension/transfer_hook/processor.rs"
+  ],
+  "addedAt": "2026-09-02",
+  "addedBy": "decrypto"
+}
