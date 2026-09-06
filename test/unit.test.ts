@@ -17,6 +17,7 @@ import { implementationAddresses } from '../src/patterns/selectors.js';
 import { score } from '../src/scoring/model2.js';
 import { isStale, expectationFor, type RegistryEntry } from '../src/registry/lookup.js';
 import { renderDisclosure } from '../src/cli/disclosure.js';
+import { verifyScore, canonical } from '../src/cli/verify.js';
 import type { Observation } from '../src/types.js';
 
 const originalFetch = globalThis.fetch;
@@ -243,6 +244,93 @@ describe('the gap scan follows a proxy to its implementation', () => {
     const patterns = await loadPatterns();
     const pointing = patterns.filter((p) => p.method.pointsTo === 'implementation').map((p) => p.id).sort();
     expect(pointing).toEqual(['proxy-eip1967', 'proxy-zeppelinos']);
+  });
+});
+
+describe('verify: a published score recomputes from its own contents', () => {
+  const at = '2026-01-01T00:00:00.000Z';
+  const obs = (capability: Observation['capability'], patternId: string, value: Observation['value']): Observation => ({
+    capability,
+    value,
+    source: 'onchain',
+    patternId,
+    observedAt: at,
+  });
+  const observations: Observation[] = [
+    obs('mint-authority', 'admin-minter', '0x1a9c8182c09f50c8318d769245bea52c32be35bc'),
+    obs('admin-authority', 'admin-ownable', null),
+    obs('transfer-restriction', 'transfer-pausable', 'mechanism present, currently false/zero'),
+    { capability: 'fee-control', value: undefined, source: 'onchain', observedAt: at },
+  ];
+
+  function published(): Record<string, unknown> {
+    const { signals, disagreements } = normalise(observations, null);
+    const s = score({
+      chain: 'ethereum',
+      address: '0x' + '1'.repeat(40),
+      symbol: 'TST',
+      signals,
+      disagreements,
+      unverified: [],
+      registryEntry: null,
+      inputSnapshotHash: snapshotHash(observations),
+      computedAt: at,
+      dictionaryGaps: [],
+      gapScan: 'ran',
+    });
+    return JSON.parse(JSON.stringify(s));
+  }
+
+  it('passes on the scorer\'s own output, whatever order the keys are in', () => {
+    const report = verifyScore(published());
+    expect(report.ok).toBe(true);
+    expect(report.checks.map((c) => [c.name, c.state])).toEqual([
+      ['shape', 'ok'],
+      ['snapshot hash', 'ok'],
+      ['recompute', 'ok'],
+    ]);
+    expect(report.checks[2]!.detail).toMatch(/Byte-identical/);
+
+    const reordered = JSON.parse(canonical(published()));
+    expect(verifyScore(reordered).ok).toBe(true);
+  });
+
+  it('fails when a number was edited after scoring', () => {
+    const edited = published() as { axes: { control: { value: number } } };
+    edited.axes.control.value = 1;
+    const report = verifyScore(edited);
+    expect(report.ok).toBe(false);
+    const recompute = report.checks.find((c) => c.name === 'recompute')!;
+    expect(recompute.state).toBe('fail');
+    expect(recompute.detail).toMatch(/axes/);
+    expect(recompute.detail).toMatch(/control: published 1, recomputed/);
+  });
+
+  it('fails when an observation was edited, because the hash no longer follows', () => {
+    const edited = published() as {
+      axes: { control: { signals: Array<{ observations: Array<{ value: unknown }> }> } };
+    };
+    edited.axes.control.signals[0]!.observations[0]!.value = '0x' + 'f'.repeat(40);
+    const report = verifyScore(edited);
+    expect(report.ok).toBe(false);
+    expect(report.checks.find((c) => c.name === 'snapshot hash')!.state).toBe('fail');
+  });
+
+  it('refuses something that is not a score, and says why', () => {
+    const report = verifyScore({ chain: 'ethereum', axes: {} });
+    expect(report.ok).toBe(false);
+    expect(report.checks[0]!.state).toBe('fail');
+    expect(report.checks[0]!.detail).toMatch(/not a Safegate score/);
+  });
+
+  it('does not pretend to verify axes across methodology versions', () => {
+    const older = published() as { methodologyVersion: string };
+    older.methodologyVersion = '0.1.8';
+    const report = verifyScore(older);
+    // The hash still follows from the observations; the axes are out of reach.
+    expect(report.ok).toBe(true);
+    expect(report.checks.find((c) => c.name === 'snapshot hash')!.state).toBe('ok');
+    expect(report.checks.find((c) => c.name === 'recompute')!.state).toBe('skipped');
   });
 });
 

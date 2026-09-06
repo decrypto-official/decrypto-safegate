@@ -14,6 +14,14 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.4.2, 2026-09-06
+
+### Added
+
+**`safegate verify <score.json> [--live]`.** METHODOLOGY §10 has said since the first version that any score can be recomputed by a stranger from public inputs. No command did it. This one takes a published score and, from the file alone, recomputes the snapshot hash from its observations and the axes, coverage and limitations from its signals, then reports byte-identical or which field did not follow. Key order does not matter. A score computed under another methodology version has its hash checked and its axes marked as not checkable across versions rather than compared against the wrong formula. `--live` reads the chain again and lists the observations that read differently now, as information about the token rather than a failure of the score. Exit 1 on any failed check; `-` reads stdin. Five offline tests cover the scorer's own output, a reordered file, an edited number, an edited observation, a non-score and a version mismatch.
+
+---
+
 ## 0.4.1, 2026-09-06
 
 The dashboard moves. No score, pattern or registry entry changes; the engine is untouched.
