@@ -119,7 +119,9 @@ export default async function GuidePage() {
             This panel only appears when the contract can do something we do not know how to read. We can see
             that the function is there, but not who is allowed to use it. That is reported as{' '}
             <em>unaccounted for</em>, never as absent, and it is deliberately placed above the findings so
-            nobody stops reading before they reach it.
+            nobody stops reading before they reach it. When the owner has been renounced and nothing else
+            holds admin power, each entry says so: an owner-only function on such a token can no longer be
+            called, though we cannot read the code to be sure it is owner-only.
           </p>
 
           <h3>5. Signals</h3>
@@ -225,7 +227,9 @@ export default async function GuidePage() {
             </Term>
             <Term word="Renounced">
               The owner has been set to nobody, so the power is gone for good. Often claimed. Sometimes the
-              power simply lives somewhere else in the contract — see MKR above.
+              power simply lives somewhere else in the contract — see MKR above. We say renounced only when
+              the contract&apos;s owner() answers the zero address; a contract with no owner() at all is
+              reported as not found, which is a different fact.
             </Term>
             <Term word="Pattern">
               Our written instruction for where to look in a contract for one particular power. There are{' '}

@@ -51,6 +51,7 @@ export const observationSchema = z
   .object({
     capability: capabilitySchema,
     value: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+    read: z.enum(['answered', 'missing', 'unavailable']).optional(),
     source: sourceIdSchema,
     patternId: z.string().optional(),
     method: z.string().optional(),

@@ -187,7 +187,7 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
                 <div style={{ fontSize: 'var(--fs-meta)', color: 'var(--text-faint)', marginTop: 3 }}>
                   {pattern.presenceIndicatedBy === 'call-success'
                     ? 'The function existing proves the capability exists, whatever it returns.'
-                    : 'The returned value decides. A zero address means genuinely renounced.'}
+                    : 'The returned value decides. A zero address reads as unset or renounced, a zero amount as absent.'}
                 </div>
               </Field>
             </dl>

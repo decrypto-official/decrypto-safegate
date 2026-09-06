@@ -34,6 +34,19 @@ export type SignalState = 'PRESENT' | 'ABSENT' | 'EXPECTED' | 'UNKNOWN';
 
 export type SourceId = 'onchain' | 'goplus' | 'rugcheck';
 
+/**
+ * How a read resolved.
+ *
+ * `answered`: the getter, slot, field or extension exists and returned
+ * something, possibly zero or empty, so a null value beside it is a verified
+ * "not set". `missing`: there is nothing to read on this contract or mint,
+ * the function reverts or returns no data, the storage slot is zero, the
+ * extension is not on the mint, so a null value beside it says only that this
+ * design is not that design.
+ * `unavailable`: the read could not be made.
+ */
+export type ReadResolution = 'answered' | 'missing' | 'unavailable';
+
 /** A raw reading from one source, before any interpretation. */
 export interface Observation {
   capability: Capability;
@@ -45,6 +58,12 @@ export interface Observation {
    * ABSENT.
    */
   value?: string | number | boolean | null;
+  /**
+   * Optional so scores from before 0.5.0 still parse. Not part of the
+   * snapshot hash, like the timestamp and the method note: it explains a
+   * value, it does not change one.
+   */
+  read?: ReadResolution;
   source: SourceId;
   /** Which pattern produced this, when the source is on-chain. */
   patternId?: string;

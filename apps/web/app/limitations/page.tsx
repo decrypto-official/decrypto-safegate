@@ -45,7 +45,7 @@ const SECTIONS = [
     title: 'Patterns are always incomplete',
     body: [
       'The dictionary covers the contract shapes we know. New shapes appear constantly.',
-      'When no pattern matches, the result is UNKNOWN and coverage drops, so the gap is at least visible. But a token using an admin pattern we have never seen will under-report its capabilities, and we will not know it happened.',
+      'When no pattern matches, the result is UNKNOWN and coverage drops, so the gap is at least visible. On a sample of 40 launch-week tokens in September 2026, 13 of the 14 gaps the scan reported were noise and the one live blacklist was missed, until the table was corrected in 0.5.0; the next template will be missed the same way until someone measures again. But a token using an admin pattern we have never seen will under-report its capabilities, and we will not know it happened.',
       'This is the failure mode we consider most likely, and it is why the dictionary is open to contribution.',
     ],
   },

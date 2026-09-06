@@ -71,23 +71,25 @@ A pattern says where to look for one capability on one contract shape: a storage
 
 **`nonEmptyMeans: capability-absent`** inverts a read for flags that record a capability being switched off, such as `mintingFinished()`.
 
+**How a read resolved travels with it** (since 0.5.0). Every observation carries `read`: `answered`, the getter, slot, field or extension exists and returned something, so a null beside it is a verified not-set; `missing`, there is nothing to read on this contract, the function reverts or returns no data, the storage slot is zero or the extension is not on the mint, so a null beside it says only that this design is not that design; or `unavailable`, the read could not be made. The reasoning says which: an `owner()` that answers the zero address is "not set: unset or renounced", a `minter()` that reverts is "not found". A `uint256` getter that answers 0 reads as absent: a fee of nothing is no fee, and whether anyone can raise it is the gap scan's question. `read` is not in the snapshot hash; it explains a value and does not change one.
+
 ## 7. What the dictionary reads, per chain
 
 | Capability | Ethereum | Solana |
 |---|---|---|
 | `upgradeability` | proxy slots, UUPS | Token-2022 mint close authority |
 | `mint-authority` | minter(), MintableToken, capped schedule, Circle's masterMinter() (since 0.4.0) | SPL mint authority |
-| `freeze-authority` | blacklist getters (since 0.2.0) | SPL freeze authority |
+| `freeze-authority` | blacklist getters, three spellings (since 0.2.0 and 0.5.0) | SPL freeze authority |
 | `admin-authority` | Ownable, DSAuth, AccessControl (working since 0.2.0), timelock, proxy admin | Token-2022 confidential transfer authority |
 | `metadata-mutability` | no pattern, UNKNOWN | Metaplex update authority (read since 0.2.0), Token-2022 metadata |
 | `transfer-restriction` | pausable | Token-2022 permanent delegate, transfer hook |
-| `fee-control` | Tether's basisPointsRate() (since 0.3.0) | Token-2022 transfer fee |
+| `fee-control` | Tether's basisPointsRate() (since 0.3.0); launchpad buyTotalFees() and sellTotalFees() read as values (since 0.5.0) | Token-2022 transfer fee |
 
 On a mint owned by the legacy Token program, a capability that exists only as a Token-2022 extension is recorded as `ABSENT` with the reason stated: the program has no mechanism for it, and its whole privileged surface is the two authorities the dictionary reads. That is a verified absence, not a guess.
 
 ### Beyond the dictionary: `dictionaryGaps` and `gapScan`
 
-A contract can expose a privileged function that no pattern reads. On Ethereum the runtime bytecode carries the 4-byte selector of every function it dispatches. We scan the contract's bytecode and, for a proxy, the implementation's, read from the address the proxy slot holds (since 0.3.0; a beacon proxy's implementation sits behind the beacon and is not followed), against a table of privileged signatures, and subtract what patterns already read and what was already found. On Solana the surface is the mint's Token-2022 extension list, which is enumerable, so an extension we have never classified is reported with no capability named. What survives is published as `dictionaryGaps`.
+A contract can expose a privileged function that no pattern reads. On Ethereum the runtime bytecode carries the 4-byte selector of every function it dispatches. We scan the contract's bytecode and, for a proxy, the implementation's, read from the address the proxy slot holds (since 0.3.0; a beacon proxy's implementation sits behind the beacon and is not followed), against a table of privileged signatures, and subtract what patterns already read and what was already found. A write function whose own getter answered a definite nothing is explained rather than reported: `owner()` answering the zero address is a renounced Ownable, and `transferOwnership` can never pass its check again. When ownership is renounced, every other reported function says so, because an owner-gated setter is then dead and the modifier cannot be read from bytecode (since 0.5.0). On Solana the surface is the mint's Token-2022 extension list, which is enumerable, so an extension we have never classified is reported with no capability named. What survives is published as `dictionaryGaps`.
 
 **This is reported and never scored.** Knowing a function exists is not reading who holds it. A gap moves no axis and no coverage figure; it is prepended to the limitations. `gapScan` records whether the scan ran: `ran`, `not-applicable`, or `failed`. An empty gap list is only reassuring when it reads `ran`.
 

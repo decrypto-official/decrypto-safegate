@@ -1655,6 +1655,52 @@ describeLive('0.2.0: readings that were wrong on the seed set', () => {
 });
 
 /**
+ * 0.5.0 locks, from the 2026-09 sample of launch-week tokens.
+ */
+describeLive('0.5.0: what the launch-week sample taught', () => {
+  const KITE_ETH = '0x118b70df4f06fa5678e7d543e6066e028c8ea0c0';
+  const SHRUB_ETH = '0x9bbde310004785f0e76cc7f6cf06d8cfe2907cd1';
+
+  it('reads KITE\'s blacklist as a live freeze authority', async () => {
+    // One token in forty had a live owner and a blacklist, under a third
+    // spelling of the getter. It read freeze ABSENT with no gap.
+    const result = await analyse('ethereum', KITE_ETH);
+    const freeze = result.axes.control.signals.find((s) => s.capability === 'freeze-authority');
+    expect(freeze?.state).toBe('PRESENT');
+    expect(freeze?.observations.find((o) => o.patternId === 'freeze-blacklisted')?.value).toMatch(/mechanism present/);
+  }, TIMEOUT);
+
+  it('says SHRUB is renounced, reads its fee as 0, and reports its setters as dead if owner-gated', async () => {
+    // The launchpad template: fees set to 0, limits lifted, ownership
+    // renounced. Before 0.5.0 it read "admin authority was not found" and
+    // reported transferOwnership as an unread power.
+    const result = await analyse('ethereum', SHRUB_ETH);
+    const admin = result.axes.control.signals.find((s) => s.capability === 'admin-authority');
+    expect(admin?.state).toBe('ABSENT');
+    expect(admin?.reasoning).toMatch(/is not set: owner\(\)/);
+    expect(admin?.reasoning).toMatch(/renounced/);
+
+    const fee = result.axes.exit.signals.find((s) => s.capability === 'fee-control');
+    expect(fee?.state).toBe('ABSENT');
+    const buy = fee?.observations.find((o) => o.patternId === 'fee-launchpad-buy-total');
+    expect(buy?.read).toBe('answered');
+    expect(buy?.value).toBeNull();
+
+    const signatures = result.dictionaryGaps.map((g) => g.signature);
+    expect(signatures).toContain('updateBuyFees(uint256,uint256,uint256)');
+    expect(signatures).not.toContain('transferOwnership(address)');
+    expect(result.dictionaryGaps.every((g) => /Ownership is renounced/.test(g.note))).toBe(true);
+  }, TIMEOUT);
+
+  it('still says UNI\'s owner() is not there, rather than unset', async () => {
+    const result = await analyse('ethereum', UNI_ETH);
+    const admin = result.axes.control.signals.find((s) => s.capability === 'admin-authority');
+    expect(admin?.state).toBe('ABSENT');
+    expect(admin?.reasoning).toMatch(/was not found/);
+  }, TIMEOUT);
+});
+
+/**
  * 0.4.0 lock. USDC's mint authority is read, not reported as a gap.
  */
 describeLive('0.4.0: Circle\'s master minter', () => {

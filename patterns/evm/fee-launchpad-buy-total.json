@@ -1,0 +1,31 @@
+{
+  "id": "fee-launchpad-buy-total",
+  "title": "Launchpad template buy fee, buyTotalFees()",
+  "chainFamily": "evm",
+  "capability": "fee-control",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xd85ba063",
+    "signature": "buyTotalFees() returns (uint256)",
+    "returnType": "uint256"
+  },
+  "detects": "The total fee taken on a buy, from the ERC-20 template most launchpad tokens share, in whatever unit the template uses. Read as a value: 0 is absent, above 0 is present with the rate. This reads the fee being taken, not who can change it; the setters are in the gap scanner's table.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "non-empty-value",
+  "knownFalseNegative": "A live owner with the fee set to 0 today reads as absent; the gap scan reports the setter so the capability is not silently clean. A template with a differently named getter reads as absent.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x9bbde310004785f0e76cc7f6cf06d8cfe2907cd1",
+      "symbol": "SHRUB",
+      "observed": "buyTotalFees() answers 0 and owner() answers the zero address: fee machinery present, no fee taken, nobody left who can change it",
+      "verifiedAt": "2026-09-06"
+    }
+  ],
+  "rationale": "Five of 40 actively traded tokens launched in the 90 days before 2026-09-06 share this template byte for byte and answer this getter. Without this file a launch-week token taking a fee on every buy reads fee control absent on the exit axis, and the axis a holder reads to know what leaving costs says 0.",
+  "references": [
+    "https://etherscan.io/address/0x9bbde310004785f0e76cc7f6cf06d8cfe2907cd1#code"
+  ],
+  "addedAt": "2026-09-06",
+  "addedBy": "decrypto"
+}

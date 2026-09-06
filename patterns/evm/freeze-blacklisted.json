@@ -1,0 +1,32 @@
+{
+  "id": "freeze-blacklisted",
+  "title": "Per-address blacklist, blacklisted(address)",
+  "chainFamily": "evm",
+  "capability": "freeze-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xdbac26e9",
+    "callArgs": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "signature": "blacklisted(address) returns (bool)",
+    "returnType": "bool"
+  },
+  "detects": "A third spelling of the blacklist getter, common on launchpad-era tokens. Same capability as freeze-blacklist: an individual holder can be blocked from transacting.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "Any fourth spelling is invisible to all three blacklist patterns and left to the gap scan, which lists the common write functions (setBlacklisted, blacklistAddress, setBots).",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0x118b70df4f06fa5678e7d543e6066e028c8ea0c0",
+      "symbol": "KITE",
+      "observed": "blacklisted(0x0) answers, the mechanism is present; setBlacklisted(address,bool) is in the bytecode and owner() answers a live address",
+      "verifiedAt": "2026-09-06"
+    }
+  ],
+  "rationale": "In a sample of 40 actively traded tokens launched in the 90 days before 2026-09-06, this was the one token with a live owner and a blacklist, and the dictionary read its freeze authority as absent with no gap reported. The two existing spellings miss it.",
+  "references": [
+    "https://etherscan.io/address/0x118b70df4f06fa5678e7d543e6066e028c8ea0c0#code"
+  ],
+  "addedAt": "2026-09-06",
+  "addedBy": "decrypto"
+}

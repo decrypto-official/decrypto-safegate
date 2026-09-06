@@ -13,7 +13,8 @@ import { applyEvmPatterns, fillMissingCapabilities, loadPatterns, type Pattern }
 import { normalise } from '../src/signals/normalise.js';
 import { snapshotHash, decodeSymbol } from '../src/pipeline.js';
 import { findMetadataPda, parseMetadata, METADATA_PROGRAM_ID } from '../src/sources/metaplex.js';
-import { implementationAddresses } from '../src/patterns/selectors.js';
+import { implementationAddresses, findDictionaryGaps, privilegedFunctionTable } from '../src/patterns/selectors.js';
+import { selectorOf } from '../src/sources/keccak.js';
 import { score } from '../src/scoring/model2.js';
 import { isStale, expectationFor, type RegistryEntry } from '../src/registry/lookup.js';
 import { renderDisclosure } from '../src/cli/disclosure.js';
@@ -145,6 +146,127 @@ describe('call-success probes', () => {
     });
     await applyEvmPatterns(client, '0x' + '1'.repeat(40), [p]);
     expect(sent).toBe('0xfe575a87' + '0'.repeat(64));
+  });
+});
+
+describe('how a read resolved', () => {
+  const addr = '0x' + '1'.repeat(40);
+  const ownable = () =>
+    pattern({ method: { kind: 'call-selector', callSelector: '0x8da5cb5b', signature: 'owner() returns (address)', returnType: 'address' } });
+  const client = () => new RpcClient({ endpoints: ['https://a.invalid'] });
+
+  it('records a getter that answered the zero address as answered and unset, and says renounced', async () => {
+    globalThis.fetch = vi.fn(async () => jsonResponse({ jsonrpc: '2.0', id: 1, result: ZERO_WORD })) as typeof fetch;
+    const [obs] = await applyEvmPatterns(client(), addr, [ownable()]);
+    expect(obs!.value).toBeNull();
+    expect(obs!.read).toBe('answered');
+    expect(obs!.method).toMatch(/zero address: unset or renounced/);
+    const { signals } = normalise([obs!], null);
+    expect(signals[0]!.state).toBe('ABSENT');
+    expect(signals[0]!.reasoning).toMatch(/is not set: owner\(\)/);
+  });
+
+  it('records a getter that reverted as missing, and says the capability was not found', async () => {
+    globalThis.fetch = vi.fn(async () =>
+      jsonResponse({ jsonrpc: '2.0', id: 1, error: { code: 3, message: 'execution reverted' } })
+    ) as typeof fetch;
+    const [obs] = await applyEvmPatterns(client(), addr, [ownable()]);
+    expect(obs!.value).toBeNull();
+    expect(obs!.read).toBe('missing');
+    const { signals } = normalise([obs!], null);
+    expect(signals[0]!.reasoning).toMatch(/was not found/);
+    expect(signals[0]!.reasoning).not.toMatch(/is not set/);
+  });
+
+  it('records a transport failure as unavailable', async () => {
+    globalThis.fetch = vi.fn(async () =>
+      jsonResponse({ jsonrpc: '2.0', id: 1, error: { code: -32005, message: 'rate limit exceeded' } })
+    ) as typeof fetch;
+    const [obs] = await applyEvmPatterns(client(), addr, [ownable()]);
+    expect(obs!.value).toBeUndefined();
+    expect(obs!.read).toBe('unavailable');
+  });
+
+  it('reads a uint256 zero as absent and a positive value as the number', async () => {
+    const fee = () =>
+      pattern({
+        capability: 'fee-control',
+        method: { kind: 'call-selector', callSelector: '0xd85ba063', signature: 'buyTotalFees() returns (uint256)', returnType: 'uint256' },
+      });
+    globalThis.fetch = vi.fn(async () => jsonResponse({ jsonrpc: '2.0', id: 1, result: ZERO_WORD })) as typeof fetch;
+    const [zero] = await applyEvmPatterns(client(), addr, [fee()]);
+    expect(zero!.value).toBeNull();
+    expect(zero!.read).toBe('answered');
+    expect(zero!.method).toMatch(/answered 0/);
+
+    globalThis.fetch = vi.fn(async () => jsonResponse({ jsonrpc: '2.0', id: 1, result: '0x' + '0'.repeat(63) + '5' })) as typeof fetch;
+    const [five] = await applyEvmPatterns(client(), addr, [fee()]);
+    expect(five!.value).toBe('5');
+    const { signals } = normalise([five!], null);
+    expect(signals[0]!.state).toBe('PRESENT');
+  });
+
+  it('leaves the snapshot hash alone: the field explains a value, it does not change one', () => {
+    const at = '2026-01-01T00:00:00.000Z';
+    const a: Observation = { capability: 'admin-authority', value: null, source: 'onchain', patternId: 'admin-ownable', observedAt: at };
+    const b: Observation = { ...a, read: 'answered' };
+    expect(snapshotHash([a])).toBe(snapshotHash([b]));
+  });
+});
+
+describe('the gap scan and a renounced owner', () => {
+  const at = '2026-01-01T00:00:00.000Z';
+  const bytecodeWith = (selectors: string[]) => '0x6080604052' + selectors.map((s) => '63' + s.replace(/^0x/, '')).join('') + '00';
+  const transferOwnership = selectorOf('transferOwnership(address)');
+  const mint = selectorOf('mint(address,uint256)');
+  const ownerRead = (read: Observation['read']): Observation => ({
+    capability: 'admin-authority',
+    value: null,
+    read,
+    source: 'onchain',
+    patternId: 'admin-ownable',
+    observedAt: at,
+  });
+
+  it('does not report transferOwnership when owner() answered the zero address', () => {
+    expect(findDictionaryGaps(bytecodeWith([transferOwnership]), [], [ownerRead('answered')])).toHaveLength(0);
+  });
+
+  it('still reports it when owner() is not there at all', () => {
+    const gaps = findDictionaryGaps(bytecodeWith([transferOwnership]), [], [ownerRead('missing')]);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.note).not.toMatch(/renounced/);
+  });
+
+  it('tells the reader other functions may be dead once ownership is renounced', () => {
+    const gaps = findDictionaryGaps(bytecodeWith([mint]), [], [ownerRead('answered')]);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.signature).toBe('mint(address,uint256)');
+    expect(gaps[0]!.note).toMatch(/Ownership is renounced/);
+    expect(gaps[0]!.note).toMatch(/owner-gated/);
+  });
+
+  it('says nothing about renouncement when another admin mechanism is live', () => {
+    // MKR: owner() answers zero, authority() answers a live address.
+    const authority: Observation = {
+      capability: 'admin-authority',
+      value: '0x6eeb68b2c7a918f36b78e2db80430c7f8a8dd8f6',
+      read: 'answered',
+      source: 'onchain',
+      patternId: 'admin-dsauth',
+      observedAt: at,
+    };
+    const gaps = findDictionaryGaps(bytecodeWith([mint]), [], [ownerRead('answered'), authority]);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.note).not.toMatch(/renounced/);
+  });
+
+  it('no longer lists burnFrom as privileged, and does list the launchpad setters', () => {
+    const signatures = privilegedFunctionTable().functions.map((f) => f.signature);
+    expect(signatures).not.toContain('burnFrom(address,uint256)');
+    expect(signatures).toContain('updateBuyFees(uint256,uint256,uint256)');
+    expect(signatures).toContain('enableTrading()');
+    expect(signatures).toContain('setBlacklisted(address,bool)');
   });
 });
 
