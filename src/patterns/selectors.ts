@@ -77,7 +77,10 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   // Restricting transfer for everyone.
   { signature: 'pause()', capability: 'transfer-restriction', implies: 'all transfers can be halted' },
 
-  // Economics.
+  // Economics. setParams is Tether's: since 0.3.0 the dictionary reads its
+  // getter, and the write function stays here for a contract that carries
+  // the switch under a getter we do not read.
+  { signature: 'setParams(uint256,uint256)', capability: 'fee-control', implies: 'a transfer fee and its cap can be set' },
   { signature: 'setFee(uint256)', capability: 'fee-control', implies: 'a transfer fee can be changed' },
   { signature: 'setFeeRate(uint256)', capability: 'fee-control', implies: 'the fee rate can be changed' },
   { signature: 'setTaxRate(uint256)', capability: 'fee-control', implies: 'the tax rate can be changed' },
@@ -157,6 +160,34 @@ export function extractSelectors(bytecode: string): Set<string> {
   return out;
 }
 
+/** Bytecode of a contract the token delegates to, and where it was read from. */
+export interface ImplementationCode {
+  address: string;
+  bytecode: string;
+}
+
+/**
+ * Addresses whose code runs behind this token, from the patterns that declare
+ * their slot holds one (`method.pointsTo: implementation`).
+ *
+ * A proxy's own bytecode dispatches upgradeTo and little else; every
+ * privileged function lives in the implementation. A scan that stops at the
+ * proxy therefore reports nothing for exactly the tokens most worth scanning,
+ * and before 0.3.0 it did. A beacon slot holds the beacon, not the code, and
+ * is not followed.
+ */
+export function implementationAddresses(patterns: Pattern[], observations: Observation[]): string[] {
+  const pointing = new Set(patterns.filter((p) => p.method.pointsTo === 'implementation').map((p) => p.id));
+  const out: string[] = [];
+  for (const o of observations) {
+    if (!o.patternId || !pointing.has(o.patternId)) continue;
+    if (typeof o.value !== 'string' || !/^0x[0-9a-f]{40}$/i.test(o.value)) continue;
+    const address = o.value.toLowerCase();
+    if (!out.includes(address)) out.push(address);
+  }
+  return out;
+}
+
 /**
  * Privileged functions in the bytecode that our reading did not account for.
  *
@@ -174,9 +205,17 @@ export function extractSelectors(bytecode: string): Set<string> {
 export function findDictionaryGaps(
   bytecode: string,
   patterns: Pattern[],
-  observations: Observation[]
+  observations: Observation[],
+  implementations: ImplementationCode[] = []
 ): DictionaryGap[] {
-  const present = extractSelectors(bytecode);
+  // Selector -> the implementation it was found on, or null for the
+  // contract's own bytecode. The contract's own entry wins when both carry it,
+  // so a selector is reported once and the note names where it sits.
+  const present = new Map<string, string | null>();
+  for (const impl of implementations) {
+    for (const selector of extractSelectors(impl.bytecode)) present.set(selector, impl.address);
+  }
+  for (const selector of extractSelectors(bytecode)) present.set(selector, null);
   if (present.size === 0) return [];
 
   const readByAPattern = new Set(
@@ -194,11 +233,15 @@ export function findDictionaryGaps(
 
   const gaps: DictionaryGap[] = [];
 
-  for (const selector of present) {
+  for (const [selector, foundOn] of present) {
     const fn = BY_SELECTOR.get(selector);
     if (!fn) continue;
     if (readByAPattern.has(selector)) continue;
     if (alreadyFound.has(fn.capability)) continue;
+
+    const where = foundOn
+      ? `The implementation at ${foundOn}, which this contract delegates to, exposes`
+      : 'The contract exposes';
 
     gaps.push({
       surface: 'evm-selector',
@@ -206,7 +249,7 @@ export function findDictionaryGaps(
       signature: fn.signature,
       capability: fn.capability,
       note:
-        `The contract exposes ${fn.signature}, so ${fn.implies}. No pattern in the ` +
+        `${where} ${fn.signature}, so ${fn.implies}. No pattern in the ` +
         `dictionary reads this, and nothing else resolved ${fn.capability} for this token, ` +
         `so the capability is unaccounted for rather than absent.`,
     });

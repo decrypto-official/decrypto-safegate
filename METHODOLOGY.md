@@ -81,13 +81,13 @@ A pattern says where to look for one capability on one contract shape: a storage
 | `admin-authority` | Ownable, DSAuth, AccessControl (working since 0.2.0), timelock, proxy admin | Token-2022 confidential transfer authority |
 | `metadata-mutability` | no pattern, UNKNOWN | Metaplex update authority (read since 0.2.0), Token-2022 metadata |
 | `transfer-restriction` | pausable | Token-2022 permanent delegate, transfer hook |
-| `fee-control` | no pattern, UNKNOWN | Token-2022 transfer fee |
+| `fee-control` | Tether's basisPointsRate() (since 0.3.0) | Token-2022 transfer fee |
 
 On a mint owned by the legacy Token program, a capability that exists only as a Token-2022 extension is recorded as `ABSENT` with the reason stated: the program has no mechanism for it, and its whole privileged surface is the two authorities the dictionary reads. That is a verified absence, not a guess.
 
 ### Beyond the dictionary: `dictionaryGaps` and `gapScan`
 
-A contract can expose a privileged function that no pattern reads. On Ethereum the runtime bytecode carries the 4-byte selector of every function it dispatches; we scan it against a table of privileged signatures and subtract what patterns already read and what was already found. On Solana the surface is the mint's Token-2022 extension list, which is enumerable, so an extension we have never classified is reported with no capability named. What survives is published as `dictionaryGaps`.
+A contract can expose a privileged function that no pattern reads. On Ethereum the runtime bytecode carries the 4-byte selector of every function it dispatches. We scan the contract's bytecode and, for a proxy, the implementation's, read from the address the proxy slot holds (since 0.3.0; a beacon proxy's implementation sits behind the beacon and is not followed), against a table of privileged signatures, and subtract what patterns already read and what was already found. On Solana the surface is the mint's Token-2022 extension list, which is enumerable, so an extension we have never classified is reported with no capability named. What survives is published as `dictionaryGaps`.
 
 **This is reported and never scored.** Knowing a function exists is not reading who holds it. A gap moves no axis and no coverage figure; it is prepended to the limitations. `gapScan` records whether the scan ran: `ran`, `not-applicable`, or `failed`. An empty gap list is only reassuring when it reads `ran`.
 

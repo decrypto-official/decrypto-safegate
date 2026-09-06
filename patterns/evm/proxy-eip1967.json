@@ -7,6 +7,7 @@
     "kind": "storage-slot",
     "storageSlot": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
     "slotDerivation": "keccak256('eip1967.proxy.implementation') - 1",
+    "pointsTo": "implementation",
     "returnType": "address"
   },
   "detects": "A non-zero value is the address of the logic contract this proxy currently delegates to. The logic can be swapped by whoever holds the admin slot.",

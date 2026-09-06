@@ -31,6 +31,12 @@ export interface PatternMethod {
   extension?: string;
   /** account-extension: the field to read inside that extension's `state` object. */
   extensionField?: string;
+  /**
+   * storage-slot only: the address this slot holds is the contract whose code
+   * runs behind the token. The gap scan reads that bytecode too, because a
+   * proxy's own bytecode dispatches its upgrade functions and nothing else.
+   */
+  pointsTo?: 'implementation';
   returnType: string;
 }
 
@@ -89,6 +95,11 @@ function assertExecutable(pattern: Pattern, file: string): void {
   if (pattern.method.callArgs && pattern.presenceIndicatedBy !== 'call-success') {
     throw new PatternLoadError(
       `pattern ${file}: method.callArgs requires presenceIndicatedBy: call-success, because the value returned for a fixed dummy argument means nothing`
+    );
+  }
+  if (pattern.method.pointsTo && (pattern.method.kind !== 'storage-slot' || pattern.method.returnType !== 'address')) {
+    throw new PatternLoadError(
+      `pattern ${file}: method.pointsTo requires kind storage-slot and returnType address; only a slot holding an address can name the contract whose code runs`
     );
   }
 }

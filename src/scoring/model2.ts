@@ -81,8 +81,9 @@ export function score(input: ScoreInput): Score {
   if (gapScan !== 'ran') {
     limitations.unshift(
       gapScan === 'failed'
-        ? `We could not read this contract's bytecode, so it was not checked for capabilities ` +
-            `the dictionary cannot see. The absence of findings below reflects a failed check, not a clean one.`
+        ? `We could not read this contract's bytecode in full (its own, or the implementation it ` +
+            `delegates to), so it was not fully checked for capabilities the dictionary cannot see. ` +
+            `The absence of findings below reflects a failed check, not a clean one.`
         : `Scanning for capabilities the dictionary cannot read is not available on this chain, ` +
             `so it was not attempted. An empty finding list here means we did not look, not that there is nothing.`
     );

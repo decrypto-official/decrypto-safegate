@@ -670,6 +670,37 @@ describe('privileged functions no pattern reads', () => {
     expect(gaps[0]!.note).toMatch(/unaccounted for rather than absent/i);
   });
 
+  it('reports a privileged function found on the implementation, and says where', async () => {
+    // A proxy's own bytecode carries transfer and its upgrade functions. The
+    // freeze lives in the implementation, and before 0.3.0 the scan never
+    // looked there, so a proxied token's gap list was empty by construction.
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const freeze = selectorOf('freeze(address)');
+    const implementation = '0x7da4c5d9eca180a03765a6d27196f2a0380fa543';
+
+    const gaps = findDictionaryGaps(bytecodeWith(['0xa9059cbb']), [], [], [
+      { address: implementation, bytecode: bytecodeWith([freeze]) },
+    ]);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.signature).toBe('freeze(address)');
+    expect(gaps[0]!.note).toContain(implementation);
+    expect(gaps[0]!.note).toMatch(/implementation/);
+  });
+
+  it('reports a selector carried by both the contract and its implementation once', async () => {
+    const { findDictionaryGaps } = await import('../src/patterns/selectors.js');
+    const { selectorOf } = await import('../src/sources/keccak.js');
+    const freeze = selectorOf('freeze(address)');
+    const implementation = '0x7da4c5d9eca180a03765a6d27196f2a0380fa543';
+
+    const gaps = findDictionaryGaps(bytecodeWith([freeze]), [], [], [
+      { address: implementation, bytecode: bytecodeWith([freeze]) },
+    ]);
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]!.note).not.toContain(implementation);
+  });
+
   it('stays quiet about a selector a pattern already reads', async () => {
     // Not a gap. The dictionary reads it, so the capability is covered whatever
     // that particular call returned.
@@ -1620,5 +1651,36 @@ describeLive('0.2.0: readings that were wrong on the seed set', () => {
     expect(fee?.state).toBe('ABSENT');
     expect(fee?.reasoning).toMatch(/legacy Token program/);
     expect(result.coverage.applicable).toBe(7);
+  }, TIMEOUT);
+});
+
+/**
+ * 0.3.0 locks. The gap scan reads a proxy's implementation, and Ethereum has
+ * a fee-control pattern.
+ */
+describeLive('0.3.0: the gap scan follows the proxy, and reads Tether\'s fee switch', () => {
+  const PAXG_ETH = '0x45804880De22913dAFE09f4980848ECE6EcbAf78';
+  const USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+
+  it('reports mint and freeze on PAXG\'s implementation, which the proxy hides', async () => {
+    // PAXG's proxy bytecode dispatches its upgrade functions only. The
+    // implementation dispatches mint(address,uint256) and freeze(address),
+    // neither read by a pattern, and on 0.2.0 the scan stopped at the proxy
+    // and reported nothing while both capabilities read ABSENT.
+    const result = await analyse('ethereum', PAXG_ETH);
+    expect(result.gapScan).toBe('ran');
+    const signatures = result.dictionaryGaps.map((g) => g.signature);
+    expect(signatures).toContain('mint(address,uint256)');
+    expect(signatures).toContain('freeze(address)');
+    expect(result.dictionaryGaps.every((g) => /implementation at 0x/.test(g.note))).toBe(true);
+  }, TIMEOUT);
+
+  it('reads USDT\'s fee switch as present at a zero rate', async () => {
+    const result = await analyse('ethereum', USDT_ETH);
+    const fee = result.axes.exit.signals.find((s) => s.capability === 'fee-control');
+    expect(fee?.state).toBe('PRESENT');
+    const hit = fee?.observations.find((o) => o.patternId === 'fee-tether-basis-points');
+    expect(hit?.value).toMatch(/mechanism present/);
+    expect(result.coverage.scored).toBeGreaterThanOrEqual(6);
   }, TIMEOUT);
 });

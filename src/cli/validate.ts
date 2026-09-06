@@ -34,6 +34,7 @@ const patternSchema = z.object({
     accountField: z.string().optional(),
     extension: z.string().optional(),
     extensionField: z.string().optional(),
+    pointsTo: z.enum(['implementation']).optional(),
     returnType: z.string(),
   }).refine(
     (m) => m.kind !== 'account-extension' || typeof m.extension === 'string',
@@ -47,6 +48,9 @@ const patternSchema = z.object({
   ).refine(
     (m) => m.kind !== 'account-field' || typeof m.accountField === 'string',
     { message: 'kind=account-field requires accountField', path: ['accountField'] }
+  ).refine(
+    (m) => !m.pointsTo || (m.kind === 'storage-slot' && m.returnType === 'address'),
+    { message: 'pointsTo requires kind=storage-slot and returnType=address; only a slot holding an address can name the contract whose code runs', path: ['pointsTo'] }
   ),
   detects: z.string().min(10),
   presenceIndicatedBy: z.enum(['non-empty-value', 'call-success', 'extension-present']).optional(),

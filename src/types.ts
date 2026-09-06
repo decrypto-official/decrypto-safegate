@@ -210,7 +210,7 @@ export interface Score {
    * two authorities the dictionary already reads. The state is kept because a
    * chain added later may genuinely offer nothing to scan, and because older
    * stored scores still carry it.
-   * `failed` when the bytecode could not be fetched.
+   * `failed` when the bytecode, or a proxy's implementation bytecode, could not be fetched.
    */
   gapScan: GapScanStatus;
 
