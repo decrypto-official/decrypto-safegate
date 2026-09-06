@@ -94,7 +94,7 @@ export function PatternBrowser({ patterns }: { patterns: Pattern[] }) {
         </div>
       </section>
 
-      {selected && <PatternDetail pattern={selected} />}
+      {selected && <PatternDetail key={selected.id} pattern={selected} />}
     </div>
   );
 }
@@ -103,7 +103,8 @@ function PatternDetail({ pattern }: { pattern: Pattern }) {
   const m = pattern.method;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)', minWidth: 0 }}>
+    // Keyed on the record, so choosing another one enters afresh.
+    <div className="enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)', minWidth: 0 }}>
       <section className="panel">
         <div className="panel-body">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>

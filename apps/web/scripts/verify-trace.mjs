@@ -23,7 +23,9 @@ const WEB = join(HERE, '..');
 const ROOT = join(WEB, '..', '..');
 
 /** Routes whose handlers reach the engine, so must carry the data. */
-const MUST_INCLUDE_DATA = ['api/score/route', 'registry/page', 'patterns/page', 'disclosure/page'];
+// The root layout reads both directories for its topbar readouts since 0.4.1,
+// so every server-rendered route needs the data, /limitations included.
+const MUST_INCLUDE_DATA = ['api/score/route', 'registry/page', 'patterns/page', 'disclosure/page', 'limitations/page'];
 
 async function countSourceFiles() {
   let patterns = 0;
