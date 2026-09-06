@@ -1,0 +1,37 @@
+{
+  "id": "mint-master-minter",
+  "title": "Circle FiatToken masterMinter()",
+  "chainFamily": "evm",
+  "capability": "mint-authority",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0x35d99f35",
+    "signature": "masterMinter() returns (address)",
+    "returnType": "address"
+  },
+  "detects": "The address that appoints minters and sets their allowances in Circle's FiatToken contract. A non-zero value is a live mint authority one step removed: the master minter does not mint, it decides who can and how much.",
+  "nonEmptyMeans": "capability-present",
+  "knownFalseNegative": "Reads Circle's design only. A token that mints through a plain mint(address,uint256) behind Ownable has no masterMinter() and reads as absent here; the gap scan reports the mint function when it is in the bytecode.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "observed": "masterMinter() = 0xe982615d461dd5cd06575bbea87624fda4e3de17, live, while minter() reverts",
+      "verifiedAt": "2026-09-06"
+    },
+    {
+      "chain": "ethereum",
+      "address": "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
+      "symbol": "EURC",
+      "observed": "masterMinter() = 0x02398771fd1db790ef2b656ca3bcb3075f27a72c, live",
+      "verifiedAt": "2026-09-06"
+    }
+  ],
+  "rationale": "USDC is the registry's flagship example and its entry expects mint authority. Without this pattern the dictionary read USDC's mint authority as absent, because the three mint patterns look for minter(), mintingFinished() and a capped schedule, none of which Circle's contract has. The most held regulated stablecoin on Ethereum read as unable to mint, and 0.3.0 could only report the mint function as a gap.",
+  "references": [
+    "https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48#code"
+  ],
+  "addedAt": "2026-09-06",
+  "addedBy": "decrypto"
+}
