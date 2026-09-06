@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * safegate score <chain> <address> [--json]
+ * safegate verify <score.json> [--live]
  *
  * Note what this CLI cannot do: there is no flag that prints only a number.
  * Axes, coverage, reasoning and limitations always travel together. A bare score
@@ -9,6 +10,7 @@
  */
 
 import { analyse } from '../pipeline.js';
+import { runVerify } from './verify.js';
 import type { Chain, Score, Signal } from '../types.js';
 
 const RESET = '\x1b[0m';
@@ -22,6 +24,11 @@ const BLUE = '\x1b[34m';
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
+  if (args[0] === 'verify') {
+    await runVerify(args.slice(1));
+    return;
+  }
+
   if (args[0] !== 'score' || args.length < 3) {
     console.log(`
 ${BOLD}safegate${RESET}  open, reproducible token risk structure
@@ -33,6 +40,16 @@ ${BOLD}safegate${RESET}  open, reproducible token risk structure
 
   ${DIM}safegate score solana EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v${RESET}
   ${DIM}safegate score ethereum 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48${RESET}
+
+  ${BOLD}safegate verify <score.json>${RESET}
+
+  Recomputes a published score from the observations it carries: the snapshot
+  hash, the axes, the coverage and the limitations. No network. Exit 1 if any
+  of them does not follow from the file.
+  --live    read the chain again and report what changed since
+
+  ${DIM}safegate score ethereum 0xA0b8...eB48 --json > usdc.json${RESET}
+  ${DIM}safegate verify usdc.json${RESET}
 `);
     process.exit(args[0] === 'score' ? 1 : 0);
   }

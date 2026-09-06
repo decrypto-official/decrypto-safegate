@@ -107,6 +107,8 @@ Reported as the literal `insufficient-data`. Detecting what already went wrong n
 
 Every score carries `inputSnapshotHash`, which anyone can recompute from the observations in the published score. Canonical form: every on-chain observation as `[capability, patternId or null, value]`, with a value that could not be read as the string `"unavailable"`, sorted by capability then pattern id, JSON-serialised, SHA-256, first 32 hex characters. Timestamps and method notes are excluded so two reads of an unchanged contract hash the same.
 
+`safegate verify <score.json>` does both checks from the file alone: it recomputes the hash from the observations and the axes, coverage and limitations from the signals, and reports byte-identical or which field did not follow. A score computed under another methodology version has its hash checked and its axes marked as not checkable across versions. `--live` reads the chain again and lists what reads differently now.
+
 ## 11. Changing this document
 
 Weights, the capability-to-axis mapping, the formula, and what counts as applicable are the methodology. Changing any of them bumps the version here and in `src/scoring/model2.ts`, and requires a before/after table of the registry seed set produced by `npm run seed-scores`, not by estimate. See [GOVERNANCE.md](GOVERNANCE.md) and [CONTRIBUTING.md](CONTRIBUTING.md).

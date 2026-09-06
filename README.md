@@ -10,7 +10,7 @@ Ethereum and Solana. A pattern dictionary, a reviewed registry, a CLI and a dash
 
 Every tool that rates tokens has the same problem: the people publishing the rating have a commercial interest in the thing being rated, and their method is closed. "Trust us" cannot be verified from outside.
 
-The fix is reproducibility. If anyone can take public inputs, apply a published method, and get the same score, no commercial relationship can bend a number a stranger can recompute. This repository is the method, the data, and the code.
+The fix is reproducibility. If anyone can take public inputs, apply a published method, and get the same score, no commercial relationship can bend a number a stranger can recompute. This repository is the method, the data, and the code, and `safegate verify` recomputes any published score from its own contents with no network.
 
 ## One example
 
@@ -54,6 +54,8 @@ It does not say "safe". It says which capabilities exist, which are justified an
 npm install
 npm run safegate -- score solana EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 npm run safegate -- score ethereum 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+npm run safegate -- score ethereum 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 --json > usdc.json
+npm run safegate -- verify usdc.json   # recomputes the hash and the axes from the file alone
 npm test              # offline
 npm run test:live     # reads mainnet
 ```
