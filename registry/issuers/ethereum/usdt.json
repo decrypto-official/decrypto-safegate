@@ -27,6 +27,11 @@
       "capability": "admin-authority",
       "justification": "Owner-controlled contract, the issuer's operational design.",
       "constrainedBy": "Issuer-controlled, no timelock"
+    },
+    {
+      "capability": "freeze-authority",
+      "justification": "Operates an on-chain blacklist used for law enforcement freezes of individual holders. Tether has exercised this.",
+      "constrainedBy": "Issuer policy and law enforcement requests"
     }
   ],
   "evidence": [
@@ -39,6 +44,11 @@
       "kind": "documentation",
       "detail": "Tether publishes attestation reports and documents its blacklist function.",
       "url": "https://tether.to/en/transparency/"
+    },
+    {
+      "kind": "onchain",
+      "detail": "isBlackListed(address) answers eth_call, so the per-address blacklist mechanism is present. Read directly on 2026-09-06 via the pattern that reads it.",
+      "observedAt": "2026-09-06"
     }
   ],
   "caveats": [

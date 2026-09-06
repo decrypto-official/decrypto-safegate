@@ -92,6 +92,11 @@
             "pubkey-or-null",
             "string"
           ]
+        },
+        "callArgs": {
+          "type": "string",
+          "pattern": "^0x([0-9a-fA-F]{64})*$",
+          "description": "For kind=call-selector: fixed ABI-encoded arguments appended to the selector, in whole 32-byte words. Only with presenceIndicatedBy=call-success, because the value returned for a dummy argument means nothing; the function answering is the finding."
         }
       },
       "required": [

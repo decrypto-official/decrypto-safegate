@@ -1,104 +1,62 @@
 # Contributing
 
-Two directories carry almost all the value here, and both are plain JSON. You do not need to read the TypeScript to contribute something important.
+Two directories carry most of the value, and both are plain JSON.
 
-- **`patterns/`** teaches Safegate to read a contract shape it does not understand yet.
-- **`registry/`** records that a capability is expected for a specific token, with evidence.
+- `patterns/` teaches Safegate to read a contract shape it does not understand yet. One file can make thousands of tokens readable, because patterns scale with contract shapes, not tokens.
+- `registry/` records that a capability is expected for one specific address, with evidence.
 
-The bar below is high on purpose. The registry is the part people have to trust, and a standard that is not enforced is not a standard. If you are forking Safegate and want your changes merged upstream, this is what you have to meet.
-
----
+The bar is high on purpose. The registry is the part people have to trust.
 
 ## Adding a pattern
 
-A pattern is the highest-leverage contribution in the project. One JSON file can make thousands of tokens readable, because patterns scale with **contract shapes**, not with tokens.
+1. Validates against `patterns/schema.json` and `npm run validate`.
+2. `id` matches the filename.
+3. `method.kind` carries its field: `storageSlot`, `callSelector`, `accountField`, or `extension`. A pattern without it is refused at load.
+4. At least one real mainnet address in `coversExamples`, with what you observed and the date. Verify it against the chain before writing it down; a claim you could not verify is written as NA, not guessed.
+5. `rationale` says what breaks without this pattern. "Adds coverage" is not a rationale.
+6. `knownFalseNegative` if relying on this pattern alone can mislead. It is the most useful field in the file.
+7. `presenceIndicatedBy` set correctly. `call-success` means the function existing is the finding; `non-empty-value` means the returned value decides.
+8. Call-selector patterns send the selector alone. A view function that needs a parameter may declare a fixed dummy argument in `method.callArgs`, only with `presenceIndicatedBy: call-success`. Never a write function.
 
-### Requirements
-
-1. **Validates against `patterns/schema.json`.** CI enforces this.
-2. **The `id` field matches the filename.** Enforced at load time.
-3. **At least one real, verified mainnet address in `coversExamples`**, with what you observed and the date you checked. The test suite checks these, so a pattern citing nothing or citing a malformed address fails CI.
-4. **`rationale` says what breaks without this pattern.** "Adds coverage" is not a rationale. "Without this, upgradeable tokens deployed before 2019 read as immutable" is.
-5. **`knownFalseNegative` if relying on this pattern alone can mislead.** This is the most valuable field in the file, not an admission of weakness. Look at `patterns/evm/admin-ownable.json`: it documents that `owner()` reverting on UNI does not mean renounced. That warning is worth more than the pattern.
-6. **`presenceIndicatedBy` set correctly.** Does the returned value decide, or does the function merely existing decide? `paused()` returning `false` still proves a pause mechanism exists. Getting this wrong is a live bug class.
-
-### What a pattern must not contain
-
-No judgement. A pattern says *where to look and how to read the bytes*. Whether the result is good or bad is decided once, in `signals/` and `registry/`. A pattern that encodes an opinion will be rejected.
-
----
+A pattern contains no judgement. It says where to look and how to read the bytes.
 
 ## Adding a registry entry
 
-Higher bar, because an entry converts a `PRESENT` capability into `EXPECTED` and directly lowers a score. That is exactly the mechanism a bad actor would want to abuse.
+Higher bar: an entry turns `PRESENT` into `EXPECTED` and lowers a score, which is exactly what a bad actor wants.
 
-### Requirements
+1. Validates against `registry/schema.json`.
+2. At least two evidence items of at least two kinds. On-chain alone proves what exists, not why; documentation alone describes intentions, not deployment.
+3. Every expected capability explains why the token cannot function or comply without it. "The team needs it for operations" is rejected.
+4. `constrainedBy` names what limits the power. "Nothing" is an acceptable answer and must be said.
+5. `caveats` says what the entry does not mean.
+6. `reviewDue` set, normally one year out.
+7. `commercialRelationship` declared, or explicitly `null`. Omitting it is the most serious violation in this repository.
 
-1. **Validates against `registry/schema.json`.**
-2. **At least two evidence items, of at least two different kinds.** On-chain observation alone is not enough, because it proves what exists rather than why it is justified. Documentation alone is not enough, because projects describe intentions rather than deployed reality. You need both.
-3. **Every expected capability carries a real justification.** It must explain why the token cannot function, or cannot comply with law, without that capability. Compare:
-   - Rejected: "The team needs mint authority for operations."
-   - Accepted: "A liquid staking token must mint on deposit, otherwise the product cannot exist. The authority is held by the stake pool program, not a person, and minting is mechanical against deposited SOL rather than discretionary."
-4. **`constrainedBy` states what limits the power.** A timelock, a multisig, a regulator, a published policy. "Nothing" is an acceptable answer and must be said out loud.
-5. **`caveats` states what the entry does NOT mean.** Every entry needs these. Being in the registry never means safe.
-6. **`reviewDue` set, normally one year out.** Entries expire.
-7. **`commercialRelationship` declared.** Any commercial relationship between the maintainer and the issuer goes here, and it propagates automatically to `DISCLOSURE.md` and the token's page. Omitting it is the most serious violation possible in this repository.
-
-### What will get an entry rejected
-
-- Evidence that is all one kind
-- A justification that reduces to "they are trustworthy"
-- Any suggestion of a relationship between listing and payment
-- A token that is simply popular. Popularity is not a capability justification.
-
----
+Rejected: evidence all of one kind, a justification that reduces to "they are trustworthy", any link between listing and payment, popularity.
 
 ## Changing the methodology
 
-Weights, the capability-to-axis mapping, and the scoring formula are the methodology. Changing any of them requires:
-
-1. A version bump in `METHODOLOGY.md` and `src/scoring/model2.ts`
-2. A statement of what changes and why
-3. **Which tokens' scores move as a result, and by how much.** Run the seed set before and after and include the diff. A weight change that quietly reranks half the registry is not acceptable without that table.
-
----
+Weights, axis mapping, formula, and what counts as applicable. Requires a version bump in `METHODOLOGY.md` and `src/scoring/model2.ts`, a statement of what changed and why, and a before/after table of the seed set from `npm run seed-scores` on both versions. Numbers come from live runs, never from memory.
 
 ## Code
 
-- `src/scoring/model2.ts` **must stay pure.** No network, no filesystem, no clock, no randomness. This is what makes the reproducibility claim testable rather than decorative. A PR adding I/O there will be rejected regardless of what it does.
-- Everything else: match the surrounding style. Comments explain *why*, not *what*.
-- `npm test` must pass. The regression suite hits live RPC endpoints deliberately: mocking them would test the mocks rather than our reading of the chain.
-
----
+- `src/scoring/model2.ts` stays pure. A PR adding I/O there is rejected regardless of what it does.
+- `npm test` is offline and runs on every PR. `npm run test:live` reads mainnet and runs nightly; run it by hand before a release and when you change a pattern.
+- `npm run validate` and `npm run disclosure:check` must pass.
+- Comments explain why, not what.
 
 ## Dashboard
 
-One rule outranks everything else in the interface: **a bare score must be impossible to see.** Axes, coverage, reasoning and provenance always travel together. A component that renders a number without its coverage figure will be rejected however good it looks, because a lone number is what gets screenshotted and misquoted as "Safegate says safe".
+A bare score must be impossible to see. Axes, coverage, reasoning and provenance travel together. `UNKNOWN` is as visible as `PRESENT`. Third-party values are always marked.
 
-Beyond that: fill the viewport (no `max-width` on page containers), monospace and tabular figures for all data, `UNKNOWN` as visually prominent as `PRESENT`, third-party values always marked as such, and one animation library.
-
----
-
-## Sign your commits: the DCO
-
-Every commit needs a sign-off line:
+## Sign your commits
 
 ```bash
 git commit -s -m "add pattern for X proxy shape"
 ```
 
-That appends `Signed-off-by: Your Name <your@email>` and certifies the [Developer Certificate of Origin](DCO): that you wrote the contribution, or have the right to submit it, and that you are permitted to license it under this project's terms.
+The sign-off certifies the [Developer Certificate of Origin](DCO): the contribution is yours to give. It assigns no copyright and grants no relicensing rights. A pattern or entry copied from a commercial scanner's internals would be a legal and reputational problem in a project whose value is being trustworthy.
 
-**Why this project asks for it.** Safegate output feeds decisions about money. A pattern or registry entry copied out of a commercial scanner's internals, or lifted from a proprietary dataset, would be a legal and reputational problem in a project whose entire value is being trustworthy. The DCO makes you affirm the contribution is yours to give.
+## Licence
 
-It is a sign-off line, not a legal agreement to read, and **it does not assign copyright or grant anyone the right to relicense your work.**
-
----
-
-## Licence of contributions
-
-Everything in this repository is [Apache-2.0](LICENSE), and contributions ship under the same licence. Code, patterns, registry entries, docs.
-
-**You keep your copyright.** There is no copyright assignment and no contributor licence agreement.
-
-One consequence worth being explicit about: because Apache-2.0 is permissive, anyone may use this in a closed commercial product, and that includes both the maintainer and anyone else. If you would rather your work only ever appeared in open software, this is not the project for that, and it is better to know before you contribute than after.
+Apache-2.0, whole repository, contributions included. You keep your copyright. Apache-2.0 permits closed commercial use of your contribution by anyone, including the maintainer. Know that before you contribute.

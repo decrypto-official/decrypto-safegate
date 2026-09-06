@@ -190,9 +190,9 @@ export interface Score {
    * holds it, and inferring one from the other would be exactly the guesswork
    * the dictionary exists to avoid.
    *
-   * What it does say is that our answer is incomplete on a specific capability,
-   * which is the thing LIMITATIONS.md §5 admits we previously could not see.
-   * Empty for Solana, where there is no analogous bytecode to read.
+   * What it does say is that our answer is incomplete on a specific capability.
+   * On EVM the surface is runtime bytecode; on Solana it is the mint's
+   * Token-2022 extension list.
    */
   dictionaryGaps: DictionaryGap[];
 

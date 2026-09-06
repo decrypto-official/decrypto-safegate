@@ -5,9 +5,10 @@
  * so those mistakes cannot come back silently. The two headline cases, USDC's
  * proxy and UNI's minter, are the reason patterns/ exists at all.
  *
- * These tests hit live public RPC endpoints on purpose. Mocking them would test
- * our mocks rather than our reading of the chain, and reading the chain correctly
- * is the entire product.
+ * Blocks that read mainnet are declared with `describeLive` and run only when
+ * SAFEGATE_LIVE=1 (`npm run test:live`, nightly in CI). Mocking them would test
+ * the mocks rather than our reading of the chain. The offline blocks run on
+ * every `npm test`. Offline unit coverage of the pipeline is in unit.test.ts.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -22,6 +23,8 @@ import { loadRegistry, findEntry, RegistryLoadError } from '../src/registry/look
 import { findDataDir, clearDataDirCache } from '../src/data-root.js';
 
 const TIMEOUT = 60_000;
+const LIVE = process.env.SAFEGATE_LIVE === '1';
+const describeLive = LIVE ? describe : describe.skip;
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const USDC_ETH = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
@@ -34,7 +37,7 @@ const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const RAY_SOL = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
 const PYUSD_SOL = '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo';
 
-describe('USDC on Ethereum: the proxy false negative', () => {
+describeLive('USDC on Ethereum: the proxy false negative', () => {
   it(
     'detects upgradeability via the legacy zeppelinos slot, not EIP-1967',
     async () => {
@@ -67,7 +70,7 @@ describe('USDC on Ethereum: the proxy false negative', () => {
   );
 });
 
-describe('UNI on Ethereum: the renounced-ownership false negative', () => {
+describeLive('UNI on Ethereum: the renounced-ownership false negative', () => {
   it(
     'finds the live minter even though owner() reverts',
     async () => {
@@ -96,7 +99,7 @@ describe('UNI on Ethereum: the renounced-ownership false negative', () => {
   );
 });
 
-describe('Solana USDC: expected capabilities are not risk', () => {
+describeLive('Solana USDC: expected capabilities are not risk', () => {
   it(
     'marks mint and freeze authority EXPECTED via the registry, not PRESENT',
     async () => {
@@ -132,7 +135,7 @@ describe('Solana USDC: expected capabilities are not risk', () => {
   );
 });
 
-describe('the absent-is-not-safe rule', () => {
+describeLive('the absent-is-not-safe rule', () => {
   it(
     'gives a registry-less token no expected capabilities',
     async () => {
@@ -440,11 +443,13 @@ describe('data integrity', () => {
     }
   });
 
-  it('seeds 21 tokens', async () => {
+  it('seeds at least the original 21 tokens', async () => {
+    // A floor, not an exact count: CONTRIBUTING invites registry additions and
+    // an exact count fails on every one of them.
     const registry = await loadRegistry();
-    expect(registry).toHaveLength(21);
-    expect(registry.filter((e) => e.chain === 'ethereum')).toHaveLength(12);
-    expect(registry.filter((e) => e.chain === 'solana')).toHaveLength(9);
+    expect(registry.length).toBeGreaterThanOrEqual(21);
+    expect(registry.filter((e) => e.chain === 'ethereum').length).toBeGreaterThanOrEqual(12);
+    expect(registry.filter((e) => e.chain === 'solana').length).toBeGreaterThanOrEqual(9);
   });
 
   it('seeds at least one Token-2022 mint', async () => {
@@ -1011,7 +1016,7 @@ describe('the documents match the code', () => {
 /**
  * The gap census.
  *
- * METHODOLOGY.md §10 defers a decision — should a dictionary gap reduce
+ * METHODOLOGY.md §7 keeps a question open — should a dictionary gap reduce
  * coverage? — until there are real numbers. The census produces them, so its
  * arithmetic is load-bearing on that decision. Wrong numbers here would argue
  * for the wrong answer, convincingly.
@@ -1103,7 +1108,7 @@ describe('the gap census counts honestly', () => {
  * satisfies is not a lock.
  */
 
-describe('MKR: the admin that predates Ownable', () => {
+describeLive('MKR: the admin that predates Ownable', () => {
   it(
     'resolves the authority even though owner() finds nothing',
     async () => {
@@ -1123,7 +1128,7 @@ describe('MKR: the admin that predates Ownable', () => {
   );
 });
 
-describe('WBTC: minting that cannot be finished', () => {
+describeLive('WBTC: minting that cannot be finished', () => {
   it(
     'reports mint authority from a shape whose mint function cannot be called',
     async () => {
@@ -1147,7 +1152,7 @@ describe('WBTC: minting that cannot be finished', () => {
   );
 });
 
-describe('ENS: a scheduled mint is still a mint', () => {
+describeLive('ENS: a scheduled mint is still a mint', () => {
   it(
     'reports mint authority separately from who administers the token',
     async () => {
@@ -1293,7 +1298,7 @@ describe('the guide keeps up with the product', () => {
  * The reader was told the least severe true thing about the token while the most
  * severe one stayed invisible. These lock the shape that replaced it.
  */
-describe('Token-2022: the extension list is the surface', () => {
+describeLive('Token-2022: the extension list is the surface', () => {
   it('reads a permanent delegate on a real mainnet mint', async () => {
     const score = await analyse('solana', PYUSD_SOL);
     const signal = Object.values(score.axes)
@@ -1352,8 +1357,11 @@ describe('Token-2022: the extension list is the surface', () => {
       }
     }
 
+    // Since 0.2.0 the Metaplex account is read, so metadata mutability resolves
+    // through spl-update-authority rather than staying UNKNOWN.
     const metadata = signals.find((s) => s.capability === 'metadata-mutability');
-    expect(metadata?.state).toBe('UNKNOWN');
+    expect(metadata?.state).not.toBe('UNKNOWN');
+    expect(metadata?.observations.some((o) => o.patternId === 'spl-update-authority' && o.value !== undefined)).toBe(true);
   }, TIMEOUT);
 });
 
@@ -1479,7 +1487,7 @@ describe('Token-2022 gaps: what we have never classified', () => {
  * pattern and the Solana gap scan would pass vacuously, which is exactly how
  * the WBTC lock came to pass while asserting nothing.
  */
-describe('PYUSD: a registry entry that refuses to justify everything', () => {
+describeLive('PYUSD: a registry entry that refuses to justify everything', () => {
   it('marks the two capabilities a fiat stablecoin cannot operate without', async () => {
     const score = await analyse('solana', PYUSD_SOL);
     const byCapability = Object.fromEntries(
@@ -1543,4 +1551,74 @@ describe('PYUSD: a registry entry that refuses to justify everything', () => {
     // And the concentration finding, which is the entry's real subject.
     expect(text).toMatch(/1 of 4 signers|1 of 4/i);
   });
+});
+
+/**
+ * 0.2.0 locks. Each one is a false reading the seed set produced on 0.1.8.
+ */
+describeLive('0.2.0: readings that were wrong on the seed set', () => {
+  const WETH_ETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+  const GHO_ETH = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
+  const DEAD_ETH = '0x000000000000000000000000000000000000dEaD';
+  const USDC_SOL_HOLDER = '3emsAVdmGKERbHjmGfQ6oZ1e35dkf5iYcS6U4CPKFVaa';
+
+  it('does not read WETH9\'s catch-all fallback as a pause mechanism', async () => {
+    // WETH9 answers every selector with empty data because its fallback is
+    // deposit(). On 0.1.8 that read as paused() existing and WETH scored exit 100.
+    const result = await analyse('ethereum', WETH_ETH);
+    const pause = result.axes.exit.signals.find((s) => s.capability === 'transfer-restriction');
+    expect(pause?.state).toBe('ABSENT');
+    const mint = result.axes.control.signals.find((s) => s.capability === 'mint-authority');
+    const viaFallback = mint?.observations.find((o) => o.patternId === 'mint-oz-mintable');
+    expect(viaFallback?.value).toBeNull();
+  }, TIMEOUT);
+
+  it('reads USDC\'s blacklist as a freeze capability the registry expects', async () => {
+    const result = await analyse('ethereum', USDC_ETH);
+    const freeze = result.axes.control.signals.find((s) => s.capability === 'freeze-authority');
+    expect(freeze?.state).toBe('EXPECTED');
+    const hit = freeze?.observations.find((o) => o.patternId === 'freeze-blacklist');
+    expect(hit?.value).toMatch(/mechanism present/);
+    // Every capability the methodology defines is now in the denominator.
+    expect(result.coverage.applicable).toBe(7);
+  }, TIMEOUT);
+
+  it('finds a role-based admin through DEFAULT_ADMIN_ROLE()', async () => {
+    // The previous probe called hasRole(bytes32,address) with no arguments,
+    // which always reverts, so no AccessControl token ever showed an admin.
+    const result = await analyse('ethereum', GHO_ETH);
+    const admin = result.axes.control.signals.find((s) => s.capability === 'admin-authority');
+    expect(admin?.state).toBe('PRESENT');
+    const hit = admin?.observations.find((o) => o.patternId === 'admin-accesscontrol');
+    expect(hit?.value).toMatch(/mechanism present/);
+  }, TIMEOUT);
+
+  it('refuses to score an address with no contract', async () => {
+    // Every probe on an empty address reads "checked, nothing there", which is
+    // 0 on every axis at full coverage: the best result the tool can print.
+    await expect(analyse('ethereum', DEAD_ETH)).rejects.toMatchObject({ reason: 'no-code' });
+  }, TIMEOUT);
+
+  it('refuses to score a Solana account that is not a mint', async () => {
+    await expect(analyse('solana', USDC_SOL_HOLDER)).rejects.toMatchObject({ reason: 'not-a-mint' });
+  }, TIMEOUT);
+
+  it('reads Metaplex metadata mutability on a legacy mint', async () => {
+    // Before 0.2.0 tokenMeta was never fetched, so this was UNKNOWN on every
+    // Solana token and the methodology's claim that it fires on RAY was untrue.
+    const result = await analyse('solana', RAY_SOL);
+    const meta = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+    expect(meta?.state).toBe('PRESENT');
+    const hit = meta?.observations.find((o) => o.patternId === 'spl-update-authority');
+    expect(hit?.value).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
+    expect(result.axes.transparency.assessed).toBe(true);
+  }, TIMEOUT);
+
+  it('records extension-only capabilities as absent on a legacy mint, with the reason', async () => {
+    const result = await analyse('solana', USDC_SOL);
+    const fee = result.axes.exit.signals.find((s) => s.capability === 'fee-control');
+    expect(fee?.state).toBe('ABSENT');
+    expect(fee?.reasoning).toMatch(/legacy Token program/);
+    expect(result.coverage.applicable).toBe(7);
+  }, TIMEOUT);
 });

@@ -13,6 +13,10 @@ import { z } from 'zod';
 import { loadPatterns } from '../patterns/resolve.js';
 import { loadRegistry } from '../registry/lookup.js';
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
 const CAPABILITIES = [
   'upgradeability', 'mint-authority', 'freeze-authority', 'admin-authority',
   'metadata-mutability', 'transfer-restriction', 'fee-control',
@@ -26,6 +30,7 @@ const patternSchema = z.object({
     kind: z.enum(['storage-slot', 'call-selector', 'account-field', 'account-extension']),
     storageSlot: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
     callSelector: z.string().regex(/^0x[0-9a-fA-F]{8}$/).optional(),
+    callArgs: z.string().regex(/^0x([0-9a-fA-F]{64})*$/, 'callArgs must be whole 32-byte words').optional(),
     accountField: z.string().optional(),
     extension: z.string().optional(),
     extensionField: z.string().optional(),
@@ -33,6 +38,15 @@ const patternSchema = z.object({
   }).refine(
     (m) => m.kind !== 'account-extension' || typeof m.extension === 'string',
     { message: 'kind=account-extension requires an extension name', path: ['extension'] }
+  ).refine(
+    (m) => m.kind !== 'storage-slot' || typeof m.storageSlot === 'string',
+    { message: 'kind=storage-slot requires storageSlot', path: ['storageSlot'] }
+  ).refine(
+    (m) => m.kind !== 'call-selector' || typeof m.callSelector === 'string',
+    { message: 'kind=call-selector requires callSelector', path: ['callSelector'] }
+  ).refine(
+    (m) => m.kind !== 'account-field' || typeof m.accountField === 'string',
+    { message: 'kind=account-field requires accountField', path: ['accountField'] }
   ),
   detects: z.string().min(10),
   presenceIndicatedBy: z.enum(['non-empty-value', 'call-success', 'extension-present']).optional(),
@@ -40,16 +54,21 @@ const patternSchema = z.object({
   rationale: z.string().min(40, 'rationale must explain what breaks without this pattern'),
   coversExamples: z.array(z.object({
     chain: z.string(), address: z.string(), symbol: z.string(),
-    observed: z.string().optional(), verifiedAt: z.string().optional(),
+    observed: z.string().optional(), verifiedAt: z.string().regex(DATE, 'verifiedAt must be YYYY-MM-DD').optional(),
   })).min(1, 'at least one real verified mainnet address is required'),
-  addedAt: z.string(),
-}).passthrough();
+  addedAt: z.string().regex(DATE, 'addedAt must be YYYY-MM-DD'),
+}).passthrough().refine(
+  (p) => !p.method.callArgs || p.presenceIndicatedBy === 'call-success',
+  { message: 'callArgs requires presenceIndicatedBy: call-success; the value returned for a dummy argument means nothing', path: ['presenceIndicatedBy'] }
+);
 
 const registrySchema = z.object({
   id: z.string(),
   chain: z.enum(['ethereum', 'solana']),
   address: z.string().min(20),
   symbol: z.string(),
+  name: z.string().min(1),
+  issuer: z.object({ name: z.string().min(1) }).passthrough(),
   archetype: z.string(),
   expectedCapabilities: z.array(z.object({
     capability: z.enum(CAPABILITIES),
@@ -62,7 +81,8 @@ const registrySchema = z.object({
   }).passthrough()).min(2, 'at least two evidence items are required'),
   // Required, never optional. Omitting a disclosure must take deliberate action.
   commercialRelationship: z.string().nullable(),
-  verifiedAt: z.string(),
+  verifiedAt: z.string().regex(DATE, 'verifiedAt must be YYYY-MM-DD'),
+  reviewDue: z.string().regex(DATE, 'reviewDue must be YYYY-MM-DD').optional(),
   approvedBy: z.string().min(1),
 }).passthrough();
 
@@ -80,6 +100,11 @@ async function main(): Promise<void> {
     }
     if (!pattern.knownFalseNegative) {
       warnings.push(`pattern ${pattern.id}: no knownFalseNegative. If relying on it alone can mislead, say so.`);
+    }
+    for (const ex of pattern.coversExamples ?? []) {
+      const shape = pattern.chainFamily === 'evm' ? EVM_ADDRESS : SOLANA_ADDRESS;
+      if (!shape.test(ex.address)) errors.push(`pattern ${pattern.id}: example ${ex.symbol} address ${ex.address} is malformed for ${pattern.chainFamily}`);
+      if (!ex.verifiedAt) warnings.push(`pattern ${pattern.id}: example ${ex.symbol} has no verifiedAt.`);
     }
   }
 
@@ -99,6 +124,9 @@ async function main(): Promise<void> {
     if (kinds.size < 2) {
       errors.push(`registry ${entry.id}: evidence must span at least two kinds, found only ${[...kinds].join(', ')}`);
     }
+
+    const shape = entry.chain === 'ethereum' ? EVM_ADDRESS : SOLANA_ADDRESS;
+    if (!shape.test(entry.address)) errors.push(`registry ${entry.id}: address ${entry.address} is malformed for ${entry.chain}`);
 
     // Two entries claiming the same address would make lookup order significant.
     const key = `${entry.chain}:${entry.address.toLowerCase()}`;

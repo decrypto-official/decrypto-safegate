@@ -207,13 +207,13 @@ coverage = resolved signals / applicable signals`}
           </div>
           <div className="panel-body">
             <p className="reason" style={{ marginTop: 0 }}>
-              On-chain reading is primary. Third-party APIs corroborate. Because we read the chain ourselves,
-              our source overlaps with both of them, which makes genuine cross-checking possible.
+              Every reading is our own, direct from the chain. Third-party corroboration is designed for and
+              not yet wired: no GoPlus or RugCheck call is made in this version.
             </p>
             <p className="reason" style={{ marginBottom: 0 }}>
               Where readings conflict, both values are shown and the capability is reported unresolved. Where a
-              figure is unavailable to us entirely, our reading is UNKNOWN and any third-party number sits
-              beside it under attribution, outside the score.
+              figure is unavailable to us entirely, our reading is UNKNOWN. A capability no pattern reads on a
+              chain is also UNKNOWN and counts against coverage, so a gap in the dictionary is never silent.
             </p>
           </div>
         </section>

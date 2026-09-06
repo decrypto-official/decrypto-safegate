@@ -15,6 +15,7 @@
 import type { Capability, Disagreement, Observation, Signal, SignalState, Axis } from '../types.js';
 import type { RegistryEntry } from '../registry/lookup.js';
 import { expectationFor } from '../registry/lookup.js';
+import { capabilitySchema } from '../scoring/schema.js';
 
 /**
  * Capability to axis assignment.
@@ -120,6 +121,10 @@ export function normalise(
     }
   }
 
+  // Stable order, so the same inputs always serialise identically.
+  const order = new Map(capabilitySchema.options.map((c, i) => [c, i]));
+  signals.sort((a, b) => (order.get(a.capability) ?? 0) - (order.get(b.capability) ?? 0));
+
   return { signals, disagreements };
 }
 
@@ -177,16 +182,29 @@ function explain(
       return `${cap(label)} is present (${describe(found)}). No registry entry justifies it for this token.`;
 
     case 'ABSENT': {
+      // A structural absence recorded without a pattern carries its own reason.
+      const structural = onchain.length === 1 && !onchain[0]!.patternId && onchain[0]!.method;
+      if (structural) return `${cap(label)} cannot be present: ${onchain[0]!.method}.`;
       const checked = onchain.filter((o) => o.value !== undefined).length;
       return `${cap(label)} was not found. Checked ${checked} pattern${checked === 1 ? '' : 's'} and none located it.`;
     }
 
     case 'UNKNOWN':
-    default:
+    default: {
+      // No pattern at all is a dictionary gap, and the reader should be told
+      // that rather than a generic "could not determine".
+      const noPattern = onchain.length > 0 && onchain.every((o) => !o.patternId);
+      if (noPattern) {
+        return (
+          `No pattern in the dictionary reads ${label} on this chain yet. This is not evidence of absence. ` +
+          `It counts against coverage so the gap stays visible.`
+        );
+      }
       return (
         `${cap(label)} could not be determined. This is not evidence of absence. ` +
         `It reduces the coverage figure so the gap stays visible.`
       );
+    }
   }
 }
 

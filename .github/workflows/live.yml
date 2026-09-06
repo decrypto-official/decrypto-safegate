@@ -1,0 +1,44 @@
+name: Live
+
+# Reads mainnet through public RPC endpoints. These are the regression locks
+# that prove the dictionary reads real contracts correctly, the dictionary gap
+# census, and the seed-set scores used for methodology diffs.
+#
+# Nightly rather than per commit: the reads take minutes, public endpoints
+# rate limit, and a node having a bad minute must not block a merge. Run it
+# by hand from the Actions tab before a release.
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Live regression locks
+        run: npm run test:live
+
+      # Measures, never gates. A token with gaps is a finding, not a fault.
+      - name: Dictionary gap census
+        run: npm run -s census
+        continue-on-error: true
+
+      - name: Seed-set scores
+        run: npm run -s seed-scores -- --json > seed-scores.json
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seed-scores-${{ github.run_id }}
+          path: seed-scores.json
+          if-no-files-found: ignore

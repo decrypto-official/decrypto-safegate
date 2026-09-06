@@ -1,41 +1,25 @@
 # Methodology
 
-**Version 0.1.0.** Every published score names the version it was computed under. Old versions stay runnable so historical scores can be reproduced.
+**Version 0.2.0.** Every score names the version it was computed under. The purpose of this document is to let a stranger recompute any Safegate score by hand, disagree with it precisely, and be right.
 
-The purpose of this document is to let a stranger recompute any Safegate score by hand, disagree with it precisely, and be right.
+## 1. What is measured
 
----
-
-## 1. What is being measured
-
-Not "is this token a scam". That is a prediction, and the state of the art cannot make it.
-
-Safegate measures **structural capability**: what powers exist over this token right now, who holds them, whether anything justifies them, and how much of that we could actually verify.
-
-A token with no dangerous capability can still fail. A token with several can be entirely legitimate. Both facts are why this is reported as capability with reasoning, never as a verdict.
-
----
+Structural capability: what powers exist over this token right now, who holds them, whether anything on record justifies them, and how much of that we could verify. Not "is this a scam". A token with no dangerous capability can still fail; a token with several can be legitimate. So the output is capability with reasoning, never a verdict.
 
 ## 2. Signal states
-
-Every capability resolves to exactly one of four states.
 
 | State | Meaning |
 |---|---|
 | `PRESENT` | The capability exists and nothing on record justifies it. |
-| `EXPECTED` | The capability exists AND a reviewed registry entry justifies it for this exact token. |
-| `ABSENT` | At least one pattern ran and confirmed the capability is not there. |
-| `UNKNOWN` | We could not determine it. |
+| `EXPECTED` | The capability exists and a reviewed registry entry justifies it for this exact address. |
+| `ABSENT` | A pattern ran and confirmed the capability is not there, or the chain's program cannot provide it. |
+| `UNKNOWN` | We could not determine it, including when no pattern reads this capability on this chain. |
 
-**`UNKNOWN` is never treated as `ABSENT`.** This is the single most important rule in the methodology. Commercial scanners omit fields rather than nulling them: GoPlus returns 19 fields for USDC and 40 for SHIB. Any system that reads a missing field as "clean" hands its best score to the tokens it understands least.
+`UNKNOWN` is never treated as `ABSENT`. It is excluded from the axis value and reduces coverage instead.
 
-`UNKNOWN` is excluded from the axis calculation entirely, and reduces the coverage figure instead. Letting it lower the score would punish tokens for our blind spots. Letting it raise the score would be the bug above.
+## 3. Capabilities, axes, weights
 
----
-
-## 3. Capability to axis mapping
-
-Every capability contributes to **exactly one axis**. Some plausibly belong to two, so the rule is: assign it to the axis where it does the most damage, and publish the choice.
+Every capability contributes to exactly one axis, the one where it does the most damage.
 
 | Capability | Axis | Weight |
 |---|---|---|
@@ -47,151 +31,87 @@ Every capability contributes to **exactly one axis**. Some plausibly belong to t
 | `fee-control` | exit | 5 |
 | `metadata-mutability` | transparency | 1 |
 
-### Why these weights
+Mint and freeze act directly on holders. Upgradeability and admin authority are indirect: they grant the ability to grant the others. Transfer restriction sits on exit because being unable to sell is how a holder loses money.
 
-Mint and freeze are highest because they act directly on holders. Mint dilutes everyone; freeze targets one person and stops them leaving.
+**Weights are relative within an axis.** The axis value is a ratio, so a weight only matters against the other capabilities on the same axis. `metadata-mutability` is the only transparency capability, so its weight of 1 does not soften it: the transparency axis reads 100 when metadata is mutable and unjustified, 0 when it is not, and n/a when it could not be read. That is what the formula produces, and this document says so rather than pretending the low weight makes the signal quiet. Adding further transparency capabilities is the fix.
 
-Upgradeability and admin authority sit just below because they are *indirect*: they grant the ability to grant themselves the others. Renounced ownership is close to security theatre when a proxy remains upgradeable, which is why `upgradeability` is weighted as heavily as a direct admin role.
-
-`transfer-restriction` is assigned to **exit** rather than control, even though pausing is obviously insider power, because being unable to sell is how a holder actually loses money.
-
-`metadata-mutability` is weighted **1 deliberately**. It fires on RAY, JUP and BONK, three well established tokens. Scoring it meaningfully would manufacture false positives across an entire blue-chip set. It is reported for completeness and near enough ignored, and saying so explicitly is part of publishing a methodology.
-
----
-
-## 4. Axis calculation
-
-For each axis:
+## 4. Axis value and coverage
 
 ```
-value = round( 100 * sum(weight of PRESENT signals) / sum(weight of resolved signals) )
-```
-
-where *resolved* means `PRESENT`, `EXPECTED` or `ABSENT`. `UNKNOWN` appears in neither term.
-
-`EXPECTED` counts in the denominator but not the numerator. The capability is real and was checked; the registry explains why it is there. This is what makes a regulated stablecoin score 0 on control while its mint authority is plainly live and plainly displayed.
-
-**Higher is worse, on every axis, always.** No axis inverts.
-
-### Coverage
-
-```
+axis     = round(100 * sum(weight of PRESENT) / sum(weight of RESOLVED))
+RESOLVED = PRESENT + EXPECTED + ABSENT
 coverage = resolved signals / applicable signals
 ```
 
-Reported per axis and overall. Below 60 percent, a warning is prepended to the limitations telling the reader to read the unresolved signals rather than the numbers.
+`UNKNOWN` appears in neither term of the axis. `EXPECTED` counts in the denominator but not the numerator: the capability is real and was checked, and the registry says why it is there. Higher is worse on every axis. An axis with nothing resolved carries `assessed: false` and renders as n/a, never as 0.
 
----
+**Applicable is every capability, on every chain.** Since 0.2.0 all seven capabilities are in the denominator for every token. A capability that no pattern reads on that chain is emitted as `UNKNOWN` with that reason, so a dictionary gap shows up in the coverage figure. Before 0.2.0 an unread capability was simply missing, and an Ethereum token could report 4 of 4 when the dictionary could see 4 of 7.
 
-## 5. The registry, and why it is not a classifier
+Adding a resolved capability to the denominator dilutes an axis. When 0.2.0 began reading freeze authority on Ethereum, tokens that carry an admin but no blacklist moved from 31 to 22 on control. The number changed because the reading got more complete, not because the token did.
 
-The registry is a **deterministic lookup keyed on the exact contract address**.
+Below 60% coverage a warning is prepended to the limitations.
 
-It is tempting to infer a token's type at runtime: "this looks like a stablecoin, so mint authority is fine". That is trivially attacked. Name a token "USD Yield Vault", get classified as a stablecoin, inherit a blanket pardon for the mint and freeze pair, then use the live mint to drain the peg. Matching the archetype *is* the disguise.
+## 5. The registry is a lookup, not a classifier
 
-Requiring a reviewed entry keyed on the address removes the attack, because an address cannot be spoofed and an entry cannot be created without evidence and a named approver.
+The registry is keyed on the exact address. It records that a named capability is structurally normal for that issuer, with at least two kinds of evidence, a justification, what constrains the power, a named approver, and an expiry date. Past `reviewDue` an entry stops granting `EXPECTED`.
 
-A registry entry:
+Inferring a token's type at runtime is trivially gamed: name a token "USD Yield Vault", get classified as a stablecoin, inherit a pardon for mint and freeze. An address cannot be spoofed. An entry never says a token is safe.
 
-- applies to one address on one chain
-- lists specific capabilities as expected, each with a justification and what constrains it
-- carries at least two independent evidence items, of at least two different kinds
-- names its approver and the date it was verified
-- **expires.** Past `reviewDue` it stops granting `EXPECTED` and the token falls back to structural scoring. A registry that vouches forever is one nobody is maintaining.
+## 6. Patterns
 
-A registry entry never says a token is safe. It says a named capability is structurally normal for this issuer, and shows why.
+A pattern says where to look for one capability on one contract shape: a storage slot, a function selector, an account field, or a Token-2022 extension. It makes no judgement.
 
----
+**Several patterns, one capability: any hit wins.** Reading EIP-1967 says USDC is not a proxy; reading the zeppelinos slot says it is. Independent probes make a hit stronger evidence than a miss.
 
-## 6. Patterns, and combining them
+**Two meanings of present, declared per pattern.** `non-empty-value`: the returned value decides, so `owner()` returning zero means renounced. `call-success`: the function existing decides, so `paused()` returning false still proves a pause mechanism.
 
-A pattern says where to look for one capability on one contract shape. It makes no judgement.
+**Empty return data is not an answer.** A contract whose fallback accepts any calldata answers every selector with nothing. WETH9 does this. A `call-success` probe requires at least one 32-byte word of return data; empty data reads as "function not present".
 
-**When several patterns target one capability, any hit wins.** Reading EIP-1967 alone says USDC is not a proxy. Reading the zeppelinos slot says it is. The correct answer is `PRESENT`, because independent probes for the same thing make a hit stronger evidence than a miss.
+**Fixed-argument probes.** A view function that needs a parameter, such as `isBlacklisted(address)`, is called with a fixed dummy argument declared in the pattern as `callArgs`. Only allowed with `call-success`, because the value returned for a dummy argument means nothing; the function answering is the finding.
 
-### Two meanings of "present"
+**`nonEmptyMeans: capability-absent`** inverts a read for flags that record a capability being switched off, such as `mintingFinished()`.
 
-Declared per pattern, because they genuinely differ:
+## 7. What the dictionary reads, per chain
 
-- **`non-empty-value`**: the returned value decides. `owner()` returning the zero address means ownership really was renounced.
-- **`call-success`**: the function existing decides. `paused()` returning `false` still proves a pause mechanism is built in and somebody holds the pauser role. **Capability is what gets scored, not whether it is engaged right now.**
+| Capability | Ethereum | Solana |
+|---|---|---|
+| `upgradeability` | proxy slots, UUPS | Token-2022 mint close authority |
+| `mint-authority` | minter(), MintableToken, capped schedule | SPL mint authority |
+| `freeze-authority` | blacklist getters (since 0.2.0) | SPL freeze authority |
+| `admin-authority` | Ownable, DSAuth, AccessControl (working since 0.2.0), timelock, proxy admin | Token-2022 confidential transfer authority |
+| `metadata-mutability` | no pattern, UNKNOWN | Metaplex update authority (read since 0.2.0), Token-2022 metadata |
+| `transfer-restriction` | pausable | Token-2022 permanent delegate, transfer hook |
+| `fee-control` | no pattern, UNKNOWN | Token-2022 transfer fee |
 
-Missing this distinction is a live bug in naive implementations: USDC's `paused()` returns false, and a value-based reading would call the capability absent.
+On a mint owned by the legacy Token program, a capability that exists only as a Token-2022 extension is recorded as `ABSENT` with the reason stated: the program has no mechanism for it, and its whole privileged surface is the two authorities the dictionary reads. That is a verified absence, not a guess.
 
-### When no pattern matches
+### Beyond the dictionary: `dictionaryGaps` and `gapScan`
 
-`UNKNOWN`, and coverage drops. A gap in the dictionary must be visible in the output, never silently forgiving.
+A contract can expose a privileged function that no pattern reads. On Ethereum the runtime bytecode carries the 4-byte selector of every function it dispatches; we scan it against a table of privileged signatures and subtract what patterns already read and what was already found. On Solana the surface is the mint's Token-2022 extension list, which is enumerable, so an extension we have never classified is reported with no capability named. What survives is published as `dictionaryGaps`.
 
-That covers a capability we knew to look for and could not resolve. It does not cover the harder case: a capability we never knew to look for at all, where no pattern applies and so nothing is emitted.
+**This is reported and never scored.** Knowing a function exists is not reading who holds it. A gap moves no axis and no coverage figure; it is prepended to the limitations. `gapScan` records whether the scan ran: `ran`, `not-applicable`, or `failed`. An empty gap list is only reassuring when it reads `ran`.
 
-### When we did not know to look
+The residual blind spot is real: a privileged function whose signature is not in our table is invisible to the scan for the same reason it is invisible to the dictionary.
 
-The contract's runtime bytecode carries the 4-byte selector of every function it dispatches. We scan it for privileged functions — mint, upgrade, admin, pause, blacklist, fee and metadata surfaces — and subtract two things: any selector a pattern already reads, and any capability we already resolved positively by another route. What remains is published as `dictionaryGaps`.
+## 8. Sources
 
-**This is reported and never scored.** No axis, no coverage figure and no signal state moves because of it. Knowing that a function exists is not the same as reading who holds it, and treating the first as evidence of the second is exactly the inference the pattern dictionary exists to avoid. A gap says our answer is incomplete on a named capability; it does not say the capability is live.
+Every reading is our own, direct from public RPC. Third-party corroboration (GoPlus, RugCheck) is designed for, with a disagreement record in the score shape, and **not yet wired**: no third-party call is made in this version. Solana holder concentration is not read at all, because the public RPC rate limits the call required; it is declared as unverified with a null value, never filled from elsewhere.
 
-The scan itself is a capability that can be missing, so its status travels with the score as `gapScan`: `ran`, `not-applicable`, or `failed`. An empty `dictionaryGaps` is only reassuring when this reads `ran`, and the other two states carry an explicit limitation saying we did not look.
+## 9. The incident axis
 
-Each chain has its own surface, and they do not support the same claim. On EVM it is the runtime bytecode: a 4-byte selector proves the contract can dispatch that function, which tells us our answer is incomplete without telling us the capability is live. On Solana it is the mint's Token-2022 extension list, which is not a set of things the mint could do but the set of things it is configured to do, each with its authority named in the account. An unread extension is therefore a firmer finding than an unread selector, and the limitation text says so rather than sharing a sentence with the EVM case.
+Reported as the literal `insufficient-data`. Detecting what already went wrong needs transaction history the current sources do not provide, and a bare 0 would read as "no incidents, therefore safe".
 
-A mint owned by the legacy Token program has no extension list, and that counts as `ran` with no gaps rather than as `not-applicable`. Its entire privileged surface is `mintAuthority` and `freezeAuthority`, both of which the dictionary reads, so "we scanned it and nothing is unread" is true and is a stronger statement than declining to look.
+## 10. Reproducibility
 
-An extension the dictionary has never classified, or one the node itself could not decode, is reported as a gap with **no capability named**. Token-2022 gains extension types regularly; dropping the ones we do not recognise would guarantee that the newest power on a mint is the one we miss, and naming a capability for it would be a guess. Neither is acceptable, so it is reported as unread.
+`src/scoring/model2.ts` is a pure function: no network, no filesystem, no clock, no randomness. Given the same signals and version it returns byte-identical output.
 
-The residual blind spot, still real: a privileged function whose signature is not in our table is invisible to this scan, exactly as it is to the dictionary. See [LIMITATIONS.md](LIMITATIONS.md) §5.
+Every score carries `inputSnapshotHash`, which anyone can recompute from the observations in the published score. Canonical form: every on-chain observation as `[capability, patternId or null, value]`, with a value that could not be read as the string `"unavailable"`, sorted by capability then pattern id, JSON-serialised, SHA-256, first 32 hex characters. Timestamps and method notes are excluded so two reads of an unchanged contract hash the same.
 
----
+## 11. Changing this document
 
-## 7. Sources and disagreement
+Weights, the capability-to-axis mapping, the formula, and what counts as applicable are the methodology. Changing any of them bumps the version here and in `src/scoring/model2.ts`, and requires a before/after table of the registry seed set produced by `npm run seed-scores`, not by estimate. See [GOVERNANCE.md](GOVERNANCE.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
-On-chain reading is primary. GoPlus and RugCheck corroborate.
+## 12. Versions
 
-Because we read the chain ourselves, our source **overlaps with both** third parties, which makes genuine cross-checking possible. Where readings conflict, the disagreement is recorded and displayed with both values. Neither is assumed correct, and the capability is reported as unresolved.
-
-### Values we cannot verify
-
-Some figures are simply unavailable to us. Holder concentration on Solana is the current example: the public RPC permanently rate limits `getTokenLargestAccounts`, which is an expensive scan.
-
-The rule: **our own reading is `UNKNOWN`, and the third-party figure is displayed beside it under explicit attribution, outside the score.** The reader sees exactly two things, what we verified and what someone else claims, and never a blend of the two presented as ours.
-
----
-
-## 8. The incident axis
-
-Reported as the literal `insufficient-data`, not as a number.
-
-Detecting what has already gone wrong needs transaction history that the current sources do not provide. A bare `0` would read as "no incidents, therefore safe", which is false for every fresh token, and most tokens that rug have a clean history right up until they do not.
-
-When a history adapter exists, this becomes a flag list. It will stay separate from the live axes, because "could go wrong" and "already went wrong" are different questions and merging them is how a score becomes opaque.
-
----
-
-## 9. Reproducibility
-
-`src/scoring/model2.ts` is a **pure function**. No network, no filesystem, no clock, no randomness. Timestamps and input hashes are passed in.
-
-Every score carries its `methodologyVersion` and an `inputSnapshotHash`. Given the same inputs and version, the output is byte-identical, and this is asserted in the test suite.
-
-That is the whole basis of the claim in the README. If the scorer could reach the network, "reproducible" would be marketing.
-
----
-
-## 10. Changing this methodology
-
-Weights and mappings are data, in `src/signals/normalise.ts` and versioned alongside the code. A change to any number in this document is a methodology version bump, and must state what it changes, why, and which tokens' scores move as a result.
-
-See [GOVERNANCE.md](GOVERNANCE.md).
-
-### Open question: should a dictionary gap reduce coverage?
-
-Currently it does not, and §6 says why: coverage counts the checks we know how to make, and a capability with no pattern was never in that denominator.
-
-The argument the other way is that a contract we cannot fully read genuinely *has* lower coverage, and excluding gaps lets a token with several unreadable admin functions report the same coverage as one with none. That is a real objection and it has not been dismissed.
-
-It is deferred deliberately rather than left unnoticed. Changing it would move every published score, so it needs a version bump here and a before/after diff across the registry seed set. That diff should be produced from real gap counts across the 20 registry tokens once the scan has run against mainnet, not from an estimate — the decision depends on how often gaps actually occur and on how many.
-
-**First measurements.** The census has now run against mainnet twice. On 0.1.4 it found 4 of 12 scanned tokens carrying a gap (33%), 5 gaps in total, every one of them mint authority. Three of those five were closed in 0.1.5 by reading the contract shapes involved, leaving 2 of 12 (17%) and 2 gaps.
-
-Two readings of that are available and we do not yet choose between them. The rate fell by half once someone looked at the shapes, which suggests gaps largely measure dictionary coverage at a moment in time and will keep falling as patterns are contributed — an argument for leaving coverage alone. Against that, the two survivors are not survivors by accident: DAI's authorisation is a mapping with no zero-argument getter, and both remaining gaps are mint authority on tokens whose supply genuinely can move. A residue that resists closure is a stronger argument for counting gaps against coverage than the original 33% was, because it is the part that will still be there after the dictionary improves.
-
-The question stays open, and the seed set is 12 EVM tokens: too few to decide something that moves every published score.
+- **0.2.0** (2026-09-06). Every capability is applicable on every chain; unread ones are `UNKNOWN`. Extension-only capabilities on legacy Solana mints are verified `ABSENT`. Empty return data no longer counts as a function existing. Fixed-argument probes. The snapshot hash is canonical on both chains. Score movement is tabulated in [UPDATE.md](UPDATE.md).
+- **0.1.0** (2026-07-26). First published version.

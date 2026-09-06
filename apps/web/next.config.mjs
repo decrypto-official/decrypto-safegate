@@ -25,6 +25,12 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve.alias = { ...config.resolve.alias, '@safegate': ENGINE };
 
+    // The engine's own package imports (zod, @noble/*) resolve by walking up
+    // from ../../src, which reaches the repository root's node_modules. CI
+    // installs that; Vercel installs only apps/web. Search here first so the
+    // dependencies declared in this package.json are what the engine gets.
+    config.resolve.modules = [path.resolve(HERE, 'node_modules'), ...(config.resolve.modules ?? ['node_modules'])];
+
     // The engine is strict ESM, so its internal imports carry `.js` extensions
     // that point at `.ts` files on disk. TypeScript resolves that in bundler
     // mode; webpack needs telling explicitly.

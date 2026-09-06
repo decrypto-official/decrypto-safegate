@@ -5,19 +5,26 @@
   "capability": "metadata-mutability",
   "method": {
     "kind": "account-field",
-    "accountField": "tokenMeta.updateAuthority",
+    "accountField": "tokenMeta.effectiveUpdateAuthority",
     "returnType": "pubkey-or-null"
   },
-  "detects": "The address able to change the token's name, symbol and metadata URI after launch.",
+  "detects": "The address able to change the token's name, symbol and metadata URI after launch, read from the Metaplex Token Metadata account. Null when the account is immutable or does not exist.",
   "nonEmptyMeans": "capability-present",
-  "knownFalseNegative": "This is a WEAK signal and must not be scored as a major risk. Mutable metadata was observed on RAY, JUP and BONK, three well established tokens. Scoring it heavily manufactures false positives on the majority of a blue-chip set. It is carried as context, not as a Control penalty.",
+  "knownFalseNegative": "Before 0.2.0 the metadata account was never fetched, so this always resolved UNKNOWN. A Token-2022 mint may carry its metadata in the tokenMetadata extension instead, read by t2022-token-metadata. This is a weak signal: mutable metadata is common on established tokens and is weighted 1 in the methodology. Being the only transparency capability, it decides that axis alone: present reads 100, absent reads 0.",
   "coversExamples": [
     {
       "chain": "solana",
       "address": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
       "symbol": "RAY",
-      "observed": "mutable, and legitimate",
-      "verifiedAt": "2026-07-22"
+      "observed": "Metaplex metadata at GMrwFHibMxDtx4aPznekZ7RoJLZGzzLGRSWeNTf3XV2 is mutable; update authority 7nJGERf1LZpjn4uTfcDZLJ6YRtvdSExAB9uK851zT6do",
+      "verifiedAt": "2026-09-06"
+    },
+    {
+      "chain": "solana",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "symbol": "USDC",
+      "observed": "Metaplex metadata at 5x38Kp4hvdomTCnCrAny4UtMUt5rQBdB6px2K1Ui45Wq is mutable, name USD Coin",
+      "verifiedAt": "2026-09-06"
     }
   ],
   "rationale": "Included so the signal is visible and explicitly de-weighted, rather than quietly omitted. Documenting why something does NOT count is part of a published methodology.",
