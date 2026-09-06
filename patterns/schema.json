@@ -43,7 +43,7 @@
     },
     "method": {
       "type": "object",
-      "description": "The deterministic read. Exactly one of storageSlot, callSelector, accountField, or extension.",
+      "description": "The deterministic read. Exactly one of storageSlot, callSelector, accountField, or extension. pointsTo marks a slot whose address is the implementation contract.",
       "properties": {
         "kind": {
           "enum": [
@@ -82,6 +82,12 @@
         "extensionField": {
           "type": "string",
           "description": "For kind=account-extension. The field to read inside that extension's `state` object, e.g. delegate. Omit when presenceIndicatedBy is extension-present."
+        },
+        "pointsTo": {
+          "enum": [
+            "implementation"
+          ],
+          "description": "For kind=storage-slot with returnType=address: the address in this slot is the contract whose code runs behind the token. The gap scan reads its bytecode as well as the proxy's own. A beacon slot holds the beacon, not the code, and must not declare this."
         },
         "returnType": {
           "enum": [

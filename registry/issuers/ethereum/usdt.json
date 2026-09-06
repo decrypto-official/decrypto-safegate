@@ -49,6 +49,11 @@
       "kind": "onchain",
       "detail": "isBlackListed(address) answers eth_call, so the per-address blacklist mechanism is present. Read directly on 2026-09-06 via the pattern that reads it.",
       "observedAt": "2026-09-06"
+    },
+    {
+      "kind": "onchain",
+      "detail": "basisPointsRate() and maximumFee() answer eth_call, both 0, and setParams(uint256,uint256) is in the bytecode: the owner can set a per-transfer fee within limits fixed in the contract. Not expected, because the token functions and complies without it, so it is scored as present.",
+      "observedAt": "2026-09-06"
     }
   ],
   "caveats": [

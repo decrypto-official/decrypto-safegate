@@ -9,7 +9,7 @@ import type { Chain, DictionaryGap, GapScanStatus, Observation, Score, Unverifie
 import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode, classifyCode } from './sources/rpc.js';
 import { solanaClient, fetchMint, fetchTokenMetadata, type TokenMetaRecord } from './sources/solana.js';
 import { loadPatterns, applyEvmPatterns, applySolanaPatterns, fillMissingCapabilities } from './patterns/resolve.js';
-import { findDictionaryGaps } from './patterns/selectors.js';
+import { findDictionaryGaps, implementationAddresses, type ImplementationCode } from './patterns/selectors.js';
 import { findExtensionGaps } from './patterns/extensions.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
 import { normalise } from './signals/normalise.js';
@@ -65,11 +65,24 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     symbol = symbolRead ?? entry?.symbol;
     name = entry?.name;
 
+    // A proxy's bytecode dispatches its upgrade functions and nothing else;
+    // the privileged surface is in the implementation its slot points at.
+    // Read that too, or a proxied token's gap scan is empty by construction.
+    // A failed read of either is a failed scan; what was read is still
+    // reported.
+    const implementations: ImplementationCode[] = [];
+    let implementationUnread = false;
+    for (const implementation of implementationAddresses(patterns, observations)) {
+      const code = await ethGetCode(client, implementation).catch(() => null);
+      if (code === null) implementationUnread = true;
+      else implementations.push({ address: implementation, bytecode: code });
+    }
+
     if (bytecode === null) {
       gapScan = 'failed';
     } else {
-      gapScan = 'ran';
-      dictionaryGaps = findDictionaryGaps(bytecode, patterns, observations);
+      gapScan = implementationUnread ? 'failed' : 'ran';
+      dictionaryGaps = findDictionaryGaps(bytecode, patterns, observations, implementations);
     }
   } else {
     const client = solanaClient(options.solanaEndpoints);

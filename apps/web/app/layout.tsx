@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Nav } from '@/components/Nav';
+import { METHODOLOGY_VERSION } from '@safegate/scoring/model2.js';
 
 export const metadata: Metadata = {
   title: 'Safegate',
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
             <Nav />
             <div style={{ marginTop: 'auto', padding: 12, borderTop: '1px solid var(--border)' }}>
-              <div className="tag">methodology 0.1.0</div>
+              <div className="tag">methodology {METHODOLOGY_VERSION}</div>
             </div>
           </aside>
 

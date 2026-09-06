@@ -250,5 +250,5 @@ const WEIGHT_REASON: Record<Capability, string> = {
   'fee-control':
     'Erodes value on the way out rather than blocking it. Real, but recoverable in a way a freeze is not.',
   'metadata-mutability':
-    'Weighted 1 deliberately. It fires on RAY, JUP and BONK, three well established tokens, so scoring it meaningfully would manufacture false positives across a blue-chip set. Reported for completeness and near enough ignored.',
+    'Weighted 1, and alone on the transparency axis, so the weight does not soften it: the axis reads 100 when metadata is mutable and unjustified, 0 when it is not. Every Solana token in the registry has mutable Metaplex metadata. Adding further transparency capabilities is the fix.',
 };

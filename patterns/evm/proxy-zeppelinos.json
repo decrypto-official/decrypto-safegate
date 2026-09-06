@@ -7,6 +7,7 @@
     "kind": "storage-slot",
     "storageSlot": "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3",
     "slotDerivation": "keccak256('org.zeppelinos.proxy.implementation')",
+    "pointsTo": "implementation",
     "returnType": "address"
   },
   "detects": "A non-zero value is the current logic contract of a pre-EIP-1967 OpenZeppelin proxy.",

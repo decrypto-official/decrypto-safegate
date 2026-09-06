@@ -14,6 +14,52 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.3.0, 2026-09-06
+
+The gap scan reads a proxy's implementation, Ethereum has its first fee-control pattern, and the dashboard's version tag reads the scorer instead of a string. Every number in this entry comes from running the seed set on 0.2.0 and on this version, on mainnet, on the same day.
+
+### Fixed
+
+**The gap scan stopped at the proxy.** A proxy's own bytecode dispatches its upgrade functions and nothing else; every privileged function lives in the implementation. The scan read only the proxy, so for every proxied token `dictionaryGaps` was empty by construction while the documents called the scan a second line of defence. It now reads the implementation too, from the address the proxy slot holds, and each gap names the contract it was found on. Measured 2026-09-06: USDC's implementation dispatches `mint(address,uint256)`, which no pattern reads, and USDC's mint authority reads ABSENT while the registry expects it. That was silent on 0.2.0 and is a reported gap now. PAXG, not in the registry, dispatches `mint(address,uint256)` and `freeze(address)` on its implementation with both capabilities reading ABSENT; on 0.2.0 it reported no gaps.
+
+**The dashboard said methodology 0.1.0.** The sidebar tag was a string. It now reads `METHODOLOGY_VERSION` from the scorer.
+
+**The dashboard's weight note for metadata mutability said it "fires on RAY, JUP and BONK" and is "near enough ignored".** METHODOLOGY §3 has said the opposite since 0.2.0. The page now says what the document says.
+
+### Added
+
+**`fee-tether-basis-points`.** Reads `basisPointsRate()` on Tether's contract; the getter answering means the fee switch is built in, whatever the rate is today. Verified 2026-09-06: `basisPointsRate()` and `maximumFee()` both answer 0 on USDT, and `setParams(uint256,uint256)` is in the bytecode. The other eleven Ethereum seed tokens were checked the same day against 26 fee getters and setters, on the proxy and the implementation where there is one, and carry none. PAXG's current implementation carries no fee function either. `setParams` joins the gap scanner's table.
+
+**`method.pointsTo: implementation`.** A pattern field marking a storage slot whose address is the contract whose code runs behind the token. Set on `proxy-eip1967` and `proxy-zeppelinos`. The validator and the loader refuse it on any read that is not a storage slot returning an address. The beacon slot holds the beacon, not the code, and is not followed.
+
+**Two live locks**, PAXG's implementation gaps and USDT's fee switch, and offline tests for the implementation scan and the address collection.
+
+### Changed
+
+**Every Ethereum token reads 6 of 7.** Fee control is read on Ethereum now, so it no longer costs coverage. Metadata mutability is the one capability still UNKNOWN on Ethereum, by decision: none of the twelve seed tokens dispatches a name, symbol or URI setter, checked 2026-09-06 against 17 such signatures, and ERC-20 metadata otherwise changes only through an upgrade, which is already scored. A pattern here would turn UNKNOWN into ABSENT and read nothing.
+
+**A gap scan that could not read the implementation is `failed`, not `ran`.** What was read is still reported, and the limitation text says the read was partial.
+
+### Which scores move
+
+Measured 2026-09-06 with `npm run seed-scores` on 0.2.0 and on 0.3.0. Axis values are control / transparency / exit; n/a means unassessed.
+
+| Token | 0.2.0 | 0.3.0 | Coverage | Why |
+|---|---|---|---|---|
+| USDT (Ethereum) | 0 / n/a / 0 | 0 / n/a / 42 | 5/7 → 6/7 | fee switch read as present, and not expected |
+| USDC (Ethereum) | 0 / n/a / 0 | 0 / n/a / 0 | 5/7 → 6/7 | values unchanged; `mint(address,uint256)` on the implementation is now a reported gap |
+| AAVE, CRV, MKR | 22, 28, 22 / n/a / 0 | 22, 28, 22 / n/a / 0 | 5/7 → 6/7 | fee control read as absent |
+| DAI, ENS, LDO, LINK, UNI, WBTC, WETH | 0 / n/a / 0 | 0 / n/a / 0 | 5/7 → 6/7 | same |
+| all nine Solana tokens | unchanged | unchanged | 7/7 | nothing here touches Solana |
+
+No weight, axis mapping or formula changed. The methodology version stays 0.2.0.
+
+### Not done
+
+USDC's mint authority on Ethereum still reads ABSENT. Circle's design has no pattern: verified 2026-09-06, `masterMinter()` answers `0xe982615d461dd5cd06575bbea87624fda4e3de17` and `minter()` reverts. It is a reported gap now, and a pattern for it is the next change. Metadata mutability on Ethereum stays UNKNOWN, above. Third-party corroboration is still not wired. The dashboard design is unchanged; that is the next PR.
+
+---
+
 ## 0.2.0, 2026-09-06
 
 Methodology 0.2.0. Every capability is now in every score's denominator, three readings that were wrong on the seed set are fixed, the Metaplex metadata account is read, and two claims the documents made about the code were not true and are now either true or removed. Every number in this entry comes from running the seed set on 0.1.8 and on this version, on mainnet, on the same day.

@@ -1,0 +1,31 @@
+{
+  "id": "fee-tether-basis-points",
+  "title": "Tether transfer fee, basisPointsRate()",
+  "chainFamily": "evm",
+  "capability": "fee-control",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xdd644f72",
+    "signature": "basisPointsRate() returns (uint256)",
+    "returnType": "uint256"
+  },
+  "detects": "Tether's fee switch. basisPointsRate is taken from every transfer, capped by maximumFee, and the owner sets both through setParams(uint256,uint256). The getter answering means the mechanism is built in; the rate it reports today is a setting, not the capability.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "Any other fee design reads as absent: feeRate(), taxFee(), or a name we have not seen. The gap scan reports setFee, setFeeRate, setTaxRate and setParams write functions when the bytecode carries them, so a fee switch behind a different getter is still surfaced as unread.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "symbol": "USDT",
+      "observed": "basisPointsRate() answers 0 and maximumFee() answers 0; setParams(uint256,uint256) is in the bytecode. The mechanism is present at a zero rate.",
+      "verifiedAt": "2026-09-06"
+    }
+  ],
+  "rationale": "USDT is the most held stablecoin on Ethereum and its owner can set a per-transfer fee by calling setParams, within limits fixed in the contract. Without this file, fee control is UNKNOWN on every Ethereum token and the one live fee switch in the seed set is invisible. Of the twelve Ethereum seed tokens, USDT is the only one with any fee surface in its bytecode, checked 2026-09-06.",
+  "references": [
+    "https://etherscan.io/address/0xdAC17F958D2ee523a2206206994597C13D831ec7#code"
+  ],
+  "addedAt": "2026-09-06",
+  "addedBy": "decrypto"
+}

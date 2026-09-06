@@ -13,6 +13,7 @@ import { applyEvmPatterns, fillMissingCapabilities, loadPatterns, type Pattern }
 import { normalise } from '../src/signals/normalise.js';
 import { snapshotHash, decodeSymbol } from '../src/pipeline.js';
 import { findMetadataPda, parseMetadata, METADATA_PROGRAM_ID } from '../src/sources/metaplex.js';
+import { implementationAddresses } from '../src/patterns/selectors.js';
 import { score } from '../src/scoring/model2.js';
 import { isStale, expectationFor, type RegistryEntry } from '../src/registry/lookup.js';
 import { renderDisclosure } from '../src/cli/disclosure.js';
@@ -172,14 +173,15 @@ describe('every capability gets an observation', () => {
     const byCap = new Map(filled.map((o) => [o.capability, o]));
 
     expect(byCap.size).toBe(7);
-    const fee = byCap.get('fee-control')!;
-    expect(fee.value).toBeUndefined();
-    expect(fee.patternId).toBeUndefined();
-    expect(fee.method).toMatch(/no pattern/);
+    // fee-control was the example until 0.3.0 gave Ethereum a fee pattern.
+    const meta = byCap.get('metadata-mutability')!;
+    expect(meta.value).toBeUndefined();
+    expect(meta.patternId).toBeUndefined();
+    expect(meta.method).toMatch(/no pattern/);
 
     const { signals } = normalise(filled, null);
-    expect(signals.find((s) => s.capability === 'fee-control')!.state).toBe('UNKNOWN');
-    expect(signals.find((s) => s.capability === 'fee-control')!.reasoning).toMatch(/No pattern in the dictionary/);
+    expect(signals.find((s) => s.capability === 'metadata-mutability')!.state).toBe('UNKNOWN');
+    expect(signals.find((s) => s.capability === 'metadata-mutability')!.reasoning).toMatch(/No pattern in the dictionary/);
   });
 
   it('records a verified absence for extension-only capabilities on a legacy Solana mint', async () => {
@@ -211,6 +213,36 @@ describe('every capability gets an observation', () => {
     const filled = fillMissingCapabilities([observed], 'evm', [], {}, '2026-01-01T00:00:00.000Z');
     expect(filled.filter((o) => o.capability === 'mint-authority')).toHaveLength(1);
     expect(filled[0]).toBe(observed);
+  });
+});
+
+describe('the gap scan follows a proxy to its implementation', () => {
+  it('takes implementation addresses only from patterns whose slot holds the code', async () => {
+    const patterns = await loadPatterns();
+    const read = (patternId: string, value: string | null): Observation => ({
+      capability: 'upgradeability',
+      value,
+      source: 'onchain',
+      patternId,
+      observedAt: '2026-01-01T00:00:00.000Z',
+    });
+    const implementation = '0x43506849D7C04F9138D1A2050bbF3A0c054402dd';
+
+    const found = implementationAddresses(patterns, [
+      read('proxy-eip1967', null),
+      read('proxy-zeppelinos', implementation),
+      // A beacon slot holds the beacon, and the admin slot holds the admin.
+      // Neither is code that runs behind the token.
+      read('proxy-beacon', '0x' + '1'.repeat(40)),
+      read('proxy-admin-slot', '0x' + '2'.repeat(40)),
+    ]);
+    expect(found).toEqual([implementation.toLowerCase()]);
+  });
+
+  it('declares the slot on both implementation patterns and on nothing else', async () => {
+    const patterns = await loadPatterns();
+    const pointing = patterns.filter((p) => p.method.pointsTo === 'implementation').map((p) => p.id).sort();
+    expect(pointing).toEqual(['proxy-eip1967', 'proxy-zeppelinos']);
   });
 });
 
