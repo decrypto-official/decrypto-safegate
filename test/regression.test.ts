@@ -1655,6 +1655,25 @@ describeLive('0.2.0: readings that were wrong on the seed set', () => {
 });
 
 /**
+ * 0.4.0 lock. USDC's mint authority is read, not reported as a gap.
+ */
+describeLive('0.4.0: Circle\'s master minter', () => {
+  it('reads USDC\'s mint authority as expected, through masterMinter()', async () => {
+    // Three mint patterns looked for minter(), mintingFinished() and a capped
+    // schedule. Circle's contract has none, so the registry's flagship token
+    // read as unable to mint while its entry expected the capability. 0.3.0
+    // surfaced mint(address,uint256) on the implementation as a gap; this
+    // reads the authority itself.
+    const result = await analyse('ethereum', USDC_ETH);
+    const mint = result.axes.control.signals.find((s) => s.capability === 'mint-authority');
+    expect(mint?.state).toBe('EXPECTED');
+    const hit = mint?.observations.find((o) => o.patternId === 'mint-master-minter');
+    expect(hit?.value).toMatch(/^0x[0-9a-f]{40}$/i);
+    expect(result.dictionaryGaps.map((g) => g.signature)).not.toContain('mint(address,uint256)');
+  }, TIMEOUT);
+});
+
+/**
  * 0.3.0 locks. The gap scan reads a proxy's implementation, and Ethereum has
  * a fee-control pattern.
  */

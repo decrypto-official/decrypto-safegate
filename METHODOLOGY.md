@@ -76,7 +76,7 @@ A pattern says where to look for one capability on one contract shape: a storage
 | Capability | Ethereum | Solana |
 |---|---|---|
 | `upgradeability` | proxy slots, UUPS | Token-2022 mint close authority |
-| `mint-authority` | minter(), MintableToken, capped schedule | SPL mint authority |
+| `mint-authority` | minter(), MintableToken, capped schedule, Circle's masterMinter() (since 0.4.0) | SPL mint authority |
 | `freeze-authority` | blacklist getters (since 0.2.0) | SPL freeze authority |
 | `admin-authority` | Ownable, DSAuth, AccessControl (working since 0.2.0), timelock, proxy admin | Token-2022 confidential transfer authority |
 | `metadata-mutability` | no pattern, UNKNOWN | Metaplex update authority (read since 0.2.0), Token-2022 metadata |

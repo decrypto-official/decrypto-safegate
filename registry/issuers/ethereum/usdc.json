@@ -59,6 +59,11 @@
       "kind": "onchain",
       "detail": "isBlacklisted(address) answers eth_call, so the per-address blacklist mechanism is present. Read directly on 2026-09-06 via the pattern that reads it.",
       "observedAt": "2026-09-06"
+    },
+    {
+      "kind": "onchain",
+      "detail": "masterMinter() returns 0xe982615d461dd5cd06575bbea87624fda4e3de17 and minter() reverts, so the mint authority the entry expects is read directly. Read on 2026-09-06 via the pattern that reads it.",
+      "observedAt": "2026-09-06"
     }
   ],
   "caveats": [

@@ -14,6 +14,27 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.4.0, 2026-09-06
+
+One pattern. USDC's mint authority on Ethereum is read instead of reported as a gap.
+
+### Added
+
+**`mint-master-minter`.** Reads `masterMinter()`, the address in Circle's FiatToken contract that appoints minters and sets their allowances. The three mint patterns looked for `minter()`, `mintingFinished()` and a capped schedule; Circle's contract has none, so the registry's flagship token read as unable to mint while its entry expected the capability. Verified 2026-09-06: USDC answers `0xe982615d461dd5cd06575bbea87624fda4e3de17` and `minter()` reverts; EURC answers `0x02398771fd1db790ef2b656ca3bcb3075f27a72c`; USDT and WBTC revert; WETH returns empty data, which the 0.2.0 rule reads as not present. USDC's registry entry records the reading. One live lock.
+
+### Which scores move
+
+Measured 2026-09-06 with `npm run seed-scores` on 0.3.0 and on 0.4.0.
+
+| Token | 0.3.0 | 0.4.0 | Why |
+|---|---|---|---|
+| USDC (Ethereum) | 0 / n/a / 0, one gap | 0 / n/a / 0, no gaps | mint authority reads EXPECTED instead of ABSENT; the registry justifies it, so the value does not move |
+| everything else | unchanged | unchanged | mint authority now checks four patterns on Ethereum instead of three |
+
+No weight, axis mapping or formula changed. The methodology version stays 0.2.0.
+
+---
+
 ## 0.3.0, 2026-09-06
 
 The gap scan reads a proxy's implementation, Ethereum has its first fee-control pattern, and the dashboard's version tag reads the scorer instead of a string. Every number in this entry comes from running the seed set on 0.2.0 and on this version, on mainnet, on the same day.
