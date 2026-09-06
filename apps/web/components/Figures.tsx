@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * The two figures the design spec asks for, drawn by hand.
  *
@@ -15,6 +17,8 @@
  */
 
 import type { Axis, Score } from '@safegate/types.js';
+import { useCountUp } from './CountUp';
+import { vars } from './vars';
 
 const AXES: Axis[] = ['control', 'transparency', 'exit'];
 
@@ -24,6 +28,11 @@ const LABEL: Record<Axis, string> = {
   transparency: 'transp.',
   exit: 'exit',
 };
+
+/** A value that draws in with the figure it labels. The aria-label carries the true value. */
+function Drawn({ value }: { value: number }) {
+  return <>{useCountUp(value)}</>;
+}
 
 export function severity(value: number): string {
   if (value >= 60) return 'var(--present)';
@@ -46,6 +55,8 @@ export function CoverageRing({ scored, applicable }: { scored: number; applicabl
   const pct = Math.round(ratio * 100);
   const r = 34;
   const circumference = 2 * Math.PI * r;
+  // The percentage draws in with the ring; the n-of-m beside it is static.
+  const pctShown = useCountUp(pct);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -62,7 +73,8 @@ export function CoverageRing({ scored, applicable }: { scored: number; applicabl
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - ratio)}
           transform="rotate(-90 42 42)"
-          style={{ transition: 'stroke-dashoffset 180ms cubic-bezier(0.2, 0, 0, 1)' }}
+          className="ring-fill"
+          style={vars({ '--circ': circumference })}
         />
         <text
           x="42"
@@ -74,7 +86,7 @@ export function CoverageRing({ scored, applicable }: { scored: number; applicabl
           fontFamily="var(--font-mono)"
           style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-lg)' }}
         >
-          {pct}%
+          {pctShown}%
         </text>
       </svg>
       <div>
@@ -177,7 +189,15 @@ export function AxesRadar({ score }: { score: Score }) {
       {/* Two points make a line, not a shape, so the polygon is only drawn when
           there are three. Below that the markers carry it. */}
       {assessedPoints.length === 3 && (
-        <polygon points={polygon} fill="var(--accent)" fillOpacity="0.14" stroke="var(--accent)" strokeWidth="1.5" />
+        <polygon
+          points={polygon}
+          fill="var(--accent)"
+          fillOpacity="0.14"
+          stroke="var(--accent)"
+          strokeWidth="1.5"
+          className="radar-shape"
+          style={{ transformOrigin: `${c}px ${c}px` }}
+        />
       )}
 
       {points.map((p) => (
@@ -209,7 +229,7 @@ export function AxesRadar({ score }: { score: Score }) {
                 fontFamily="var(--font-mono)"
                 style={{ fontSize: 'var(--fs-label)', fontVariantNumeric: 'tabular-nums' }}
               >
-                {p.value}
+                <Drawn value={p.value} />
               </text>
             </>
           )}

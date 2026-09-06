@@ -1,7 +1,10 @@
 'use client';
 
-import type { Score, Signal, Axis } from '@safegate/types.js';
+import type { Score, Signal, Axis, SignalState } from '@safegate/types.js';
 import { AxesRadar, CoverageRing, severity } from './Figures';
+import { CountUp } from './CountUp';
+import { CopyAddress } from './CopyAddress';
+import { vars } from './vars';
 
 /**
  * The result view.
@@ -21,9 +24,13 @@ const AXIS_QUESTION: Record<Axis, string> = {
   exit: 'If this goes bad, can you get out?',
 };
 
-function truncate(address: string): string {
-  return address.length > 14 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
-}
+/** One line on what a state means, shown on hover and focus. The reasoning below each signal stays visible regardless. */
+const TIP: Record<SignalState, string> = {
+  PRESENT: 'The capability exists and nothing in the registry justifies it.',
+  EXPECTED: 'The capability exists and the registry records why this token must have it.',
+  ABSENT: 'Checked, and it is not there.',
+  UNKNOWN: 'Could not check. Counts against coverage and never as clean.',
+};
 
 export function ScoreResult({ score }: { score: Score }) {
   const signals = AXES.flatMap((axis) => score.axes[axis].signals);
@@ -33,7 +40,7 @@ export function ScoreResult({ score }: { score: Score }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)' }}>
       {/* header */}
-      <div className="panel">
+      <div className="panel enter">
         <div className="panel-body" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'baseline' }}>
           <div>
             {/* An h1, not a div. The only h1 on this route lived in the
@@ -51,9 +58,7 @@ export function ScoreResult({ score }: { score: Score }) {
                 </span>
               )}
             </h1>
-            <div className="addr">
-              {score.chain} {truncate(score.address)}
-            </div>
+            <CopyAddress chain={score.chain} address={score.address} />
           </div>
 
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
@@ -83,7 +88,7 @@ export function ScoreResult({ score }: { score: Score }) {
         {/* summary rail: a column beside the table when wide, a row across the
             full width when stacked */}
         <div className="summary-rail">
-          <section className="panel">
+          <section className="panel enter" style={vars({ '--i': 1 })}>
             <div className="panel-head">
               <h2 className="panel-title">Axes</h2>
               <span className="tag">higher is worse</span>
@@ -131,7 +136,7 @@ export function ScoreResult({ score }: { score: Score }) {
                         className="meter-value"
                         style={{ color: assessed ? severity(a.value) : 'var(--text-faint)' }}
                       >
-                        {assessed ? a.value : 'n/a'}
+                        {assessed ? <CountUp value={a.value} /> : 'n/a'}
                       </span>
                     </div>
                     {/* The coverage denominator is never separable from the value. */}
@@ -146,7 +151,7 @@ export function ScoreResult({ score }: { score: Score }) {
             </div>
           </section>
 
-          <section className="panel">
+          <section className="panel enter" style={vars({ '--i': 2 })}>
             <div className="panel-head">
               <h2 className="panel-title">Coverage</h2>
             </div>
@@ -155,7 +160,7 @@ export function ScoreResult({ score }: { score: Score }) {
             </div>
           </section>
 
-          <section className="panel">
+          <section className="panel enter" style={vars({ '--i': 3 })}>
             <div className="panel-head">
               <h2 className="panel-title">Incident history</h2>
             </div>
@@ -180,7 +185,7 @@ export function ScoreResult({ score }: { score: Score }) {
             signals list on purpose: a reader who stops at the signals would
             otherwise take an incomplete reading for a complete one. */}
         {score.dictionaryGaps.length > 0 && (
-          <section className="panel">
+          <section className="panel enter" style={vars({ '--i': 1 })}>
             <div className="panel-head">
               <h2 className="panel-title">Not read by any pattern</h2>
               <span className="tag">{score.dictionaryGaps.length} unaccounted for</span>
@@ -222,7 +227,7 @@ export function ScoreResult({ score }: { score: Score }) {
         )}
 
         {/* signals, taking all remaining width */}
-        <section className="panel">
+        <section className="panel enter" style={vars({ '--i': 2 })}>
           <div className="panel-head">
             <h2 className="panel-title">Signals</h2>
             <span className="tag">{sorted.length} capabilities checked</span>
@@ -247,8 +252,8 @@ export function ScoreResult({ score }: { score: Score }) {
                   <th scope="col">Source</th>
                 </tr>
               </thead>
-              {sorted.map((signal) => (
-                <SignalRow key={signal.capability} signal={signal} />
+              {sorted.map((signal, i) => (
+                <SignalRow key={signal.capability} signal={signal} index={i} />
               ))}
             </table>
           </div>
@@ -258,7 +263,7 @@ export function ScoreResult({ score }: { score: Score }) {
 
       {/* disagreements: loud by design */}
       {score.disagreements.length > 0 && (
-        <section className="panel" style={{ borderColor: 'var(--unknown)' }}>
+        <section className="panel enter" style={{ borderColor: 'var(--unknown)', ...vars({ '--i': 3 }) }}>
           <div className="panel-head">
             <h2 className="panel-title" style={{ color: 'var(--unknown)' }}>
               Source disagreements
@@ -287,7 +292,7 @@ export function ScoreResult({ score }: { score: Score }) {
 
       {/* third-party values, visually separated so they can never read as ours */}
       {score.unverified.length > 0 && (
-        <section className="panel">
+        <section className="panel enter" style={vars({ '--i': 4 })}>
           <div className="panel-head">
             <h2 className="panel-title" style={{ color: 'var(--expected)' }}>
               Not independently verified
@@ -314,7 +319,7 @@ export function ScoreResult({ score }: { score: Score }) {
       )}
 
       {/* limitations: on the page, not behind a link */}
-      <section className="panel">
+      <section className="panel enter" style={vars({ '--i': 5 })}>
         <div className="panel-head">
           <h2 className="panel-title">What this cannot tell you</h2>
         </div>
@@ -355,14 +360,18 @@ export function ScoreResult({ score }: { score: Score }) {
  *
  * Each pair is grouped in its own tbody so the two rows are one record.
  */
-function SignalRow({ signal }: { signal: Signal }) {
+function SignalRow({ signal, index }: { signal: Signal; index: number }) {
   const hit = signal.observations.find((o) => o.value !== null && o.value !== undefined);
 
   return (
-    <tbody className="signal">
+    // Records fade in one after another, 30ms apart, capped so a long list
+    // never keeps the reader waiting on the tail.
+    <tbody className="signal enter" style={vars({ '--i': Math.min(index, 10) })}>
       <tr>
         <td>
-          <span className={`state state-${signal.state}`}>{signal.state}</span>
+          <span className={`state state-${signal.state}`} data-tip={TIP[signal.state]} tabIndex={0}>
+            {signal.state}
+          </span>
         </td>
         <th scope="row" className="mono signal-cap">
           {signal.capability}

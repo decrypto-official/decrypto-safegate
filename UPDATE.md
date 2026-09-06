@@ -14,6 +14,32 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.4.1, 2026-09-06
+
+The dashboard moves. No score, pattern or registry entry changes; the engine is untouched.
+
+### Changed
+
+**Every clickable region says so.** Nav items, example cards, registry and pattern rows and the address all take one hover treatment: the surface lifts, a 1px accent box appears, and where there is room a corner label says what the click does. Focus gets the same look, so the keyboard sees what the mouse sees. The nav's accent rail slides in on hover and stays on the current page.
+
+**Figures draw in once on first paint.** Meter bars rise from 0, the coverage ring draws from 0, the radar grows from its centre, and the axis values and the coverage percentage count up over 400ms with their denominators static beside them. Panels and signal records enter in sequence, 30ms apart. A new result remounts the view so it draws again. `prefers-reduced-motion` skips all of it, delays included.
+
+**State chips explain themselves.** Hovering or focusing PRESENT, EXPECTED, ABSENT or UNKNOWN shows one line on what the state means. The reasoning under each signal stays visible regardless.
+
+**A read line while the chain is being read.** A 2px accent sweep under the topbar, gone the moment the result or the error lands.
+
+**The topbar reads the data.** Pattern and registry counts come from the files on disk through the same loaders the scorer uses, NA if they cannot be read. The sidebar's methodology tag reads the scorer's version.
+
+**The home page fills the width.** The introduction and the four example tokens sit side by side; each example is a card with the reason it is worth a click. Once a lookup has run, the examples shrink to a row of chips under the form.
+
+**Instrument texture.** A faint dot grid on the content ground and 1px corner ticks on every panel. Nothing moves, glows or loops.
+
+**The address copies on click**, and says so for a second.
+
+**Design document amended.** DESIGN.md §6 excluded number tickers; it now allows a single first-paint draw-in with the denominator static, and §7 allows 400ms for draw-ins. Recorded as a divergence in `globals.css`. No animation library was added.
+
+---
+
 ## 0.4.0, 2026-09-06
 
 One pattern. USDC's mint authority on Ethereum is read instead of reported as a gap.

@@ -89,7 +89,7 @@ export function RegistryBrowser({ entries }: { entries: RegistryEntry[] }) {
         </div>
       </section>
 
-      {selected && <EntryDetail entry={selected} />}
+      {selected && <EntryDetail key={selected.id} entry={selected} />}
     </div>
   );
 }
@@ -98,7 +98,8 @@ function EntryDetail({ entry }: { entry: RegistryEntry }) {
   const overdue = entry.reviewDue ? new Date(entry.reviewDue) < new Date() : false;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)', minWidth: 0 }}>
+    // Keyed on the record, so choosing another one enters afresh.
+    <div className="enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pad)', minWidth: 0 }}>
       <section className="panel">
         <div className="panel-body">
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'baseline' }}>
