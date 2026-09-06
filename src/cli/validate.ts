@@ -64,6 +64,9 @@ const patternSchema = z.object({
 }).passthrough().refine(
   (p) => !p.method.callArgs || p.presenceIndicatedBy === 'call-success',
   { message: 'callArgs requires presenceIndicatedBy: call-success; the value returned for a dummy argument means nothing', path: ['presenceIndicatedBy'] }
+).refine(
+  (p) => p.nonEmptyMeans !== 'capability-absent' || (p.presenceIndicatedBy ?? 'non-empty-value') === 'non-empty-value',
+  { message: 'nonEmptyMeans: capability-absent needs a value to invert, so presenceIndicatedBy must be non-empty-value; under call-success the read is the function existing and the pattern could never fire', path: ['nonEmptyMeans'] }
 );
 
 const registrySchema = z.object({

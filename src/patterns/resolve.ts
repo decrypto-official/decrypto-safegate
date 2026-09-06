@@ -97,6 +97,11 @@ function assertExecutable(pattern: Pattern, file: string): void {
       `pattern ${file}: method.callArgs requires presenceIndicatedBy: call-success, because the value returned for a fixed dummy argument means nothing`
     );
   }
+  if (pattern.nonEmptyMeans === 'capability-absent' && (pattern.presenceIndicatedBy ?? 'non-empty-value') !== 'non-empty-value') {
+    throw new PatternLoadError(
+      `pattern ${file}: nonEmptyMeans capability-absent needs a value to invert; under ${pattern.presenceIndicatedBy} the read is the function existing and the pattern could never fire`
+    );
+  }
   if (pattern.method.pointsTo && (pattern.method.kind !== 'storage-slot' || pattern.method.returnType !== 'address')) {
     throw new PatternLoadError(
       `pattern ${file}: method.pointsTo requires kind storage-slot and returnType address; only a slot holding an address can name the contract whose code runs`
@@ -227,6 +232,9 @@ export async function applyEvmPatterns(
         const calldata = method.callSelector + (method.callArgs ?? '').replace(/^0x/, '');
         const result = await ethCall(client, address, calldata);
         const label = method.signature ?? method.callSelector;
+        // The function's name for a sentence a reader sees: `owner()`, not
+        // `owner() returns (address)`.
+        const name = label.replace(/\s+returns\b.*$/, '');
 
         if (!result.ok) {
           // A revert is a definite finding about THIS pattern, not about the
@@ -274,23 +282,23 @@ export async function applyEvmPatterns(
           value = isBurnAddress(addr) ? null : addr;
           // The getter answered. Zero here is a verified "nobody", which for an
           // owner is a renouncement, and the reader should hear that word.
-          if (value === null) note = `${label} answered the zero address: unset or renounced`;
+          if (value === null) note = `${name} answered the zero address: unset or renounced`;
         } else if (method.returnType === 'bool') {
           value = /[1-9a-f]/i.test(result.data.replace(/^0x/, ''));
-          if (!value) note = `${label} answered false`;
+          if (!value) note = `${name} answered false`;
         } else if (method.returnType === 'uint256') {
           // A numeric zero is nothing, the same as an empty read. A fee getter
           // answering 0 means no fee is taken, not that a fee was found.
           const n = BigInt(result.data.slice(0, 66));
           value = n === 0n ? null : n.toString();
-          if (value === null) note = `${label} answered 0`;
+          if (value === null) note = `${name} answered 0`;
         } else {
           value = result.data;
         }
 
         const interpreted = interpret(pattern, value);
         if (pattern.nonEmptyMeans === 'capability-absent' && interpreted === null) {
-          note = `${label} answered ${String(value)}, which records the capability as switched off`;
+          note = `${name} answered ${String(value)}, which records the capability as switched off`;
         }
 
         observations.push({
@@ -365,7 +373,7 @@ export async function applySolanaPatterns(
     // No metadata account at all is nothing to read; a null field on an
     // account that exists is a field read and found unset.
     const missing = isMeta && root.source === 'none';
-    const note = isMeta && typeof root.note === 'string' ? root.note : unset ? `${path} is not set` : path;
+    const note = isMeta && typeof root.note === 'string' ? root.note : unset ? `${path} is null` : path;
     observations.push({
       capability: pattern.capability,
       value: interpret(pattern, (value ?? null) as string | boolean | null),
@@ -515,7 +523,7 @@ function readExtension(
     ...base,
     value: interpret(pattern, value),
     read: 'answered',
-    method: value === null ? `${extension}.${extensionField ?? '?'} is not set` : `${extension}.${extensionField ?? '?'}`,
+    method: value === null ? `${extension}.${extensionField ?? '?'} is null` : `${extension}.${extensionField ?? '?'}`,
   };
 }
 
