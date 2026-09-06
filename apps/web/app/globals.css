@@ -532,6 +532,14 @@ body {
   box-shadow: 0 0 0 2px var(--accent);
   border-radius: 2px;
 }
+/* Narrow: the table scrolls sideways and a tip opening to the right would be
+   cut at the wrap's edge. Open it below the chip instead. */
+@media (max-width: 900px) {
+  .state[data-tip]::after {
+    left: 0;
+    top: calc(100% + 6px);
+  }
+}
 
 /* ---------- table ---------- */
 

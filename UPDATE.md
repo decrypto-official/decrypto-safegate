@@ -14,6 +14,26 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.5.1, 2026-09-06
+
+The patch review of 0.3.0 through 0.5.0. Text and guards; no score, hash or pattern changes.
+
+### Fixed
+
+**METHODOLOGY named `mintingFinished()` as the example for `capability-absent`.** No shipped pattern uses that inversion, and `mint-oz-mintable` deliberately scores on the getter existing because WBTC's flag can never be trusted. The sentence now says so.
+
+**`capability-absent` under `call-success` was accepted and could never fire.** The read is the function existing, so there is no value to invert and the pattern would read absent every time. Refused by the validator and at load, with a test. CONTRIBUTING rule 7 says it.
+
+**Reasoning carried the return type.** "owner() returns (address) answered the zero address" is now "owner() answered the zero address"; on Solana "freezeAuthority is not set" no longer repeats "not set" in the same sentence.
+
+**The 0.4.1 entry claimed the version-tag fix that shipped in 0.3.0.** Removed.
+
+**The state-chip explanation could be cut off on narrow screens.** It opens below the chip under 900px.
+
+**The web package still said 0.1.8.** Both package files carry the release number from now on.
+
+---
+
 ## 0.5.0, 2026-09-06
 
 What a sample of launch-week tokens taught. Every number here comes from scoring the registry seed set and a sample of 40 actively traded Ethereum tokens created in the 90 days before 2026-09-06, on 0.4.0 and on this version, live, the same day. The sample and its per-token results before and after are in `docs/samples/launch-week-2026-09.json`.
@@ -81,7 +101,7 @@ The dashboard moves. No score, pattern or registry entry changes; the engine is 
 
 **A read line while the chain is being read.** A 2px accent sweep under the topbar, gone the moment the result or the error lands.
 
-**The topbar reads the data.** Pattern and registry counts come from the files on disk through the same loaders the scorer uses, NA if they cannot be read. The sidebar's methodology tag reads the scorer's version.
+**The topbar reads the data.** Pattern and registry counts come from the files on disk through the same loaders the scorer uses, NA if they cannot be read.
 
 **The home page fills the width.** The introduction and the four example tokens sit side by side; each example is a card with the reason it is worth a click. Once a lookup has run, the examples shrink to a row of chips under the form.
 

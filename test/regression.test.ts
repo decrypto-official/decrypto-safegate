@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mkdtemp, mkdir, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, cp, writeFile } from 'node:fs/promises';
 import { realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -266,6 +266,30 @@ describe('data availability', () => {
   it('throws when the pattern directory is missing', async () => {
     const empty = await mkdtemp(join(tmpdir(), 'safegate-missing-'));
     await expect(loadPatterns(join(empty, 'nope'))).rejects.toThrow(PatternLoadError);
+  });
+
+  it('refuses a pattern that inverts a read it never takes', async () => {
+    // capability-absent under call-success: the read is the function existing,
+    // interpret() would null the "mechanism present" string every time, and
+    // the pattern could never fire. Refused at load, as a missing field is.
+    const base = await mkdtemp(join(tmpdir(), 'safegate-invert-'));
+    await mkdir(join(base, 'evm'), { recursive: true });
+    await mkdir(join(base, 'solana'), { recursive: true });
+    await writeFile(
+      join(base, 'evm', 'bad-invert.json'),
+      JSON.stringify({
+        id: 'bad-invert',
+        chainFamily: 'evm',
+        capability: 'mint-authority',
+        method: { kind: 'call-selector', callSelector: '0x05d2035b', returnType: 'bool' },
+        detects: 'a flag read the wrong way',
+        nonEmptyMeans: 'capability-absent',
+        presenceIndicatedBy: 'call-success',
+        rationale: 'a test fixture that must be refused at load',
+        addedAt: '2026-01-01',
+      })
+    );
+    await expect(loadPatterns(base)).rejects.toThrow(/could never fire/);
   });
 
   it('throws when the pattern directory exists but holds nothing', async () => {

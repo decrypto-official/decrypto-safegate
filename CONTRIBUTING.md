@@ -15,7 +15,7 @@ The bar is high on purpose. The registry is the part people have to trust.
 4. At least one real mainnet address in `coversExamples`, with what you observed and the date. Verify it against the chain before writing it down; a claim you could not verify is written as NA, not guessed.
 5. `rationale` says what breaks without this pattern. "Adds coverage" is not a rationale.
 6. `knownFalseNegative` if relying on this pattern alone can mislead. It is the most useful field in the file.
-7. `presenceIndicatedBy` set correctly. `call-success` means the function existing is the finding; `non-empty-value` means the returned value decides. A `uint256` read under `non-empty-value` counts 0 as absent.
+7. `presenceIndicatedBy` set correctly. `call-success` means the function existing is the finding; `non-empty-value` means the returned value decides. A `uint256` read under `non-empty-value` counts 0 as absent. `nonEmptyMeans: capability-absent` only goes with `non-empty-value`; with `call-success` there is no value to invert and the file is refused.
 8. Call-selector patterns send the selector alone. A view function that needs a parameter may declare a fixed dummy argument in `method.callArgs`, only with `presenceIndicatedBy: call-success`. Never a write function.
 9. A storage-slot pattern whose address is the contract that runs behind the token declares `method.pointsTo: implementation`, so the gap scan reads that bytecode too. Only a slot returning an address may declare it. A beacon slot must not: it holds the beacon, not the code.
 
