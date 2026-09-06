@@ -1,0 +1,1573 @@
+{
+  "title": "Launch-week sample, September 2026",
+  "source": "Ethereum contracts created in the 90 days before 2026-09-06 with at least 300 DEX trades in the 7 days before, top 40 by trade count. Selected from a DEX trades dataset on 2026-09-06; scored live against public RPC the same day on 0.4.0 and on 0.5.0.",
+  "note": "A sample, not a registry. Nothing here is an endorsement or a warning about any token; it is the population a retail reader pastes into the lookup box, used to measure the scorer against itself.",
+  "methodology": "0.2.0",
+  "tokens": [
+    {
+      "address": "0xfe4db16013c1c3a9eee10829d05b9b08847feef9",
+      "symbol": "SAF",
+      "created": "2026-08-15",
+      "trades7d": 34712,
+      "traders7d": 3182,
+      "0.4.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x100acd9fcd8e0ff80a6595b66fdabe93184aa100",
+      "symbol": "X",
+      "created": "2026-08-14",
+      "trades7d": 17789,
+      "traders7d": 30,
+      "0.4.0": {
+        "control": 22,
+        "exit": 58,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)",
+          "burnFrom(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "PRESENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 22,
+        "exit": 58,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "PRESENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x7987f03462200b3d8a072e02c89a8a41dcb124ee",
+      "symbol": "V4",
+      "created": "2026-07-27",
+      "trades7d": 14564,
+      "traders7d": 1700,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xe172e9b6cfbeeb5593bdce3f077356fdb33af904",
+      "symbol": "FOLD",
+      "created": "2026-07-06",
+      "trades7d": 13159,
+      "traders7d": 1581,
+      "0.4.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x1ac9d37ce1d0f7211c12d8c9d36061ba6449cb4c",
+      "symbol": "kMIL",
+      "created": "2026-09-05",
+      "trades7d": 12512,
+      "traders7d": 1304,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xa0df17b5ac76ababa36e1450e2cbcd18a620c845",
+      "symbol": "FWA",
+      "created": "2026-07-16",
+      "trades7d": 11961,
+      "traders7d": 1129,
+      "0.4.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x75e2fc69ff2ac12af65ba7d321bbf4f878c535d2",
+      "symbol": "STOCKER",
+      "created": "2026-09-03",
+      "trades7d": 10095,
+      "traders7d": 1639,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x0a5aa8eda423a6ee19d4dc3e1d39befc8acc2477",
+      "symbol": "ELA",
+      "created": "2026-08-31",
+      "trades7d": 5845,
+      "traders7d": 904,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x5886e4d8d6a41a5ea2f3f77f23d7a7e942d581f1",
+      "symbol": "KLIK",
+      "created": "2026-09-02",
+      "trades7d": 5439,
+      "traders7d": 798,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "burnFrom(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xb22550636ea56f6b6e3c5d13d7fe714638b22087",
+      "symbol": "NOMEME",
+      "created": "2026-09-05",
+      "trades7d": 4593,
+      "traders7d": 534,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x8602b2fd8d105a56d3152e936e66b1d414142148",
+      "symbol": "AP",
+      "created": "2026-09-03",
+      "trades7d": 4510,
+      "traders7d": 640,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x32708538a107253b51a735a724330a23106ca4ca",
+      "symbol": "01",
+      "created": "2026-06-08",
+      "trades7d": 3742,
+      "traders7d": 1266,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x42778037d69350508cdd34d9fa17053970591101",
+      "symbol": "Marvin",
+      "created": "2026-08-22",
+      "trades7d": 3735,
+      "traders7d": 749,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x9bbde310004785f0e76cc7f6cf06d8cfe2907cd1",
+      "symbol": "SHRUB",
+      "created": "2026-08-30",
+      "trades7d": 3725,
+      "traders7d": 1028,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "updateMaxTxnAmount(uint256)",
+          "removeLimits()",
+          "updateBuyFees(uint256,uint256,uint256)",
+          "enableTrading()",
+          "updateMarketingWallet(address)",
+          "excludeFromFees(address,bool)",
+          "updateMaxWalletAmount(uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x5ab3d4c385b400f3abb49e80de2faf6a88a7b691",
+      "symbol": "FLOCK",
+      "created": "2026-07-23",
+      "trades7d": 3466,
+      "traders7d": 178,
+      "0.4.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)",
+          "burnFrom(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 22,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x79f5b8c8080f0d9d485627922e643f710a4a0ac5",
+      "symbol": "kMFER",
+      "created": "2026-09-05",
+      "trades7d": 2855,
+      "traders7d": 488,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x5eee484b130872c3f8d71705267e638755aa82d1",
+      "symbol": "$1",
+      "created": "2026-09-02",
+      "trades7d": 2828,
+      "traders7d": 979,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "updateMaxTxnAmount(uint256)",
+          "removeLimits()",
+          "updateBuyFees(uint256,uint256,uint256)",
+          "enableTrading()",
+          "updateMarketingWallet(address)",
+          "excludeFromFees(address,bool)",
+          "updateMaxWalletAmount(uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x95f79aeae58cb021d6eed69af21fa7fc2f1dd314",
+      "symbol": "STEOST",
+      "created": "2026-09-04",
+      "trades7d": 2735,
+      "traders7d": 9,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "burnFrom(address,uint256)",
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "removeLimits()",
+          "setTaxWallet(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x6b35bbf5056c8ff0d46fcc991a906d361c6fa686",
+      "symbol": "ATOY",
+      "created": "2026-07-09",
+      "trades7d": 2564,
+      "traders7d": 239,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xe76c5b78f93909d34404e9eb4c1f19e7582a5de1",
+      "symbol": "H",
+      "created": "2026-06-10",
+      "trades7d": 2531,
+      "traders7d": 224,
+      "0.4.0": {
+        "control": 44,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "PRESENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 44,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "mint(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "PRESENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xa5a6a5b3ae5603510100a400e2d73fd1309bfb07",
+      "symbol": "OUTBURN",
+      "created": "2026-09-01",
+      "trades7d": 2194,
+      "traders7d": 328,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "burnFrom(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x7adbfd873084db714a57ed648ee69aa4627cb998",
+      "symbol": "ALBRH",
+      "created": "2026-07-02",
+      "trades7d": 2175,
+      "traders7d": 46,
+      "0.4.0": {
+        "control": 22,
+        "exit": 58,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "PRESENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 22,
+        "exit": 58,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "PRESENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x318f96bbfd417e795ee530ec9677a4cea320c8cd",
+      "symbol": "UNISTREET",
+      "created": "2026-08-07",
+      "trades7d": 1874,
+      "traders7d": 532,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x7968badcd531b736815fc8a38ce017babf63aa8b",
+      "symbol": null,
+      "created": "2026-09-03",
+      "trades7d": 1857,
+      "traders7d": 5,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x25947e162c44d07b28a349ecedea2324644b437c",
+      "symbol": null,
+      "created": "2026-09-03",
+      "trades7d": 1821,
+      "traders7d": 5,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x118b70df4f06fa5678e7d543e6066e028c8ea0c0",
+      "symbol": "KITE",
+      "created": "2026-08-12",
+      "trades7d": 1811,
+      "traders7d": 113,
+      "0.4.0": {
+        "control": 22,
+        "exit": 58,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "PRESENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 50,
+        "exit": 58,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "PRESENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "PRESENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x43ad2e007bf83ed42e9ca31d788b8519ce05cccc",
+      "symbol": "wroon100",
+      "created": "2026-08-31",
+      "trades7d": 1808,
+      "traders7d": 497,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x3d2534018e98c91f0f88898030841ebbb213f417",
+      "symbol": "CATE",
+      "created": "2026-09-01",
+      "trades7d": 1726,
+      "traders7d": 1138,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "updateMaxTxnAmount(uint256)",
+          "removeLimits()",
+          "updateBuyFees(uint256,uint256,uint256)",
+          "enableTrading()",
+          "updateMarketingWallet(address)",
+          "excludeFromFees(address,bool)",
+          "updateMaxWalletAmount(uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x2d7d0094ca6f1faaff6afb028973225d19c4d9cc",
+      "symbol": "ACAT",
+      "created": "2026-09-04",
+      "trades7d": 1381,
+      "traders7d": 462,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "burnFrom(address,uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x143150200082dd95615fd82189932263f99f9af0",
+      "symbol": "OUTBURN",
+      "created": "2026-09-01",
+      "trades7d": 1261,
+      "traders7d": 593,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "removeLimits()",
+          "enableTrading()"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x33e8f279032eb970eea519260e46213414f889b8",
+      "symbol": "DOK",
+      "created": "2026-08-06",
+      "trades7d": 1196,
+      "traders7d": 139,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xa6ba7d1e6cfa42efb674a5461226ee277dbd0bb6",
+      "symbol": "WIN",
+      "created": "2026-09-05",
+      "trades7d": 1184,
+      "traders7d": 200,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xcf4d29f14cc585ddd1167f956092852af844e040",
+      "symbol": "PRISM",
+      "created": "2026-07-30",
+      "trades7d": 1163,
+      "traders7d": 358,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x20d7a33397ce0dfbb8671e1d7a55e5c706a2842e",
+      "symbol": "RIZO",
+      "created": "2026-08-30",
+      "trades7d": 1131,
+      "traders7d": 550,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "updateMaxTxnAmount(uint256)",
+          "removeLimits()",
+          "updateBuyFees(uint256,uint256,uint256)",
+          "enableTrading()",
+          "updateMarketingWallet(address)",
+          "excludeFromFees(address,bool)",
+          "updateMaxWalletAmount(uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xc84782858b7bef5d25182dbac956a6aa463aefe5",
+      "symbol": "PRD",
+      "created": "2026-06-29",
+      "trades7d": 1073,
+      "traders7d": 231,
+      "0.4.0": {
+        "control": 44,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "PRESENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 44,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "PRESENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "PRESENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x89cf5c1b3bc04ea54795b37a85258f1dfc9c31df",
+      "symbol": "Swing",
+      "created": "2026-07-08",
+      "trades7d": 1062,
+      "traders7d": 265,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x4811c629ac3c5366ae4dc2c8986221e5ab079c5f",
+      "symbol": "MAGACHAN",
+      "created": "2026-08-30",
+      "trades7d": 950,
+      "traders7d": 429,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "transferOwnership(address)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [
+          "updateMaxTxnAmount(uint256)",
+          "removeLimits()",
+          "updateBuyFees(uint256,uint256,uint256)",
+          "enableTrading()",
+          "updateMarketingWallet(address)",
+          "excludeFromFees(address,bool)",
+          "updateMaxWalletAmount(uint256)"
+        ],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x599398d55bb48b56d396103c45c692b0195117f3",
+      "symbol": "HORORO",
+      "created": "2026-09-05",
+      "trades7d": 898,
+      "traders7d": 195,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0x1aa7c7fbdf78b440033f4c737eea5b77f7dd0b33",
+      "symbol": "GWEI",
+      "created": "2026-09-04",
+      "trades7d": 897,
+      "traders7d": 284,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    },
+    {
+      "address": "0xacfac1d9e8f87ffdb989f8b9ec7165c02e377ff7",
+      "symbol": "OPTIMUS",
+      "created": "2026-09-03",
+      "trades7d": 887,
+      "traders7d": 271,
+      "0.4.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      },
+      "0.5.0": {
+        "control": 0,
+        "exit": 0,
+        "coverage": "6/7",
+        "gaps": [],
+        "states": {
+          "upgradeability": "ABSENT",
+          "mint-authority": "ABSENT",
+          "freeze-authority": "ABSENT",
+          "admin-authority": "ABSENT",
+          "metadata-mutability": "UNKNOWN",
+          "transfer-restriction": "ABSENT",
+          "fee-control": "ABSENT"
+        }
+      }
+    }
+  ]
+}

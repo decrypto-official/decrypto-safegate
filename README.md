@@ -70,6 +70,7 @@ patterns/   the dictionary: which slot, selector, field or extension, for which 
 signals/    PRESENT | EXPECTED | ABSENT | UNKNOWN. absence is never safety.
 registry/   which capabilities are expected, for which address, with evidence.
 scoring/    a pure function. same inputs, same bytes.
+docs/samples/  measured samples: the tokens people actually trade, scored before and after a change.
 ```
 
 Three axes, each 0 to 100, higher is worse, never combined into one number:
@@ -84,7 +85,7 @@ Two rules shape everything. **Absence is never safety**: what we could not check
 
 ## Why the dictionary matters
 
-USDC on Ethereum reads as not upgradeable through the standard EIP-1967 slot; it uses the older zeppelinos slot. UNI's `owner()` reverts, which reads as renounced; its admin is `minter()`. WETH9 answers every function selector with empty data, which read as "every function exists" until 0.2.0. Knowing which slot and which selector, for which contract shape, is what commercial scanners accumulated privately. Publishing it is the point, and every case above is locked in the test suite.
+USDC on Ethereum reads as not upgradeable through the standard EIP-1967 slot; it uses the older zeppelinos slot. UNI's `owner()` reverts, so Ownable is not its design and its admin is `minter()`; a token whose `owner()` answers the zero address is the renounced one, and the two are said differently. WETH9 answers every function selector with empty data, which read as "every function exists" until 0.2.0. Knowing which slot and which selector, for which contract shape, is what commercial scanners accumulated privately. Publishing it is the point, and every case above is locked in the test suite.
 
 Where no pattern reads a capability, the score says so and the coverage figure drops. Where a contract exposes a privileged function the dictionary cannot read, it is reported as a `dictionaryGaps` entry, never folded into the score.
 

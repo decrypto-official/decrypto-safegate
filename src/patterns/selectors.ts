@@ -30,7 +30,18 @@ export interface PrivilegedFunction {
   capability: Capability;
   /** What holding this function would mean, in the reader's terms. */
   implies: string;
+  /**
+   * A pattern whose getter, answering a definite nothing, explains this write
+   * function away. owner() answering the zero address is a renounced Ownable,
+   * and transferOwnership can never pass its check again, so listing it as an
+   * unread power would be noise. Only set where the getter and the setter are
+   * two halves of one mechanism.
+   */
+  explainedBy?: string;
 }
+
+/** The pattern that reads Ownable's owner(). Its zero answer is a renouncement the scan reasons from. */
+const OWNERSHIP_GETTER = 'admin-ownable';
 
 /**
  * Privileged functions worth noticing, by the capability each would imply.
@@ -51,8 +62,8 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   { signature: 'changeAdmin(address)', capability: 'upgradeability', implies: 'the proxy admin can be handed to someone else' },
 
   // Administrative control.
-  { signature: 'transferOwnership(address)', capability: 'admin-authority', implies: 'ownership can be handed to another address' },
-  { signature: 'setOwner(address)', capability: 'admin-authority', implies: 'the owner can be set directly' },
+  { signature: 'transferOwnership(address)', capability: 'admin-authority', implies: 'ownership can be handed to another address', explainedBy: OWNERSHIP_GETTER },
+  { signature: 'setOwner(address)', capability: 'admin-authority', implies: 'the owner can be set directly', explainedBy: OWNERSHIP_GETTER },
   { signature: 'grantRole(bytes32,address)', capability: 'admin-authority', implies: 'privileged roles can be granted' },
   { signature: 'setAdmin(address)', capability: 'admin-authority', implies: 'the admin can be set directly' },
 
@@ -60,11 +71,21 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   { signature: 'mint(address,uint256)', capability: 'mint-authority', implies: 'new supply can be created' },
   { signature: 'setMinter(address)', capability: 'mint-authority', implies: 'the minting authority can be reassigned' },
   { signature: 'addMinter(address)', capability: 'mint-authority', implies: 'additional minters can be appointed' },
-  { signature: 'burnFrom(address,uint256)', capability: 'mint-authority', implies: 'balances can be destroyed from another address' },
+  { signature: 'mint(uint256)', capability: 'mint-authority', implies: 'new supply can be created' },
+  // burnFrom(address,uint256) left this table in 0.5.0. OpenZeppelin's spends
+  // the caller's allowance, so anyone can call it on funds approved to them:
+  // ordinary ERC-20 surface, not a power held over anyone. On a sample of 40
+  // launch-week tokens it was the second largest source of false gaps.
 
   // Freezing a specific holder.
   { signature: 'freeze(address)', capability: 'freeze-authority', implies: 'an individual holder can be frozen' },
   { signature: 'freezeAccount(address,bool)', capability: 'freeze-authority', implies: 'an individual account can be frozen' },
+  // The launchpad template's spellings, from the 2026-09 sample.
+  { signature: 'setBlacklisted(address,bool)', capability: 'freeze-authority', implies: 'an address can be blocked from transacting' },
+  { signature: 'blacklistAddress(address,bool)', capability: 'freeze-authority', implies: 'an address can be blocked from transacting' },
+  { signature: 'setBlacklist(address,bool)', capability: 'freeze-authority', implies: 'an address can be blocked from transacting' },
+  { signature: 'setBots(address[],bool)', capability: 'freeze-authority', implies: 'addresses can be marked as bots and blocked' },
+  { signature: 'addBots(address[])', capability: 'freeze-authority', implies: 'addresses can be marked as bots and blocked' },
 
   // Blocking one holder is freeze authority, the same capability a Solana
   // freeze authority holds. Since 0.2.0 the dictionary reads it through the
@@ -76,6 +97,17 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
 
   // Restricting transfer for everyone.
   { signature: 'pause()', capability: 'transfer-restriction', implies: 'all transfers can be halted' },
+  // Trading gates and per-wallet limits, the launchpad template's shape of
+  // the same power: until trading is enabled nobody can sell, and a limit
+  // caps what anyone can move.
+  { signature: 'enableTrading()', capability: 'transfer-restriction', implies: 'trading is gated and can be switched on or left off' },
+  { signature: 'openTrading()', capability: 'transfer-restriction', implies: 'trading is gated and can be switched on or left off' },
+  { signature: 'setTradingEnabled(bool)', capability: 'transfer-restriction', implies: 'trading can be switched on and off' },
+  { signature: 'removeLimits()', capability: 'transfer-restriction', implies: 'per-transaction and per-wallet limits exist and can be lifted' },
+  { signature: 'updateMaxTxnAmount(uint256)', capability: 'transfer-restriction', implies: 'the per-transaction limit can be changed' },
+  { signature: 'updateMaxWalletAmount(uint256)', capability: 'transfer-restriction', implies: 'the per-wallet limit can be changed' },
+  { signature: 'setMaxTxAmount(uint256)', capability: 'transfer-restriction', implies: 'the per-transaction limit can be changed' },
+  { signature: 'setMaxWallet(uint256)', capability: 'transfer-restriction', implies: 'the per-wallet limit can be changed' },
 
   // Economics. setParams is Tether's: since 0.3.0 the dictionary reads its
   // getter, and the write function stays here for a contract that carries
@@ -84,6 +116,19 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   { signature: 'setFee(uint256)', capability: 'fee-control', implies: 'a transfer fee can be changed' },
   { signature: 'setFeeRate(uint256)', capability: 'fee-control', implies: 'the fee rate can be changed' },
   { signature: 'setTaxRate(uint256)', capability: 'fee-control', implies: 'the tax rate can be changed' },
+  // The launchpad template's fee setters, from the 2026-09 sample.
+  { signature: 'updateBuyFees(uint256,uint256,uint256)', capability: 'fee-control', implies: 'the buy fee can be changed' },
+  { signature: 'updateSellFees(uint256,uint256,uint256)', capability: 'fee-control', implies: 'the sell fee can be changed' },
+  { signature: 'setFees(uint256,uint256)', capability: 'fee-control', implies: 'the buy and sell fees can be changed' },
+  { signature: 'updateFees(uint256,uint256)', capability: 'fee-control', implies: 'the buy and sell fees can be changed' },
+  { signature: 'setBuyTax(uint256)', capability: 'fee-control', implies: 'the buy tax can be changed' },
+  { signature: 'setSellTax(uint256)', capability: 'fee-control', implies: 'the sell tax can be changed' },
+  { signature: 'setTaxes(uint256,uint256)', capability: 'fee-control', implies: 'the taxes can be changed' },
+  { signature: 'excludeFromFees(address,bool)', capability: 'fee-control', implies: 'chosen addresses can be exempted from the fee' },
+  { signature: 'excludeFromFee(address)', capability: 'fee-control', implies: 'chosen addresses can be exempted from the fee' },
+  { signature: 'updateMarketingWallet(address)', capability: 'fee-control', implies: 'where the fee is sent can be changed' },
+  { signature: 'setMarketingWallet(address)', capability: 'fee-control', implies: 'where the fee is sent can be changed' },
+  { signature: 'setTaxWallet(address)', capability: 'fee-control', implies: 'where the fee is sent can be changed' },
 
   // Metadata. Rarer on a plain ERC-20 than on an NFT, but a mutable URI is how
   // a token's public identity gets rewritten after people have looked at it.
@@ -231,6 +276,20 @@ export function findDictionaryGaps(
     observations.filter((o) => isPositive(o.value)).map((o) => o.capability)
   );
 
+  // Getters that answered a definite nothing. They explain their own setter
+  // away, and one of them, owner(), tells the reader something about every
+  // other function on the list: an owner-gated setter on a renounced token
+  // can never be called again, and the modifier cannot be read from bytecode.
+  const answeredNothing = new Set(
+    observations
+      .filter((o) => o.read === 'answered' && o.value === null && typeof o.patternId === 'string')
+      .map((o) => o.patternId as string)
+  );
+  // Only when no admin mechanism was found at all. MKR's Ownable owner is zero
+  // while its DSAuth authority is live and can mint; calling that "renounced"
+  // would reassure a reader about the one token it should not.
+  const renounced = answeredNothing.has(OWNERSHIP_GETTER) && !alreadyFound.has('admin-authority');
+
   const gaps: DictionaryGap[] = [];
 
   for (const [selector, foundOn] of present) {
@@ -238,6 +297,7 @@ export function findDictionaryGaps(
     if (!fn) continue;
     if (readByAPattern.has(selector)) continue;
     if (alreadyFound.has(fn.capability)) continue;
+    if (fn.explainedBy && answeredNothing.has(fn.explainedBy)) continue;
 
     const where = foundOn
       ? `The implementation at ${foundOn}, which this contract delegates to, exposes`
@@ -251,7 +311,11 @@ export function findDictionaryGaps(
       note:
         `${where} ${fn.signature}, so ${fn.implies}. No pattern in the ` +
         `dictionary reads this, and nothing else resolved ${fn.capability} for this token, ` +
-        `so the capability is unaccounted for rather than absent.`,
+        `so the capability is unaccounted for rather than absent.` +
+        (renounced
+          ? ` Ownership is renounced (owner() answered the zero address), so if this function is ` +
+            `owner-gated it can no longer be called; the modifier cannot be read from bytecode.`
+          : ''),
     });
   }
 

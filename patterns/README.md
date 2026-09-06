@@ -6,7 +6,7 @@ Patterns are data. They say where to look and how to read the bytes. Whether the
 
 ## Why it exists
 
-Reading a chain directly is not simple. USDC on Ethereum reads as not upgradeable through the EIP-1967 slot; it uses the older zeppelinos slot. UNI's `owner()` reverts, which reads as renounced; its admin is `minter()`. WETH9 answers every selector with empty data, which read as "every function exists" until 0.2.0. Knowing which slot, which selector, for which shape is what commercial scanners accumulated privately. Publishing it is the point.
+Reading a chain directly is not simple. USDC on Ethereum reads as not upgradeable through the EIP-1967 slot; it uses the older zeppelinos slot. UNI's `owner()` reverts, so Ownable is not its design and its admin is `minter()`; a token whose `owner()` answers the zero address is the renounced one, and since 0.5.0 the two are said differently. WETH9 answers every selector with empty data, which read as "every function exists" until 0.2.0. Knowing which slot, which selector, for which shape is what commercial scanners accumulated privately. Publishing it is the point.
 
 ## Why patterns beat tokens
 
@@ -29,4 +29,4 @@ See `../CONTRIBUTING.md` for the review bar.
 
 ## An unread shape is never "safe"
 
-A capability no pattern reads on a chain resolves `UNKNOWN` and costs coverage. The gap scan reports privileged functions and extensions the dictionary cannot read as `dictionaryGaps`. Neither ever resolves to absent.
+A capability no pattern reads on a chain resolves `UNKNOWN` and costs coverage. The gap scan reports privileged functions and extensions the dictionary cannot read as `dictionaryGaps`. Neither ever resolves to absent. A write function whose own getter answered a definite nothing, `transferOwnership` after `owner()` answered zero, is explained rather than listed; when ownership is renounced and no other admin mechanism was found, every listed function says the owner-gated case is dead and the modifier unread.

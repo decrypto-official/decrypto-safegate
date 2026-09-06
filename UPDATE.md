@@ -14,6 +14,51 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.5.0, 2026-09-06
+
+What a sample of launch-week tokens taught. Every number here comes from scoring the registry seed set and a sample of 40 actively traded Ethereum tokens created in the 90 days before 2026-09-06, on 0.4.0 and on this version, live, the same day. The sample and its per-token results before and after are in `docs/samples/launch-week-2026-09.json`.
+
+### Fixed
+
+**The gap list cried wolf.** On the sample, 13 of the 14 gaps reported were `transferOwnership` on a token whose `owner()` had answered the zero address, or `burnFrom`. The first is the canonical renouncement: the getter answered, and the write function can never pass its check again. The second is OpenZeppelin's allowance-gated `burnFrom`, which anyone can call on funds approved to them, not a power held over anyone. `burnFrom` left the table. A write function whose own getter answered a definite nothing is explained rather than reported (`transferOwnership` and `setOwner` after `owner()` zero). After: no token in the sample reports either.
+
+**"Not found" hid two facts.** `owner()` answering the zero address and `minter()` reverting both became "checked N patterns and none located it". Every observation now records how its read resolved, `answered`, `missing` or `unavailable`, and the reasoning says which: "Admin authority is not set: owner() answered the zero address: unset or renounced, via admin-ownable" against "Mint authority was not found". A zero storage slot is `missing`, not answered: a storage read always returns a word, so zero there cannot tell unset from unused. The field is not in the snapshot hash and older scores still verify.
+
+**The one live blacklist was missed.** KITE has a live owner, `setBlacklisted(address,bool)` in its bytecode and a `blacklisted(address)` getter, and read freeze ABSENT with no gap. `freeze-blacklisted` reads that third spelling. KITE moves from control 22 to 50.
+
+### Added
+
+**The launchpad template's surface, in the gap table.** 14 of the 40 carry a fee, limit and trading-gate surface (`updateBuyFees`, `enableTrading`, `removeLimits`, `updateMaxWalletAmount` and their kin) that neither the dictionary nor the table knew. 25 signatures added under fee-control, transfer-restriction, freeze-authority and mint-authority. When ownership is renounced and no other admin mechanism was found, every reported function says so: an owner-gated setter is then dead, and the modifier cannot be read from bytecode. It does not say so on MKR, whose Ownable owner is zero while its DSAuth authority is live.
+
+**`fee-launchpad-buy-total` and `fee-launchpad-sell-total`.** Read `buyTotalFees()` and `sellTotalFees()` as values: 0 is absent, above 0 is present with the rate. Five of the 40 share the template byte for byte; all answer 0 with ownership renounced, and read "Fee control is not set" with the setters listed as dead if owner-gated. A `uint256` getter answering 0 now reads as absent everywhere; before, only an empty word did.
+
+**Three live locks** (KITE, SHRUB, UNI) and ten offline tests.
+
+### Which scores move
+
+Seed set, 0.4.0 to 0.5.0: no axis value moves on any of the 21 tokens. MKR reports `mint(uint256)` as a second gap; it has that function.
+
+Sample of 40, 0.4.0 to 0.5.0. Control / exit; coverage is 6/7 on every token in both.
+
+| Tokens | 0.4.0 | 0.5.0 | Why |
+|---|---|---|---|
+| KITE | 22 / 58, freeze ABSENT, no gap | 50 / 58, freeze PRESENT | `blacklisted(address)` read |
+| SHRUB, $1, CATE, RIZO, MAGACHAN | 0 / 0, one gap each (`transferOwnership` or `burnFrom`) | 0 / 0, seven gaps each, all marked dead if owner-gated | template setters in the table; renouncement explained |
+| X, FLOCK, STEOST | two gaps each | one, `mint(address,uint256)` | `burnFrom` and `transferOwnership` no longer listed |
+| KLIK, OUTBURN (0xa5a6…), ACAT, PRISM | one gap each | none | same |
+| OUTBURN (0x1431…) | none | `removeLimits`, `enableTrading` | template setters in the table |
+| the other 26 | unchanged | unchanged | |
+
+Tokens reporting at least one gap: 14 before, 11 after. Distinct gap signatures reported: three before, two of them noise; nine after, every one a setter or a mint.
+
+No weight, axis mapping or formula changed. The methodology version stays 0.2.0.
+
+### Not done
+
+The template's `tradingActive()`, `limitsInEffect()` and `maxWallet()` getters could read transfer restriction as a value the same way. Not done: on every template token in the sample trading is open and limits are off, so the sample offers no case of the pattern firing, and a pattern with no verified positive is a guess. Metadata mutability on Ethereum stays UNKNOWN.
+
+---
+
 ## 0.4.2, 2026-09-06
 
 ### Added

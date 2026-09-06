@@ -206,12 +206,18 @@ export async function applyEvmPatterns(
       if (method.kind === 'storage-slot' && method.storageSlot) {
         const word = await ethGetStorageAt(client, address, method.storageSlot);
         const addr = wordToAddress(word);
+        const slot = `eth_getStorageAt ${method.storageSlot.slice(0, 12)}...`;
+        // A storage read always returns a word, so a zero here cannot tell
+        // "unset" from "this contract does not use that slot". A zero proxy
+        // slot on a plain token is the latter, and is recorded as missing: a
+        // getter that answers zero is a verified nothing, an empty slot is not.
         observations.push({
           capability: pattern.capability,
           value: interpret(pattern, addr),
+          read: addr === null ? 'missing' : 'answered',
           source: 'onchain',
           patternId: pattern.id,
-          method: `eth_getStorageAt ${method.storageSlot.slice(0, 12)}...`,
+          method: addr === null ? `${slot} is zero: this contract does not use that slot` : slot,
           observedAt: now,
         });
         continue;
@@ -228,6 +234,7 @@ export async function applyEvmPatterns(
           observations.push({
             capability: pattern.capability,
             value: null,
+            read: 'missing',
             source: 'onchain',
             patternId: pattern.id,
             method: `${label} reverted, function not present`,
@@ -243,6 +250,7 @@ export async function applyEvmPatterns(
           observations.push({
             capability: pattern.capability,
             value: null,
+            read: 'missing',
             source: 'onchain',
             patternId: pattern.id,
             method: `${label} returned no data, function not present (a catch-all fallback answers any selector)`,
@@ -264,15 +272,31 @@ export async function applyEvmPatterns(
         } else if (method.returnType === 'address') {
           const addr = wordToAddress(result.data);
           value = isBurnAddress(addr) ? null : addr;
+          // The getter answered. Zero here is a verified "nobody", which for an
+          // owner is a renouncement, and the reader should hear that word.
+          if (value === null) note = `${label} answered the zero address: unset or renounced`;
         } else if (method.returnType === 'bool') {
           value = /[1-9a-f]/i.test(result.data.replace(/^0x/, ''));
+          if (!value) note = `${label} answered false`;
+        } else if (method.returnType === 'uint256') {
+          // A numeric zero is nothing, the same as an empty read. A fee getter
+          // answering 0 means no fee is taken, not that a fee was found.
+          const n = BigInt(result.data.slice(0, 66));
+          value = n === 0n ? null : n.toString();
+          if (value === null) note = `${label} answered 0`;
         } else {
           value = result.data;
         }
 
+        const interpreted = interpret(pattern, value);
+        if (pattern.nonEmptyMeans === 'capability-absent' && interpreted === null) {
+          note = `${label} answered ${String(value)}, which records the capability as switched off`;
+        }
+
         observations.push({
           capability: pattern.capability,
-          value: interpret(pattern, value),
+          value: interpreted,
+          read: 'answered',
           source: 'onchain',
           patternId: pattern.id,
           method: note,
@@ -286,6 +310,7 @@ export async function applyEvmPatterns(
       observations.push({
         capability: pattern.capability,
         value: undefined,
+        read: 'unavailable',
         source: 'onchain',
         patternId: pattern.id,
         method: `failed: ${(err as Error).message}`,
@@ -324,6 +349,7 @@ export async function applySolanaPatterns(
       observations.push({
         capability: pattern.capability,
         value: undefined,
+        read: 'unavailable',
         source: 'onchain',
         patternId: pattern.id,
         method: isMeta
@@ -335,10 +361,15 @@ export async function applySolanaPatterns(
     }
 
     const value = readPath(root, relative);
-    const note = isMeta && typeof root.note === 'string' ? root.note : path;
+    const unset = value === null || value === undefined;
+    // No metadata account at all is nothing to read; a null field on an
+    // account that exists is a field read and found unset.
+    const missing = isMeta && root.source === 'none';
+    const note = isMeta && typeof root.note === 'string' ? root.note : unset ? `${path} is not set` : path;
     observations.push({
       capability: pattern.capability,
       value: interpret(pattern, (value ?? null) as string | boolean | null),
+      read: missing ? 'missing' : 'answered',
       source: 'onchain',
       patternId: pattern.id,
       method: note,
@@ -392,6 +423,7 @@ export function fillMissingCapabilities(
       out.push({
         capability,
         value: null,
+        read: 'missing',
         source: 'onchain',
         method:
           `the legacy Token program has no mechanism for ${capability.replace(/-/g, ' ')}; ` +
@@ -449,10 +481,10 @@ function readExtension(
   };
 
   if (mintAccount === null) {
-    return { ...base, value: undefined, method: `extension ${extension} unavailable, account not fetched` };
+    return { ...base, value: undefined, read: 'unavailable', method: `extension ${extension} unavailable, account not fetched` };
   }
   if (!extension) {
-    return { ...base, value: undefined, method: 'pattern declares no extension to read' };
+    return { ...base, value: undefined, read: 'unavailable', method: 'pattern declares no extension to read' };
   }
 
   const list = extensionList(mintAccount);
@@ -464,13 +496,14 @@ function readExtension(
   );
 
   if (!found) {
-    return { ...base, value: null, method: `${extension} is not among this mint's extensions` };
+    return { ...base, value: null, read: 'missing', method: `${extension} is not among this mint's extensions` };
   }
 
   if (pattern.presenceIndicatedBy === 'extension-present') {
     return {
       ...base,
       value: `mechanism present, ${describeExtension(found.state)}`,
+      read: 'answered',
       method: `${extension} is configured on the mint, so the capability is built in`,
     };
   }
@@ -481,7 +514,8 @@ function readExtension(
   return {
     ...base,
     value: interpret(pattern, value),
-    method: `${extension}.${extensionField ?? '?'}`,
+    read: 'answered',
+    method: value === null ? `${extension}.${extensionField ?? '?'} is not set` : `${extension}.${extensionField ?? '?'}`,
   };
 }
 

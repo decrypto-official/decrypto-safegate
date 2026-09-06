@@ -186,6 +186,18 @@ function explain(
       const structural = onchain.length === 1 && !onchain[0]!.patternId && onchain[0]!.method;
       if (structural) return `${cap(label)} cannot be present: ${onchain[0]!.method}.`;
       const checked = onchain.filter((o) => o.value !== undefined).length;
+      // A getter that answered a definite nothing is stronger than "no pattern
+      // located it", and the difference matters: owner() answering the zero
+      // address is a renounced token, minter() reverting is a design the
+      // dictionary does not read. Say which happened.
+      const unset = onchain.find((o) => o.read === 'answered' && o.value === null && o.patternId);
+      if (unset) {
+        const others = checked - 1;
+        return (
+          `${cap(label)} is not set: ${unset.method ?? 'the read answered nothing'}, via ${unset.patternId}.` +
+          (others > 0 ? ` ${others} other pattern${others === 1 ? '' : 's'} found no such mechanism.` : '')
+        );
+      }
       return `${cap(label)} was not found. Checked ${checked} pattern${checked === 1 ? '' : 's'} and none located it.`;
     }
 
