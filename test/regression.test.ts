@@ -33,6 +33,8 @@ const PEPE_ETH = '0x6982508145454Ce325dDbE47a25d4ec3d2311933';
 const MKR_ETH = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2';
 const WBTC_ETH = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
 const ENS_ETH = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72';
+const AMPL_ETH = '0xD46bA6D942050d489DBd938a2C909A5d5039A161';
+const STETH_ETH = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
 const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const RAY_SOL = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
 const PYUSD_SOL = '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo';
@@ -130,6 +132,66 @@ describeLive('Solana USDC: expected capabilities are not risk', () => {
       expect(concentration).toBeDefined();
       expect(concentration!.source).toBe('rugcheck');
       expect(concentration!.caveat).toMatch(/not.*independently confirmed/i);
+    },
+    TIMEOUT
+  );
+});
+
+describeLive('the transparency axis on Ethereum', () => {
+  it(
+    'reads a derived balance as metadata mutability on AMPL',
+    async () => {
+      const result = await analyse('ethereum', AMPL_ETH);
+      const signal = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+
+      expect(signal!.state).toBe('PRESENT');
+      const hit = signal!.observations.find((o) => o.value !== null && o.value !== undefined);
+      expect(hit?.patternId).toBe('meta-scaled-balance');
+      // A number, not eight hex digits that read as a truncated address.
+      expect(String(hit?.value)).not.toMatch(/0x/);
+      expect(result.axes.transparency.assessed).toBe(true);
+    },
+    TIMEOUT
+  );
+
+  it(
+    'reads stETH through the share getter, which the scaled getter misses',
+    async () => {
+      const result = await analyse('ethereum', STETH_ETH);
+      const signal = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+
+      expect(signal!.state).toBe('PRESENT');
+      const hit = signal!.observations.find((o) => o.value !== null && o.value !== undefined);
+      expect(hit?.patternId).toBe('meta-share-balance');
+    },
+    TIMEOUT
+  );
+
+  it(
+    'reads a verified absence on fixed bytecode with no metadata setter',
+    async () => {
+      const result = await analyse('ethereum', UNI_ETH);
+      const signal = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+
+      expect(signal!.state).toBe('ABSENT');
+      expect(signal!.reasoning).toMatch(/bytecode cannot be replaced/);
+      // The axis is assessed rather than n/a, and coverage is complete.
+      expect(result.axes.transparency.assessed).toBe(true);
+      expect(result.coverage.scored).toBe(result.coverage.applicable);
+    },
+    TIMEOUT
+  );
+
+  it(
+    'refuses that absence on a proxy, because upgradeable code can grow a setter',
+    async () => {
+      const result = await analyse('ethereum', USDC_ETH);
+      const signal = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+
+      expect(signal!.state).toBe('UNKNOWN');
+      expect(signal!.reasoning).toMatch(/not evidence of absence/);
+      expect(result.axes.transparency.assessed).toBe(false);
+      expect(result.coverage.scored).toBeLessThan(result.coverage.applicable);
     },
     TIMEOUT
   );

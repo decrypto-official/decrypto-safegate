@@ -9,11 +9,23 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RpcClient, RpcError, ethCall, classifyCode, wordToAddress, isBurnAddress, isRevertError } from '../src/sources/rpc.js';
-import { applyEvmPatterns, fillMissingCapabilities, loadPatterns, type Pattern } from '../src/patterns/resolve.js';
+import {
+  applyEvmPatterns,
+  fillMissingCapabilities,
+  loadPatterns,
+  settleEvmMetadataMutability,
+  type Pattern,
+} from '../src/patterns/resolve.js';
 import { normalise } from '../src/signals/normalise.js';
 import { snapshotHash, decodeSymbol } from '../src/pipeline.js';
 import { findMetadataPda, parseMetadata, METADATA_PROGRAM_ID } from '../src/sources/metaplex.js';
-import { implementationAddresses, findDictionaryGaps, privilegedFunctionTable } from '../src/patterns/selectors.js';
+import {
+  implementationAddresses,
+  findDictionaryGaps,
+  privilegedFunctionTable,
+  dispatchesMetadataMutator,
+  metadataMutatorSignatures,
+} from '../src/patterns/selectors.js';
 import { selectorOf } from '../src/sources/keccak.js';
 import { score } from '../src/scoring/model2.js';
 import { isStale, expectationFor, type RegistryEntry } from '../src/registry/lookup.js';
@@ -291,12 +303,14 @@ describe('nonEmptyMeans: capability-absent', () => {
 
 describe('every capability gets an observation', () => {
   it('emits UNKNOWN for a capability no pattern reads on this chain', async () => {
-    const patterns = await loadPatterns();
-    const filled = fillMissingCapabilities([], 'evm', patterns, {}, '2026-01-01T00:00:00.000Z');
+    // Against an empty dictionary rather than the real one. fee-control was the
+    // example until 0.3.0 gave Ethereum a fee pattern, and metadata-mutability
+    // until 0.6.0 gave it two; every capability now has an EVM pattern, so the
+    // real dictionary can no longer reach this branch on this chain family.
+    const filled = fillMissingCapabilities([], 'evm', [], {}, '2026-01-01T00:00:00.000Z');
     const byCap = new Map(filled.map((o) => [o.capability, o]));
 
     expect(byCap.size).toBe(7);
-    // fee-control was the example until 0.3.0 gave Ethereum a fee pattern.
     const meta = byCap.get('metadata-mutability')!;
     expect(meta.value).toBeUndefined();
     expect(meta.patternId).toBeUndefined();
@@ -305,6 +319,16 @@ describe('every capability gets an observation', () => {
     const { signals } = normalise(filled, null);
     expect(signals.find((s) => s.capability === 'metadata-mutability')!.state).toBe('UNKNOWN');
     expect(signals.find((s) => s.capability === 'metadata-mutability')!.reasoning).toMatch(/No pattern in the dictionary/);
+  });
+
+  it('reads every capability on EVM, so no capability is dark on that chain', async () => {
+    const patterns = await loadPatterns();
+    const evmCapabilities = new Set(patterns.filter((p) => p.chainFamily === 'evm').map((p) => p.capability));
+    const filled = fillMissingCapabilities([], 'evm', patterns, {}, '2026-01-01T00:00:00.000Z');
+
+    for (const observation of filled) {
+      expect(evmCapabilities.has(observation.capability)).toBe(true);
+    }
   });
 
   it('records a verified absence for extension-only capabilities on a legacy Solana mint', async () => {
@@ -563,8 +587,8 @@ describe('the scorer', () => {
     expect(result.limitations.some((l) => /two thirds/.test(l))).toBe(false);
   });
 
-  it('carries methodology 0.2.0', () => {
-    expect(score({ ...input, signals: [] }).methodologyVersion).toBe('0.2.0');
+  it('carries methodology 0.3.0', () => {
+    expect(score({ ...input, signals: [] }).methodologyVersion).toBe('0.3.0');
   });
 });
 
@@ -604,5 +628,140 @@ describe('disclosure generation', () => {
     expect(first).toMatch(/Registry as of 2026-03-01/);
     expect(first).toMatch(/\| B \(b\) \| solana \| sponsor \|/);
     expect(first).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+describe('metadata mutability on EVM: the surface decides, not the probe', () => {
+  const WHEN = '2026-01-01T00:00:00.000Z';
+
+  /** What applyEvmPatterns records when a call-success probe reverts. */
+  function probeMissed(patternId: string): Observation {
+    return {
+      capability: 'metadata-mutability',
+      value: null,
+      read: 'missing',
+      source: 'onchain',
+      patternId,
+      method: `${patternId}() reverted, function not present`,
+      observedAt: WHEN,
+    };
+  }
+
+  const MISSED = [probeMissed('meta-scaled-balance'), probeMissed('meta-share-balance')];
+  const NOTHING_DISPATCHED: ReadonlySet<string> = new Set<string>();
+
+  function stateOf(observations: Observation[]): string {
+    return normalise(observations, null).signals.find((s) => s.capability === 'metadata-mutability')!.state;
+  }
+  function reasoningOf(observations: Observation[]): string {
+    return normalise(observations, null).signals.find((s) => s.capability === 'metadata-mutability')!.reasoning;
+  }
+
+  it('would read ABSENT from the probes alone, which is the trap this guards', () => {
+    // Not the shipped behaviour: this is what resolveState does to two reverted
+    // probes if nothing settles the capability first. A rebasing probe missing
+    // says nothing about whether a name can be rewritten, so shipping the
+    // patterns without settleEvmMetadataMutability would have turned every
+    // non-rebasing token into a verified clean reading.
+    expect(stateOf(MISSED)).toBe('ABSENT');
+  });
+
+  it('reads ABSENT on fixed bytecode that dispatches no metadata mutator', () => {
+    const settled = settleEvmMetadataMutability(
+      MISSED,
+      { selectors: NOTHING_DISPATCHED, bytecodeFixed: true },
+      WHEN
+    );
+    expect(stateOf(settled)).toBe('ABSENT');
+    expect(reasoningOf(settled)).toMatch(/cannot be present/);
+    expect(reasoningOf(settled)).toMatch(/bytecode cannot be replaced/);
+    // The absence names how many spellings it is an absence of.
+    expect(reasoningOf(settled)).toMatch(new RegExp(String(metadataMutatorSignatures().length)));
+  });
+
+  it('stays UNKNOWN when the bytecode can be replaced', () => {
+    const settled = settleEvmMetadataMutability(
+      MISSED,
+      { selectors: NOTHING_DISPATCHED, bytecodeFixed: false },
+      WHEN
+    );
+    expect(stateOf(settled)).toBe('UNKNOWN');
+    expect(reasoningOf(settled)).toMatch(/not evidence of absence/);
+  });
+
+  it('stays UNKNOWN when the dispatch surface could not be read in full', () => {
+    expect(stateOf(settleEvmMetadataMutability(MISSED, undefined, WHEN))).toBe('UNKNOWN');
+  });
+
+  it('stays UNKNOWN when a setter is dispatched but nothing reads who holds it', () => {
+    const withSetter = new Set([selectorOf('setName(string)')]);
+    const settled = settleEvmMetadataMutability(MISSED, { selectors: withSetter, bytecodeFixed: true }, WHEN);
+    expect(stateOf(settled)).toBe('UNKNOWN');
+  });
+
+  it('leaves a positive derived-balance reading untouched', () => {
+    const found: Observation = {
+      capability: 'metadata-mutability',
+      value: 'mechanism present, currently ≈1.15e+77',
+      read: 'answered',
+      source: 'onchain',
+      patternId: 'meta-scaled-balance',
+      method: 'scaledTotalSupply() exists, so the capability is built in',
+      observedAt: WHEN,
+    };
+    const settled = settleEvmMetadataMutability([found, MISSED[1]!], { selectors: NOTHING_DISPATCHED, bytecodeFixed: true }, WHEN);
+    expect(settled).toEqual([found, MISSED[1]!]);
+    expect(stateOf(settled)).toBe('PRESENT');
+  });
+
+  it('keeps the licensing set and the gap table as one list', () => {
+    const { functions } = privilegedFunctionTable();
+    const fromTable = functions.filter((f) => f.capability === 'metadata-mutability').map((f) => f.signature);
+    expect([...metadataMutatorSignatures()].sort()).toEqual([...fromTable].sort());
+    // Every spelling the absence is an absence of is one the gap scan reports.
+    for (const signature of metadataMutatorSignatures()) {
+      expect(dispatchesMetadataMutator(new Set([selectorOf(signature)]))).toBe(true);
+    }
+    expect(dispatchesMetadataMutator(new Set([selectorOf('transfer(address,uint256)')]))).toBe(false);
+  });
+});
+
+describe('a call-success uint256 reads as a number, not as an address', () => {
+  const addr = '0x' + '1'.repeat(40);
+  const client = () => new RpcClient({ endpoints: ['https://a.invalid'] });
+  const scaled = () =>
+    pattern({
+      capability: 'metadata-mutability',
+      presenceIndicatedBy: 'call-success',
+      method: {
+        kind: 'call-selector',
+        callSelector: '0xb1bf962d',
+        signature: 'scaledTotalSupply() returns (uint256)',
+        returnType: 'uint256',
+      },
+    });
+
+  async function valueFor(word: string): Promise<string> {
+    globalThis.fetch = vi.fn(async () => jsonResponse({ jsonrpc: '2.0', id: 1, result: word })) as typeof fetch;
+    const [obs] = await applyEvmPatterns(client(), addr, [scaled()]);
+    return String(obs!.value);
+  }
+
+  it('prints a small value in full', async () => {
+    expect(await valueFor('0x' + '0'.repeat(60) + '2710')).toMatch(/currently 10000$/);
+  });
+
+  it('prints zero as zero rather than as a boolean', async () => {
+    // A call-success probe answering zero still proves the mechanism, and the
+    // reader of a rate wants "0", not "false/zero".
+    expect(await valueFor(ZERO_WORD)).toMatch(/currently 0$/);
+  });
+
+  it('prints a huge value in exponential rather than seventy digits of hex', async () => {
+    // AMPL's gon supply. Before this it rendered as 0xffffffff..., which reads
+    // as a truncated address and tells nobody anything.
+    const value = await valueFor('0x' + 'f'.repeat(64));
+    expect(value).toMatch(/currently ≈1\.16e\+77$/);
+    expect(value).not.toMatch(/0x/);
   });
 });

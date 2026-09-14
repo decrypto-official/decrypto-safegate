@@ -1,6 +1,6 @@
 # Methodology
 
-**Version 0.2.0.** Every score names the version it was computed under. The purpose of this document is to let a stranger recompute any Safegate score by hand, disagree with it precisely, and be right.
+**Version 0.3.0.** Every score names the version it was computed under. The purpose of this document is to let a stranger recompute any Safegate score by hand, disagree with it precisely, and be right.
 
 ## 1. What is measured
 
@@ -12,7 +12,7 @@ Structural capability: what powers exist over this token right now, who holds th
 |---|---|
 | `PRESENT` | The capability exists and nothing on record justifies it. |
 | `EXPECTED` | The capability exists and a reviewed registry entry justifies it for this exact address. |
-| `ABSENT` | A pattern ran and confirmed the capability is not there, or the chain's program cannot provide it. |
+| `ABSENT` | A pattern ran and confirmed the capability is not there, the chain's program cannot provide it, or the contract's whole dispatch surface was read and no mechanism for it is on there. |
 | `UNKNOWN` | We could not determine it, including when no pattern reads this capability on this chain. |
 
 `UNKNOWN` is never treated as `ABSENT`. It is excluded from the axis value and reduces coverage instead.
@@ -33,7 +33,9 @@ Every capability contributes to exactly one axis, the one where it does the most
 
 Mint and freeze act directly on holders. Upgradeability and admin authority are indirect: they grant the ability to grant the others. Transfer restriction sits on exit because being unable to sell is how a holder loses money.
 
-**Weights are relative within an axis.** The axis value is a ratio, so a weight only matters against the other capabilities on the same axis. `metadata-mutability` is the only transparency capability, so its weight of 1 does not soften it: the transparency axis reads 100 when metadata is mutable and unjustified, 0 when it is not, and n/a when it could not be read. That is what the formula produces, and this document says so rather than pretending the low weight makes the signal quiet. Adding further transparency capabilities is the fix.
+**Weights are relative within an axis.** The axis value is a ratio, so a weight only matters against the other capabilities on the same axis. `metadata-mutability` is still the only transparency capability, so its weight of 1 does not soften it: the transparency axis reads 100 when metadata is mutable and unjustified, 0 when it is not, and n/a when it could not be read. That is what the formula produces, and this document says so rather than pretending the low weight makes the signal quiet.
+
+Until 0.3.0 that axis was unreadable on Ethereum altogether: no EVM pattern read its one capability, so every Ethereum token reported transparency as n/a at 6 of 7 coverage. A scan of 52 Ethereum tokens for this version found not one exposing a name or symbol setter, so on everything measured the Solana spelling of the capability had no Ethereum counterpart to read. What the two chains do share is the other half of the capability, the half Token-2022 calls `scaledUiAmountConfig`: a balance that is computed from a factor rather than stored, so what a wallet displays moves without a transfer. That is what the EVM patterns read. A second transparency capability is still the better fix, and is still not done.
 
 ## 4. Axis value and coverage
 
@@ -81,11 +83,23 @@ A pattern says where to look for one capability on one contract shape: a storage
 | `mint-authority` | minter(), MintableToken, capped schedule, Circle's masterMinter() (since 0.4.0) | SPL mint authority |
 | `freeze-authority` | blacklist getters, three spellings (since 0.2.0 and 0.5.0) | SPL freeze authority |
 | `admin-authority` | Ownable, DSAuth, AccessControl (working since 0.2.0), timelock, proxy admin | Token-2022 confidential transfer authority |
-| `metadata-mutability` | no pattern, UNKNOWN | Metaplex update authority (read since 0.2.0), Token-2022 metadata |
+| `metadata-mutability` | derived balances: `scaledTotalSupply()`, `getTotalShares()` (since 0.3.0); absence read from the dispatch surface, below | Metaplex update authority (read since 0.2.0), Token-2022 metadata |
 | `transfer-restriction` | pausable | Token-2022 permanent delegate, transfer hook |
 | `fee-control` | Tether's basisPointsRate() (since 0.3.0); launchpad buyTotalFees() and sellTotalFees() read as values (since 0.5.0) | Token-2022 transfer fee |
 
 On a mint owned by the legacy Token program, a capability that exists only as a Token-2022 extension is recorded as `ABSENT` with the reason stated: the program has no mechanism for it, and its whole privileged surface is the two authorities the dictionary reads. That is a verified absence, not a guess.
+
+### Reading an absence from the dispatch surface
+
+Two capabilities are recorded `ABSENT` without a pattern locating anything, because the surface itself settles the question. They are not equally strong, and this document refuses to let them wear the same word silently.
+
+**Solana, since 0.2.0.** On a mint owned by the legacy Token program, a capability that exists only as a Token-2022 extension is `ABSENT`. The program has no mechanism for it; its whole privileged surface is mint authority and freeze authority, both of which were read. This is a proof from the program's design.
+
+**Ethereum, since 0.3.0, for `metadata-mutability` only.** A contract's runtime bytecode dispatches the 4-byte selector of every function it has. Where that bytecode is fixed and dispatches none of the metadata-mutating selectors the table names, the capability is recorded `ABSENT`: nothing on the contract can rewrite its metadata, and no function can be added to it.
+
+Both conditions are required, and the second is the one that does the work. A proxy, an `upgradeTo` in the bytecode, or any positive upgradeability reading all mean the code that runs can be replaced, and a contract that can grow a setter tomorrow is left `UNKNOWN` rather than called clean. So is a contract whose bytecode, or whose implementation's bytecode, could not be fetched: a surface with a hole in it looks exactly like a surface with nothing on it.
+
+**The residual, stated plainly.** The Ethereum reading is weaker than the Solana one. The dispatch surface is complete, but the list of spellings that count as a metadata mutator is ours, and cannot be proved complete. A setter under a name nobody has catalogued would read as a clean absence rather than as a gap. That is the same blind spot the gap scan declares below, with one difference that matters: here it moves an axis instead of only being reported. The list is in `src/patterns/selectors.ts`, it is the same list the gap scan reports from — so a spelling added to one tightens both — and enlarging it is the only thing that narrows this.
 
 ### Beyond the dictionary: `dictionaryGaps` and `gapScan`
 
@@ -117,5 +131,6 @@ Weights, the capability-to-axis mapping, the formula, and what counts as applica
 
 ## 12. Versions
 
+- **0.3.0** (2026-09-14). The transparency axis becomes readable on Ethereum. Two EVM patterns read derived balances as `metadata-mutability`, and that capability is recorded `ABSENT` on a contract whose bytecode is fixed and dispatches no metadata-mutating selector. 48 of 52 measured Ethereum tokens move from 6 of 7 coverage to 7 of 7 and from an n/a transparency axis to an assessed one; no control or exit value moves on any token, and Solana is untouched. Score movement is tabulated in [UPDATE.md](UPDATE.md).
 - **0.2.0** (2026-09-06). Every capability is applicable on every chain; unread ones are `UNKNOWN`. Extension-only capabilities on legacy Solana mints are verified `ABSENT`. Empty return data no longer counts as a function existing. Fixed-argument probes. The snapshot hash is canonical on both chains. Score movement is tabulated in [UPDATE.md](UPDATE.md).
 - **0.1.0** (2026-07-26). First published version.

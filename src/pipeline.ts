@@ -8,8 +8,22 @@ import { createHash } from 'node:crypto';
 import type { Chain, DictionaryGap, GapScanStatus, Observation, Score, UnverifiedReference } from './types.js';
 import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode, classifyCode } from './sources/rpc.js';
 import { solanaClient, fetchMint, fetchTokenMetadata, type TokenMetaRecord } from './sources/solana.js';
-import { loadPatterns, applyEvmPatterns, applySolanaPatterns, fillMissingCapabilities } from './patterns/resolve.js';
-import { findDictionaryGaps, implementationAddresses, type ImplementationCode } from './patterns/selectors.js';
+import {
+  loadPatterns,
+  applyEvmPatterns,
+  applySolanaPatterns,
+  fillMissingCapabilities,
+  settleEvmMetadataMutability,
+  type EvmSurface,
+} from './patterns/resolve.js';
+import {
+  findDictionaryGaps,
+  implementationAddresses,
+  extractSelectors,
+  dispatchesUpgradeFunction,
+  type ImplementationCode,
+} from './patterns/selectors.js';
+import { isPositive } from './signals/normalise.js';
 import { findExtensionGaps } from './patterns/extensions.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
 import { normalise } from './signals/normalise.js';
@@ -60,7 +74,6 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
       applyEvmPatterns(client, address, patterns),
       readErc20Symbol(client, address),
     ]);
-    observations = fillMissingCapabilities(patternReads, 'evm', patterns);
 
     symbol = symbolRead ?? entry?.symbol;
     name = entry?.name;
@@ -70,13 +83,25 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     // Read that too, or a proxied token's gap scan is empty by construction.
     // A failed read of either is a failed scan; what was read is still
     // reported.
+    //
+    // This runs before the capabilities are settled, because since 0.6.0 the
+    // dispatch surface it produces is what decides metadata mutability.
+    // `implementationAddresses` only reads observations a pattern produced, so
+    // the pattern reads alone answer it.
     const implementations: ImplementationCode[] = [];
     let implementationUnread = false;
-    for (const implementation of implementationAddresses(patterns, observations)) {
+    for (const implementation of implementationAddresses(patterns, patternReads)) {
       const code = await ethGetCode(client, implementation).catch(() => null);
       if (code === null) implementationUnread = true;
       else implementations.push({ address: implementation, bytecode: code });
     }
+
+    const surface = evmSurface(bytecode, implementations, implementationUnread, patternReads);
+    observations = fillMissingCapabilities(
+      settleEvmMetadataMutability(patternReads, surface),
+      'evm',
+      patterns
+    );
 
     if (bytecode === null) {
       gapScan = 'failed';
@@ -176,6 +201,40 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
     dictionaryGaps,
     gapScan,
   });
+}
+
+/**
+ * The contract's complete dispatch surface, or undefined if it is not complete.
+ *
+ * Undefined whenever anything behind it failed to read: no bytecode, or an
+ * implementation we know about but could not fetch. A surface with a hole in
+ * it looks exactly like a surface with nothing in it, and the difference is
+ * the whole value of the absence it would license.
+ *
+ * `bytecodeFixed` is deliberately pessimistic. Three independent things each
+ * make it false, because each is a way the code that runs could change, and
+ * being wrong in this direction only costs coverage while being wrong in the
+ * other publishes a clean reading of a token that can rewrite itself.
+ */
+function evmSurface(
+  bytecode: string | null,
+  implementations: ImplementationCode[],
+  implementationUnread: boolean,
+  patternReads: Observation[]
+): EvmSurface | undefined {
+  if (bytecode === null || implementationUnread) return undefined;
+
+  const selectors = new Set<string>(extractSelectors(bytecode));
+  for (const impl of implementations) {
+    for (const selector of extractSelectors(impl.bytecode)) selectors.add(selector);
+  }
+
+  const upgradeable =
+    implementations.length > 0 ||
+    patternReads.some((o) => o.capability === 'upgradeability' && isPositive(o.value)) ||
+    dispatchesUpgradeFunction(selectors);
+
+  return { selectors, bytecodeFixed: !upgradeable };
 }
 
 /**

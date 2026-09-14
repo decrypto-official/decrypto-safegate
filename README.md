@@ -4,7 +4,7 @@ An open, reproducible way to read what a crypto token can do to you.
 
 Safegate reads a token's structure directly from the chain, scores it on three axes, and always says how much of the token it could check. Every score can be recomputed by a stranger from public inputs.
 
-Ethereum and Solana. A pattern dictionary, a reviewed registry, a CLI and a dashboard. `npm run validate` prints the current pattern and registry counts. Methodology 0.2.0; changes are in [UPDATE.md](UPDATE.md).
+Ethereum and Solana. A pattern dictionary, a reviewed registry, a CLI and a dashboard. `npm run validate` prints the current pattern and registry counts. Methodology 0.3.0; changes are in [UPDATE.md](UPDATE.md).
 
 ## Why
 
@@ -87,7 +87,7 @@ Two rules shape everything. **Absence is never safety**: what we could not check
 
 USDC on Ethereum reads as not upgradeable through the standard EIP-1967 slot; it uses the older zeppelinos slot. UNI's `owner()` reverts, so Ownable is not its design and its admin is `minter()`; a token whose `owner()` answers the zero address is the renounced one, and the two are said differently. WETH9 answers every function selector with empty data, which read as "every function exists" until 0.2.0. Knowing which slot and which selector, for which contract shape, is what commercial scanners accumulated privately. Publishing it is the point, and every case above is locked in the test suite.
 
-Where no pattern reads a capability, the score says so and the coverage figure drops. Where a contract exposes a privileged function the dictionary cannot read, it is reported as a `dictionaryGaps` entry, never folded into the score.
+Ethereum has no name setter to read: of 52 tokens scanned for 0.6.0, not one exposed `setName` or any spelling of it, so metadata mutability is read there as the other half of the capability, a balance computed from a factor rather than stored, and as a verified absence on a contract whose fixed bytecode dispatches no setter at all. Where no pattern reads a capability, the score says so and the coverage figure drops. Where a contract exposes a privileged function the dictionary cannot read, it is reported as a `dictionaryGaps` entry, never folded into the score.
 
 ## What it cannot do
 
