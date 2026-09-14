@@ -132,10 +132,85 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
 
   // Metadata. Rarer on a plain ERC-20 than on an NFT, but a mutable URI is how
   // a token's public identity gets rewritten after people have looked at it.
+  //
+  // This block carries a second job since 0.6.0: it is the set that decides
+  // whether metadata mutability can be read ABSENT on a contract whose
+  // bytecode is fixed. See METADATA_MUTATORS below. A spelling missing from
+  // here is not only an unreported gap, it is a false clean reading, so the
+  // bar for leaving one out is higher than for the other capabilities.
   { signature: 'setBaseURI(string)', capability: 'metadata-mutability', implies: 'token metadata can be repointed' },
   { signature: 'setTokenURI(uint256,string)', capability: 'metadata-mutability', implies: 'the metadata of a specific token can be rewritten' },
   { signature: 'setContractURI(string)', capability: 'metadata-mutability', implies: 'contract-level metadata can be rewritten' },
+  // The ERC-20 spellings. None of these appeared on any of the 52 Ethereum
+  // tokens scanned for 0.6.0, which is the finding that made ABSENT readable;
+  // they are listed because the absence has to be an absence of something
+  // named, and because a token that does carry one must not read clean.
+  { signature: 'setName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'setSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'setNameAndSymbol(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  { signature: 'setTokenInformation(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  // The write half of the derived-balance mechanism meta-scaled-balance reads.
+  { signature: 'rebase(uint256,int256)', capability: 'metadata-mutability', implies: 'every holder’s displayed balance can be rescaled in one call' },
 ];
+
+/**
+ * The selectors whose absence lets metadata mutability be read ABSENT.
+ *
+ * Derived from the table above rather than listed again, so the set that
+ * reports a gap and the set that licenses an absence can never drift apart.
+ * Adding a metadata spelling to PRIVILEGED_FUNCTIONS tightens both at once;
+ * forgetting one loosens both, which is the honest coupling.
+ */
+const METADATA_MUTATORS: readonly string[] = PRIVILEGED_FUNCTIONS.filter(
+  (fn) => fn.capability === 'metadata-mutability'
+).map((fn) => fn.signature);
+
+/**
+ * Capability -> the selectors this table holds for it. Built once from keccak
+ * at module load, like BY_SELECTOR, rather than hashing the table again on
+ * every call.
+ */
+const SELECTORS_BY_CAPABILITY: Map<Capability, Set<string>> = PRIVILEGED_FUNCTIONS.reduce(
+  (acc, fn) => acc.set(fn.capability, (acc.get(fn.capability) ?? new Set()).add(selectorOf(fn.signature))),
+  new Map<Capability, Set<string>>()
+);
+
+/** Does this surface dispatch any table function for the given capability? */
+function dispatchesAnyFor(selectors: ReadonlySet<string>, capability: Capability): boolean {
+  const wanted = SELECTORS_BY_CAPABILITY.get(capability);
+  if (!wanted) return false;
+  for (const selector of wanted) if (selectors.has(selector)) return true;
+  return false;
+}
+
+/**
+ * Does this contract dispatch any function that could rewrite its metadata?
+ *
+ * `true` means one is dispatched and the capability is live surface. `false`
+ * means none of the spellings we know is there — which licenses an ABSENT
+ * reading only when the bytecode is also fixed, because a contract that can be
+ * upgraded can grow one tomorrow. The caller owns that second condition.
+ */
+export function dispatchesMetadataMutator(selectors: ReadonlySet<string>): boolean {
+  return dispatchesAnyFor(selectors, 'metadata-mutability');
+}
+
+/**
+ * Does this contract dispatch a function that can replace the code that runs?
+ *
+ * Used to decide whether bytecode counts as fixed. Deliberately independent of
+ * the proxy-slot patterns: a contract can carry `upgradeTo` without any slot
+ * this dictionary reads, and treating that as fixed would license an absence
+ * on a contract that can grow the very function the absence denies.
+ */
+export function dispatchesUpgradeFunction(selectors: ReadonlySet<string>): boolean {
+  return dispatchesAnyFor(selectors, 'upgradeability');
+}
+
+/** The metadata spellings the absence reading is an absence of, for docs and tests. */
+export function metadataMutatorSignatures(): readonly string[] {
+  return METADATA_MUTATORS;
+}
 
 /**
  * Capabilities with no EVM function surface worth scanning for.

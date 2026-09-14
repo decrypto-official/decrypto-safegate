@@ -11,6 +11,10 @@ import { join } from 'node:path';
 import type { Capability, ChainFamily, Observation } from '../types.js';
 import { capabilitySchema } from '../scoring/schema.js';
 import { RpcClient, ethCall, ethGetStorageAt, wordToAddress, isBurnAddress } from '../sources/rpc.js';
+// selectors.ts imports Pattern from this file as a type only, so it is erased
+// and these value imports create no runtime cycle.
+import { dispatchesMetadataMutator, metadataMutatorSignatures } from './selectors.js';
+import { isPositive } from '../signals/normalise.js';
 import { findDataDir, DataRootError } from '../data-root.js';
 
 export interface PatternMethod {
@@ -275,7 +279,7 @@ export async function applyEvmPatterns(
         let note: string = label;
 
         if (pattern.presenceIndicatedBy === 'call-success') {
-          value = `mechanism present, currently ${summarise(result.data)}`;
+          value = `mechanism present, currently ${summarise(result.data, method.returnType)}`;
           note = `${label} exists, so the capability is built in`;
         } else if (method.returnType === 'address') {
           const addr = wordToAddress(result.data);
@@ -394,6 +398,99 @@ export interface FillContext {
 }
 
 /**
+ * The complete dispatch surface of an EVM contract.
+ *
+ * Built only when every read behind it succeeded: the contract's own runtime
+ * bytecode and, for a proxy, the bytecode of each implementation it points at.
+ * A partial surface cannot support an absence, so the caller passes nothing
+ * rather than something incomplete.
+ */
+export interface EvmSurface {
+  /** Every 4-byte selector the contract can dispatch, its implementations included. */
+  selectors: ReadonlySet<string>;
+  /**
+   * False when the code that runs can be replaced: a proxy slot that points
+   * somewhere, an upgrade function in the bytecode, or any positive
+   * upgradeability reading. Nothing may be concluded from a selector missing
+   * on a contract that can grow one tomorrow.
+   */
+  bytecodeFixed: boolean;
+}
+
+/**
+ * Settle metadata mutability on EVM from the contract's dispatch surface.
+ *
+ * This exists because of an interaction that would otherwise ship a false
+ * clean reading. The dictionary's two EVM metadata patterns read derived
+ * balances — `scaledTotalSupply()` and `getTotalShares()` — and a pattern that
+ * reverts records `value: null`, which `resolveState` treats as ABSENT. So
+ * simply adding those patterns would make every token that is not a rebasing
+ * token report metadata mutability as verified absent, on the strength of two
+ * probes for a mechanism it was never likely to have. That is precisely the
+ * "absence is never safety" failure the project exists to prevent, arriving as
+ * a side effect rather than a decision.
+ *
+ * The rule instead:
+ *
+ *  - Any probe that positively found a derived balance wins. The capability is
+ *    PRESENT and nothing here touches it.
+ *  - Otherwise those probes are treated as inconclusive, because a token that
+ *    does not rebase has been told nothing about whether its name can be
+ *    rewritten. Their observations keep their method note for the record and
+ *    lose their value, so they no longer force an absence.
+ *  - The absence, when it is licensed at all, comes from the dispatch surface:
+ *    a contract whose bytecode is fixed and which dispatches none of the
+ *    metadata-mutating selectors the table names cannot have one, because
+ *    fixed bytecode enumerates every function it can dispatch.
+ *
+ * The residual is real and stated everywhere it matters: the surface is
+ * complete, but our list of spellings for what counts as a metadata mutator is
+ * not provably so. A setter under a name nobody has catalogued reads as a
+ * clean absence. That is weaker than the Solana legacy-mint absence, which
+ * rests on a program having no such mechanism at all, and METHODOLOGY §7 and
+ * LIMITATIONS say so rather than letting the two wear the same word silently.
+ */
+export function settleEvmMetadataMutability(
+  observations: Observation[],
+  surface: EvmSurface | undefined,
+  now: string = new Date().toISOString()
+): Observation[] {
+  const meta = observations.filter((o) => o.capability === 'metadata-mutability');
+  if (meta.length === 0) return observations;
+  if (meta.some((o) => isPositive(o.value))) return observations;
+
+  const out = observations.map((o) =>
+    o.capability === 'metadata-mutability'
+      ? {
+          ...o,
+          value: undefined,
+          method:
+            `${o.method ?? 'probe found nothing'}; a derived-balance probe finding nothing ` +
+            `does not settle whether this token's metadata can be rewritten`,
+        }
+      : o
+  );
+
+  const licensed =
+    surface !== undefined && surface.bytecodeFixed && !dispatchesMetadataMutator(surface.selectors);
+
+  if (licensed) {
+    out.push({
+      capability: 'metadata-mutability',
+      value: null,
+      read: 'answered',
+      source: 'onchain',
+      method:
+        `the contract dispatches none of the ${metadataMutatorSignatures().length} metadata-mutating ` +
+        'functions the dictionary knows, and its bytecode cannot be replaced, so none can be added',
+      observedAt: now,
+    });
+  }
+
+  return out;
+}
+
+/**
  * Give every capability the methodology defines an observation.
  *
  * A capability with no pattern on this chain family used to produce no
@@ -406,6 +503,12 @@ export interface FillContext {
  * owned by the legacy Token program, a capability that only exists as a
  * Token-2022 extension cannot be present. The program has no mechanism for
  * it. Those are recorded as ABSENT with the reason stated.
+ *
+ * EVM has an absence of its own since 0.6.0, for metadata mutability, but it
+ * is not reached from here: every capability has an EVM pattern now, so
+ * nothing on that chain family is unseen by the time this runs.
+ * `settleEvmMetadataMutability` above owns it, and says why it is the weaker
+ * of the two.
  */
 export function fillMissingCapabilities(
   observations: Observation[],
@@ -440,6 +543,7 @@ export function fillMissingCapabilities(
       });
       continue;
     }
+
 
     out.push({
       capability,
@@ -568,9 +672,21 @@ function readPath(root: Record<string, unknown>, path: string): unknown {
 }
 
 /** Compact description of a raw return word, for the observation note. */
-function summarise(data: string): string {
+function summarise(data: string, returnType?: string): string {
   const clean = data.replace(/^0x/, '');
   if (clean.length === 0) return 'nothing';
+
+  // A number reads as a number. The first eight hex digits of a uint256 say
+  // nothing to anyone — worse, they look like an address — and two of the
+  // patterns on this path return rates a reader can act on. Very large values
+  // go to exponential rather than seventy-odd digits: stETH's share total and
+  // AMPL's gon supply are proof the call answered, not figures to read off.
+  if (returnType === 'uint256') {
+    const n = BigInt(`0x${clean}`);
+    if (n === 0n) return '0';
+    return n < 10n ** 15n ? n.toString() : `≈${Number(n).toExponential(2)}`;
+  }
+
   if (/^0+$/.test(clean)) return 'false/zero';
   return `0x${clean.slice(0, 8)}...`;
 }

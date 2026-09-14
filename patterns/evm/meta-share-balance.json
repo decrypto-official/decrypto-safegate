@@ -1,0 +1,31 @@
+{
+  "id": "meta-share-balance",
+  "title": "Derived balances, getTotalShares()",
+  "chainFamily": "evm",
+  "capability": "metadata-mutability",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xd5002f2e",
+    "signature": "getTotalShares() returns (uint256)",
+    "returnType": "uint256"
+  },
+  "detects": "The share-based spelling of derived balances, as Lido's stETH writes it. The contract stores a share count per holder and reports balanceOf as that share multiplied by the pooled total over the share total, so the getter answering proves the figure a wallet shows is computed rather than stored.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "The same caveat as meta-scaled-balance: this reads the accounting shape, not who moves the factor. On stETH the pooled total tracks validator rewards reported by an oracle quorum, which is not one address rewriting a balance at will. A rebasing token spelling the getter a third way reads absent, as every dictionary entry does until its spelling is added.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+      "symbol": "stETH",
+      "observed": "getTotalShares() and getTotalPooledEther() both answer through the Aragon proxy; scaledTotalSupply() reverts",
+      "verifiedAt": "2026-09-14"
+    }
+  ],
+  "rationale": "stETH is the largest token on Ethereum whose displayed balance moves without a transfer, and meta-scaled-balance does not read it: it answers getTotalShares(), not scaledTotalSupply(). Its implementation also sits behind an Aragon proxy that neither the EIP-1967 nor the zeppelinos slot points at, so the gap scan cannot see its selectors either. Without this file the clearest case of a derived balance on Ethereum reads as having nothing on the transparency axis.",
+  "references": [
+    "https://github.com/lidofinance/lido-dao/blob/master/contracts/0.4.24/StETH.sol"
+  ],
+  "addedAt": "2026-09-14",
+  "addedBy": "decrypto"
+}

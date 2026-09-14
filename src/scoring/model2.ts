@@ -13,7 +13,7 @@
 import type { Axis, AxisResult, Disagreement, DictionaryGap, GapScanStatus, Score, Signal, UnverifiedReference, Chain } from '../types.js';
 import { CAPABILITY_WEIGHT } from '../signals/normalise.js';
 
-export const METHODOLOGY_VERSION = '0.2.0';
+export const METHODOLOGY_VERSION = '0.3.0';
 
 const AXES: Axis[] = ['control', 'transparency', 'exit'];
 

@@ -182,9 +182,13 @@ function explain(
       return `${cap(label)} is present (${describe(found)}). No registry entry justifies it for this token.`;
 
     case 'ABSENT': {
-      // A structural absence recorded without a pattern carries its own reason.
-      const structural = onchain.length === 1 && !onchain[0]!.patternId && onchain[0]!.method;
-      if (structural) return `${cap(label)} cannot be present: ${onchain[0]!.method}.`;
+      // A structural absence recorded without a pattern carries its own reason,
+      // and it outranks whatever the patterns beside it did. On Solana it is
+      // the only observation; on EVM the metadata surface reading sits next to
+      // the derived-balance probes that were neutralised, so it is found by
+      // shape rather than by being alone.
+      const structural = onchain.find((o) => !o.patternId && o.value === null && o.method);
+      if (structural) return `${cap(label)} cannot be present: ${structural.method}.`;
       const checked = onchain.filter((o) => o.value !== undefined).length;
       // A getter that answered a definite nothing is stronger than "no pattern
       // located it", and the difference matters: owner() answering the zero

@@ -1,0 +1,40 @@
+{
+  "id": "meta-scaled-balance",
+  "title": "Derived balances, scaledTotalSupply()",
+  "chainFamily": "evm",
+  "capability": "metadata-mutability",
+  "method": {
+    "kind": "call-selector",
+    "callSelector": "0xb1bf962d",
+    "signature": "scaledTotalSupply() returns (uint256)",
+    "returnType": "uint256"
+  },
+  "detects": "A token whose balances are not stored but computed. The contract keeps a scaled internal quantity per holder and multiplies it by a factor to produce the figure balanceOf returns, so this getter answering at all proves the accounting shape. What a wallet displays is derived, and it moves without any transfer taking place.",
+  "nonEmptyMeans": "capability-present",
+  "presenceIndicatedBy": "call-success",
+  "knownFalseNegative": "This reads the accounting shape, not who moves the factor. On an Aave aToken the factor is the pool's liquidity index and moves with market interest; on AMPL it is set by a monetary-policy contract; a Token-2022 scaledUiAmountConfig mint has a literal authority who can set it at will, including future-dated. All three make the displayed number derived, which is what the transparency axis asks about, but only the last is a power one address holds. Reading this signal as 'someone can rewrite your balance' overstates the first two. A share-based token using a different getter reads absent: stETH is the case, and meta-share-balance reads it.",
+  "coversExamples": [
+    {
+      "chain": "ethereum",
+      "address": "0xD46bA6D942050d489DBd938a2C909A5d5039A161",
+      "symbol": "AMPL",
+      "observed": "scaledTotalSupply() answers the total gon supply; rebase(uint256,int256) is dispatched in the bytecode",
+      "verifiedAt": "2026-09-14"
+    },
+    {
+      "chain": "ethereum",
+      "address": "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c",
+      "symbol": "aEthUSDC",
+      "observed": "scaledTotalSupply() answers; balanceOf multiplies the scaled balance by the pool's liquidity index",
+      "verifiedAt": "2026-09-14"
+    }
+  ],
+  "rationale": "Before this pattern the transparency axis was unreadable on Ethereum: metadata-mutability was its only capability, no EVM pattern read it, and every Ethereum token reported the axis as n/a at 6 of 7 coverage. A scan of 52 Ethereum tokens found no contract exposing a name or symbol setter, so the Solana spelling of the capability has no Ethereum counterpart to read. The counterpart that does exist is the one Token-2022 calls scaledUiAmountConfig, already mapped to this capability on Solana: a balance that is computed from a factor rather than stored. Without this file the largest rebasing tokens on Ethereum report nothing on the axis that asks what a holder can check for themselves.",
+  "references": [
+    "https://github.com/ampleforth/ampleforth-contracts/blob/master/contracts/UFragments.sol",
+    "https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol",
+    "https://spl.solana.com/token-2022/extensions#scaled-ui-amount"
+  ],
+  "addedAt": "2026-09-14",
+  "addedBy": "decrypto"
+}

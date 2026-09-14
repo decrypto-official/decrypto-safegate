@@ -8,9 +8,60 @@ Versions follow [semver](https://semver.org). Since the score is the product:
 - **minor**: new patterns, new registry entries, new capability coverage
 - **patch**: bug fixes, docs, tooling
 
-The methodology carries its own version in `METHODOLOGY.md`, currently 0.2.0. Any change to weights, the capability-to-axis mapping, or the formula bumps that too, and must publish which scores move as a result.
+The methodology carries its own version in `METHODOLOGY.md`, currently 0.3.0. Any change to weights, the capability-to-axis mapping, or the formula bumps that too, and must publish which scores move as a result.
 
 Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog](https://keepachangelog.com).
+
+---
+
+## 0.6.0, 2026-09-14
+
+The transparency axis becomes readable on Ethereum. Until now `metadata-mutability` was its only capability, no EVM pattern read it, and every Ethereum token published an n/a transparency axis at 6 of 7 coverage: a third of the output blank on the larger chain. Methodology 0.3.0.
+
+Every number below comes from scoring the registry seed set and the 40-token launch-week sample on 0.5.1 and on this version, live, the same day, plus two rebasing tokens that are in neither set.
+
+### Added
+
+**Two EVM patterns for derived balances.** `meta-scaled-balance` reads `scaledTotalSupply()` and `meta-share-balance` reads `getTotalShares()`, both as `call-success`: the getter answering proves the contract computes balances from a factor rather than storing them, so what a wallet displays moves without a transfer. This is the capability Token-2022 calls `scaledUiAmountConfig`, which the Solana side has mapped to `metadata-mutability` since 0.2.0; Ethereum now reads the same thing under the same name. Verified on AMPL and Aave's aEthUSDC for the first, stETH for the second, with USDC, UNI and WETH9 as negatives.
+
+Neither pattern claims more than it reads, and both say so in `knownFalseNegative`: an aToken's factor is the pool's liquidity index and moves with market interest, AMPL's is set by a monetary-policy contract, and only a Token-2022 mint has a literal authority who can set the multiplier at will. All three make the displayed number derived, which is what the transparency axis asks about. Only the last is a power one address holds.
+
+**`metadata-mutability` can now read ABSENT on Ethereum.** Where a contract's bytecode is fixed and dispatches none of the metadata-mutating selectors the table names, there is nothing on it that can rewrite its metadata and nothing can be added. Both conditions are required: a proxy, an `upgradeTo` in the bytecode, or any positive upgradeability reading leaves the capability UNKNOWN, because code that can be replaced can grow a setter tomorrow. So does a bytecode read that failed, since a surface with a hole in it looks exactly like a surface with nothing on it.
+
+The finding behind this: a scan of all 52 Ethereum tokens in the seed set and the sample, following proxies through both the EIP-1967 and zeppelinos slots, found **not one** exposing `setName`, `setSymbol`, `setNameAndSymbol`, `setTokenInformation`, `setBaseURI`, `setTokenURI` or `setContractURI`. There was no Ethereum metadata setter to write a pattern for. The scan's controls found USDT's `setParams`, WBTC's `mintingFinished`, BAYC's `setBaseURI`, and USDC's implementation behind the zeppelinos slot, so the null is a null and not a broken scan.
+
+**Five metadata spellings in the privileged-function table**, plus `rebase(uint256,int256)`. The table is now doing two jobs: it reports gaps, and it is the list the absence above is an absence of. Those are deliberately the same list, derived in code rather than written twice, so a spelling added to one tightens both.
+
+### Fixed
+
+**A call-success `uint256` read as a truncated address.** `summarise` rendered any non-zero word as its first eight hex digits, so AMPL's gon supply came out as "currently 0xffffffff...", which tells a reader nothing and looks like an address. A `uint256` now prints as a number: in full below 10^15, in exponential above it. USDT's fee switch reads "currently 0" instead of "currently false/zero".
+
+### Which scores move
+
+Seed set and sample, 0.5.1 to 0.6.0, 52 Ethereum tokens and 9 Solana tokens.
+
+| Tokens | 0.5.1 | 0.6.0 | Why |
+|---|---|---|---|
+| 48 of the 52 Ethereum | transparency n/a, 6/7 | transparency **0**, **7/7** | metadata mutability UNKNOWN to ABSENT: fixed bytecode, no setter dispatched |
+| AAVE, USDC, H, PRD | transparency n/a, 6/7 | unchanged | proxied, so the absence is refused and the capability stays UNKNOWN |
+| all 9 Solana | unchanged | unchanged | no Solana reading, hash or value changed |
+
+**No control value and no exit value moves on any token, and no gap list changes.** The only axis affected is transparency, and where it became assessed it reads 0 on every one of the 52 — none of them is a rebasing token. The positives live outside both sets:
+
+| Token | control | transparency | exit | coverage | via |
+|---|---|---|---|---|---|
+| AMPL | 44 | 100 | 0 | 7/7 | `meta-scaled-balance` |
+| stETH | 0 | 100 | 0 | 7/7 | `meta-share-balance` |
+
+The snapshot hash moves on all 52 Ethereum tokens, because every one of them now carries the two new probe observations. On the two that answer a `call-success` `uint256` getter it moves for a second reason as well: USDT's fee switch now records "currently 0" and ENS's capped schedule "currently 1667336117", where both previously recorded eight hex digits. No Solana hash moves. Scores published under 0.2.0 still verify against themselves: `safegate verify` recomputes a file's hash from that file's own observations, and marks axes as not checkable across methodology versions rather than comparing them against the wrong formula.
+
+### Not done
+
+**The transparency axis still rests on one capability**, and that is still the real fix. It is now readable on both chains rather than one, which was the blocker; a second capability is the next question, and nothing here answers it.
+
+The ABSENT reading is **weaker than the Solana legacy-mint absence it is modelled on**, and METHODOLOGY §7 says so where a reader will meet it. Solana's rests on a program that has no such mechanism; this one rests on our list of setter spellings being complete, which cannot be proved. A setter under a name nobody has catalogued reads as a clean absence rather than as a gap. That is the same residual the gap scan has always declared, with the difference that it now moves an axis instead of only being reported, which is why the list is derived from the gap table rather than kept beside it.
+
+Third-party corroboration is still not wired. Ethereum still has no pattern for fee control beyond Tether's and the launchpad template's.
 
 ---
 
