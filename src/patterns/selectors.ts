@@ -165,11 +165,22 @@ const METADATA_MUTATORS: readonly string[] = PRIVILEGED_FUNCTIONS.filter(
   (fn) => fn.capability === 'metadata-mutability'
 ).map((fn) => fn.signature);
 
+/**
+ * Capability -> the selectors this table holds for it. Built once from keccak
+ * at module load, like BY_SELECTOR, rather than hashing the table again on
+ * every call.
+ */
+const SELECTORS_BY_CAPABILITY: Map<Capability, Set<string>> = PRIVILEGED_FUNCTIONS.reduce(
+  (acc, fn) => acc.set(fn.capability, (acc.get(fn.capability) ?? new Set()).add(selectorOf(fn.signature))),
+  new Map<Capability, Set<string>>()
+);
+
 /** Does this surface dispatch any table function for the given capability? */
 function dispatchesAnyFor(selectors: ReadonlySet<string>, capability: Capability): boolean {
-  return PRIVILEGED_FUNCTIONS.some(
-    (fn) => fn.capability === capability && selectors.has(selectorOf(fn.signature))
-  );
+  const wanted = SELECTORS_BY_CAPABILITY.get(capability);
+  if (!wanted) return false;
+  for (const selector of wanted) if (selectors.has(selector)) return true;
+  return false;
 }
 
 /**

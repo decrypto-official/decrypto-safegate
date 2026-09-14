@@ -53,7 +53,7 @@ Seed set and sample, 0.5.1 to 0.6.0, 52 Ethereum tokens and 9 Solana tokens.
 | AMPL | 44 | 100 | 0 | 7/7 | `meta-scaled-balance` |
 | stETH | 0 | 100 | 0 | 7/7 | `meta-share-balance` |
 
-The snapshot hash moves on all 52 Ethereum tokens, because every one of them now carries the two new probe observations, and on USDT also because of the `uint256` rendering fix. No Solana hash moves. Scores published under 0.2.0 still verify against themselves: `safegate verify` recomputes a file's hash from that file's own observations, and marks axes as not checkable across methodology versions rather than comparing them against the wrong formula.
+The snapshot hash moves on all 52 Ethereum tokens, because every one of them now carries the two new probe observations. On the two that answer a `call-success` `uint256` getter it moves for a second reason as well: USDT's fee switch now records "currently 0" and ENS's capped schedule "currently 1667336117", where both previously recorded eight hex digits. No Solana hash moves. Scores published under 0.2.0 still verify against themselves: `safegate verify` recomputes a file's hash from that file's own observations, and marks axes as not checkable across methodology versions rather than comparing them against the wrong formula.
 
 ### Not done
 

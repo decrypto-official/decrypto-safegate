@@ -23,10 +23,9 @@ import {
   dispatchesUpgradeFunction,
   type ImplementationCode,
 } from './patterns/selectors.js';
-import { isPositive } from './signals/normalise.js';
 import { findExtensionGaps } from './patterns/extensions.js';
 import { loadRegistry, findEntry, isStale } from './registry/lookup.js';
-import { normalise } from './signals/normalise.js';
+import { normalise, isPositive } from './signals/normalise.js';
 import { score } from './scoring/model2.js';
 import { UnscoreableAddressError } from './errors.js';
 

@@ -418,33 +418,6 @@ export interface EvmSurface {
 }
 
 /**
- * Give every capability the methodology defines an observation.
- *
- * A capability with no pattern on this chain family used to produce no
- * observation, so it never entered the applicable count and coverage read
- * 4 of 4 when the dictionary could see 4 of 7. Since methodology 0.2.0 it is
- * emitted as UNKNOWN: "no pattern reads this here", which costs coverage and
- * stays visible.
- *
- * One exception, and it is a verified absence rather than a guess: on a mint
- * owned by the legacy Token program, a capability that only exists as a
- * Token-2022 extension cannot be present. The program has no mechanism for
- * it. Those are recorded as ABSENT with the reason stated.
- *
- * Since 0.6.0 there is a second exception on EVM, and it is deliberately
- * narrower because the argument behind it is weaker. Metadata mutability
- * reads ABSENT when the contract's bytecode is fixed and dispatches none of
- * the metadata-mutating selectors the table names. Fixed bytecode does
- * enumerate every function a contract can dispatch, so this is a real reading
- * of a real surface — but where the Solana case rests on a program that has
- * no mechanism at all, this one rests on our list of spellings being
- * complete, which cannot be proved. A setter under a name nobody has seen
- * would read as a clean absence. METHODOLOGY §7 and LIMITATIONS §5 state that
- * residual; it is the price of the transparency axis being readable on
- * Ethereum at all, and it is why the two conditions are both required:
- * an upgradeable contract can grow a setter tomorrow, so it stays UNKNOWN.
- */
-/**
  * Settle metadata mutability on EVM from the contract's dispatch surface.
  *
  * This exists because of an interaction that would otherwise ship a false
@@ -517,6 +490,26 @@ export function settleEvmMetadataMutability(
   return out;
 }
 
+/**
+ * Give every capability the methodology defines an observation.
+ *
+ * A capability with no pattern on this chain family used to produce no
+ * observation, so it never entered the applicable count and coverage read
+ * 4 of 4 when the dictionary could see 4 of 7. Since methodology 0.2.0 it is
+ * emitted as UNKNOWN: "no pattern reads this here", which costs coverage and
+ * stays visible.
+ *
+ * One exception, and it is a verified absence rather than a guess: on a mint
+ * owned by the legacy Token program, a capability that only exists as a
+ * Token-2022 extension cannot be present. The program has no mechanism for
+ * it. Those are recorded as ABSENT with the reason stated.
+ *
+ * EVM has an absence of its own since 0.6.0, for metadata mutability, but it
+ * is not reached from here: every capability has an EVM pattern now, so
+ * nothing on that chain family is unseen by the time this runs.
+ * `settleEvmMetadataMutability` above owns it, and says why it is the weaker
+ * of the two.
+ */
 export function fillMissingCapabilities(
   observations: Observation[],
   family: ChainFamily,
