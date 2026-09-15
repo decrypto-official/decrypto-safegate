@@ -31,6 +31,7 @@ import { score } from '../src/scoring/model2.js';
 import { isStale, expectationFor, type RegistryEntry } from '../src/registry/lookup.js';
 import { renderDisclosure } from '../src/cli/disclosure.js';
 import { verifyScore, canonical } from '../src/cli/verify.js';
+import { classify, isFalseClean } from '../src/cli/sweep.js';
 import type { Observation } from '../src/types.js';
 
 const originalFetch = globalThis.fetch;
@@ -763,5 +764,52 @@ describe('a call-success uint256 reads as a number, not as an address', () => {
     const value = await valueFor('0x' + 'f'.repeat(64));
     expect(value).toMatch(/currently ≈1\.16e\+77$/);
     expect(value).not.toMatch(/0x/);
+  });
+});
+
+describe('the sweep that keeps the metadata list honest', () => {
+  const SHIPPED = new Set(metadataMutatorSignatures());
+
+  it('separates what the table knows from what it does not', () => {
+    const { known, novel } = classify(['setName(string)', 'someUnadoptedThing(string)'], SHIPPED);
+    expect(known).toEqual(['setName(string)']);
+    expect(novel).toEqual(['someUnadoptedThing(string)']);
+  });
+
+  it('calls a hit a false clean reading only when the table missed it and the code is fixed', () => {
+    const base = { symbol: 'X', address: '0x' + '1'.repeat(40) };
+    // The failure that matters: nothing in the table caught it, and the
+    // bytecode cannot change, so the score publishes "cannot be present".
+    expect(isFalseClean({ ...base, upgradeable: false, known: [], novel: ['setThing(string)'] })).toBe(true);
+    // Caught by the table: reported as a gap, capability UNKNOWN. Working.
+    expect(isFalseClean({ ...base, upgradeable: false, known: ['setName(string)'], novel: [] })).toBe(false);
+    // Upgradeable: the absence is refused anyway, so a missed spelling is free.
+    expect(isFalseClean({ ...base, upgradeable: true, known: [], novel: ['setThing(string)'] })).toBe(false);
+    // Nothing found at all is not a finding.
+    expect(isFalseClean({ ...base, upgradeable: false, known: [], novel: [] })).toBe(false);
+  });
+
+  it('carries the spellings the 2026-09 sweep found on live tokens', () => {
+    // Each of these read as a verified clean absence until it was adopted.
+    // They are asserted by name so removing one fails here rather than in a
+    // score a reader believes.
+    for (const signature of [
+      'setTokenURI(string)',
+      'setNameSymbol(string,string)',
+      'changeNameAndSymbol(string,string)',
+      'rebase(uint256)',
+      'updateName(string)',
+      'updateSymbol(string)',
+      'updateNameAndSymbol(string,string)',
+    ]) {
+      expect(SHIPPED).toContain(signature);
+      expect(dispatchesMetadataMutator(new Set([selectorOf(signature)]))).toBe(true);
+    }
+  });
+
+  it('licenses an absence off a wider list than 0.6.0 shipped', () => {
+    // 0.6.0 had 8. The point of the sweep is that 8 was not enough, and a
+    // shrinking list is a regression in the one place absence is scored.
+    expect(SHIPPED.size).toBeGreaterThan(8);
   });
 });

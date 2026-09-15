@@ -35,6 +35,11 @@ const WBTC_ETH = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
 const ENS_ETH = '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72';
 const AMPL_ETH = '0xD46bA6D942050d489DBd938a2C909A5d5039A161';
 const STETH_ETH = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
+// Found by the 0.7.0 sweep. Each published a verified clean absence on 0.6.0
+// while its own bytecode dispatched a setter the table had never been told about.
+const OFC_ETH = '0x9cb7a4ef0cae65b07362bc679a0b874041e3da53';
+const PANDORA_ETH = '0x9e9fbde7c7a83c43913bddc8779158f1368f0413';
+const IMD_ETH = '0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7';
 const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const RAY_SOL = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
 const PYUSD_SOL = '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo';
@@ -192,6 +197,47 @@ describeLive('the transparency axis on Ethereum', () => {
       expect(signal!.reasoning).toMatch(/not evidence of absence/);
       expect(result.axes.transparency.assessed).toBe(false);
       expect(result.coverage.scored).toBeLessThan(result.coverage.applicable);
+    },
+    TIMEOUT
+  );
+});
+
+describeLive('0.7.0: the spellings the sweep found', () => {
+  // The guard in 0.6.0 was right in shape and wrong in reach: the absence is
+  // only as good as the list it is an absence of, and two 400-token sweeps
+  // each turned up spellings nobody had written down. These four tokens are
+  // the proof, and the reason the list is measured rather than reasoned about.
+  const cases: [string, string, string][] = [
+    ['OFC', OFC_ETH, 'setTokenURI(string)'],
+    ['PANDORA', PANDORA_ETH, 'setNameSymbol(string,string)'],
+    ['IMD', IMD_ETH, 'updateNameAndSymbol(string,string)'],
+  ];
+
+  for (const [symbol, address, signature] of cases) {
+    it(
+      `refuses a clean absence on ${symbol}, whose bytecode carries ${signature}`,
+      async () => {
+        const result = await analyse('ethereum', address);
+        const signal = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+
+        // Was ABSENT with an empty gap list on 0.6.0: a published "cannot be
+        // present" on a token that plainly can.
+        expect(signal!.state).toBe('UNKNOWN');
+        expect(result.axes.transparency.assessed).toBe(false);
+        expect(result.dictionaryGaps.map((g) => g.signature)).toContain(signature);
+      },
+      TIMEOUT
+    );
+  }
+
+  it(
+    'still reads a clean absence where the bytecode really carries nothing',
+    async () => {
+      // The widened list must not have swallowed the reading it guards.
+      const result = await analyse('ethereum', UNI_ETH);
+      const signal = result.axes.transparency.signals.find((s) => s.capability === 'metadata-mutability');
+      expect(signal!.state).toBe('ABSENT');
+      expect(result.coverage.scored).toBe(result.coverage.applicable);
     },
     TIMEOUT
   );

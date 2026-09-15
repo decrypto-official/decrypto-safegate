@@ -1,0 +1,236 @@
+{
+ "title": "Metadata-mutator sweep, September 2026",
+ "source": "npm run sweep -- --blocks 150 --tokens 400 --json. Tokens sampled from recent mainnet blocks by call frequency and filtered to ERC-20 shape; no third-party token list.",
+ "note": "0.6.0 licensed a scored ABSENT on a 52-token scan and a list of 8 spellings. These two runs are what that assumption was worth. The before run used the 0.6.0 table plus a watchlist and found 2 tokens publishing a verified clean absence their own bytecode contradicts. The after run, with the watchlist promoted into the table, finds none in a fresh sample. Neither run proves the list is complete; both measure it.",
+ "methodology": "0.3.0",
+ "before": {
+  "ranAgainst": "0.6.0 table (8 metadata signatures) plus a 49-entry watchlist",
+  "tokensScanned": 400,
+  "bytecodeFixed": 296,
+  "upgradeable": 104,
+  "signaturesChecked": 57,
+  "tokensCarryingAMutator": 10,
+  "falseCleanReadings": 2,
+  "hits": [
+   {
+    "symbol": "CVC",
+    "address": "0x41e5560054824ea6b0732e656e3ad64e20e94e45",
+    "upgradeable": false,
+    "known": [
+     "setTokenInformation(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "VLN",
+    "address": "0xf719c431f66bf523b27dbf4087cee0e1d2604f32",
+    "upgradeable": false,
+    "known": [
+     "setBaseURI(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "PAPY",
+    "address": "0xb344e331a3cda61d329fb3cca2be5942da87c418",
+    "upgradeable": false,
+    "known": [
+     "setName(string)",
+     "setSymbol(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "G",
+    "address": "0x9c7beba8f6ef6643abd725e45a4e8387ef260649",
+    "upgradeable": false,
+    "known": [
+     "setName(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "ROBO",
+    "address": "0x32b4d049fe4c888d2b92eecaf729f44df6b1f36e",
+    "upgradeable": false,
+    "known": [],
+    "novel": [
+     "updateNameAndSymbol(string,string)"
+    ]
+   },
+   {
+    "symbol": "LBTC",
+    "address": "0x8236a87084f8b84306f72007f36f2618a5634494",
+    "upgradeable": true,
+    "known": [
+     "changeNameAndSymbol(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "roxUSDCy",
+    "address": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+    "upgradeable": false,
+    "known": [
+     "setName(string)",
+     "setSymbol(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "IMD",
+    "address": "0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7",
+    "upgradeable": false,
+    "known": [],
+    "novel": [
+     "updateName(string)",
+     "updateSymbol(string)",
+     "updateNameAndSymbol(string,string)"
+    ]
+   },
+   {
+    "symbol": "ListaSafeUSDT",
+    "address": "0x28643ffd79256719d6acbcf25cb44576caebcf12",
+    "upgradeable": true,
+    "known": [
+     "setName(string)",
+     "setSymbol(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "OFC",
+    "address": "0x9cb7a4ef0cae65b07362bc679a0b874041e3da53",
+    "upgradeable": false,
+    "known": [
+     "setTokenURI(string)"
+    ],
+    "novel": []
+   }
+  ]
+ },
+ "after": {
+  "ranAgainst": "0.7.0 table (metadata watchlist promoted) plus a refreshed watchlist",
+  "tokensScanned": 400,
+  "bytecodeFixed": 295,
+  "upgradeable": 105,
+  "signaturesChecked": 75,
+  "tokensCarryingAMutator": 12,
+  "falseCleanReadings": 0,
+  "hits": [
+   {
+    "symbol": "CVC",
+    "address": "0x41e5560054824ea6b0732e656e3ad64e20e94e45",
+    "upgradeable": false,
+    "known": [
+     "setTokenInformation(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "VLN",
+    "address": "0xf719c431f66bf523b27dbf4087cee0e1d2604f32",
+    "upgradeable": false,
+    "known": [
+     "setBaseURI(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "PAPY",
+    "address": "0xb344e331a3cda61d329fb3cca2be5942da87c418",
+    "upgradeable": false,
+    "known": [
+     "setName(string)",
+     "setSymbol(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "G",
+    "address": "0x9c7beba8f6ef6643abd725e45a4e8387ef260649",
+    "upgradeable": false,
+    "known": [
+     "setName(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "ROBO",
+    "address": "0x32b4d049fe4c888d2b92eecaf729f44df6b1f36e",
+    "upgradeable": false,
+    "known": [
+     "updateNameAndSymbol(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "LBTC",
+    "address": "0x8236a87084f8b84306f72007f36f2618a5634494",
+    "upgradeable": true,
+    "known": [
+     "changeNameAndSymbol(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "DENT",
+    "address": "0x3597bfd533a99c9aa083587b074434e61eb0a258",
+    "upgradeable": false,
+    "known": [
+     "setTokenInformation(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "IMD",
+    "address": "0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7",
+    "upgradeable": false,
+    "known": [
+     "updateName(string)",
+     "updateSymbol(string)",
+     "updateNameAndSymbol(string,string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "roxUSDCy",
+    "address": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+    "upgradeable": false,
+    "known": [
+     "setName(string)",
+     "setSymbol(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "GAS",
+    "address": "0xa1ac6a5331244a29ca71aef097472b61b274378a",
+    "upgradeable": false,
+    "known": [
+     "setTokenURI(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "hyperUSDCa",
+    "address": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+    "upgradeable": false,
+    "known": [
+     "setName(string)",
+     "setSymbol(string)"
+    ],
+    "novel": []
+   },
+   {
+    "symbol": "KRL",
+    "address": "0x464ebe77c293e473b48cfe96ddcf88fcf7bfdac0",
+    "upgradeable": false,
+    "known": [
+     "setName(string)"
+    ],
+    "novel": []
+   }
+  ]
+ }
+}
