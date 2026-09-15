@@ -141,16 +141,78 @@ const PRIVILEGED_FUNCTIONS: PrivilegedFunction[] = [
   { signature: 'setBaseURI(string)', capability: 'metadata-mutability', implies: 'token metadata can be repointed' },
   { signature: 'setTokenURI(uint256,string)', capability: 'metadata-mutability', implies: 'the metadata of a specific token can be rewritten' },
   { signature: 'setContractURI(string)', capability: 'metadata-mutability', implies: 'contract-level metadata can be rewritten' },
-  // The ERC-20 spellings. None of these appeared on any of the 52 Ethereum
-  // tokens scanned for 0.6.0, which is the finding that made ABSENT readable;
-  // they are listed because the absence has to be an absence of something
-  // named, and because a token that does carry one must not read clean.
+  // The ERC-20 spellings. None appeared on the 52 tokens scanned for 0.6.0 and
+  // all four were added on the argument that an absence must be an absence of
+  // something named. The 400-token sweep for 0.7.0 found them on 11 tokens, so
+  // the speculative additions were the ones doing the work.
   { signature: 'setName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
   { signature: 'setSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
   { signature: 'setNameAndSymbol(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
   { signature: 'setTokenInformation(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  // Found by that sweep, each on a live mainnet token, and each one a token
+  // that read as a verified clean absence until it was listed here. These are
+  // why the list is measured rather than reasoned about: every one is an
+  // ordinary spelling that simply nobody had written down.
+  { signature: 'setTokenURI(string)', capability: 'metadata-mutability', implies: 'the token-level metadata URI can be repointed' },
+  { signature: 'setNameSymbol(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  { signature: 'changeNameAndSymbol(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
   // The write half of the derived-balance mechanism meta-scaled-balance reads.
+  // Two arities: the sweep found the one-argument form on a live token.
   { signature: 'rebase(uint256,int256)', capability: 'metadata-mutability', implies: 'every holder’s displayed balance can be rescaled in one call' },
+  { signature: 'rebase(uint256)', capability: 'metadata-mutability', implies: 'every holder’s displayed balance can be rescaled in one call' },
+
+  // Everything below was a guess, and is here because guessing wide is the
+  // cheaper mistake. `npm run sweep` watches for spellings the table does not
+  // have; two independent 400-token samples each surfaced new ones, so the list
+  // was not converging by being added to four at a time. A signature here that
+  // no contract ever dispatches costs a line of code. One that is missing while
+  // a real contract dispatches it costs a published "cannot be present" on a
+  // token whose name can in fact be rewritten, which is the failure this whole
+  // table exists to prevent. Entries are kept to names that unambiguously mean
+  // metadata: a generic numeric setter could be anything, so those stay on the
+  // sweep's watchlist rather than being adopted here on a guess.
+  { signature: 'updateName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'updateSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'changeName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'changeSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'setTokenName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'setTokenSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'updateTokenName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'updateTokenSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'setNewName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'setNewSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'editName(string)', capability: 'metadata-mutability', implies: 'the token name can be rewritten' },
+  { signature: 'editSymbol(string)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten' },
+  { signature: 'setTicker(string)', capability: 'metadata-mutability', implies: 'the token ticker can be rewritten' },
+  { signature: 'updateTicker(string)', capability: 'metadata-mutability', implies: 'the token ticker can be rewritten' },
+  { signature: 'rename(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  { signature: 'updateNameAndSymbol(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  { signature: 'setTokenNameAndSymbol(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  { signature: 'setNameAndTicker(string,string)', capability: 'metadata-mutability', implies: 'the token name and ticker can be rewritten' },
+  { signature: 'updateTokenInfo(string,string)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten' },
+  { signature: 'setMetadata(string,string)', capability: 'metadata-mutability', implies: 'the token metadata can be rewritten' },
+  { signature: 'setInfo(string,string)', capability: 'metadata-mutability', implies: 'the token metadata can be rewritten' },
+  { signature: 'setDetails(string,string)', capability: 'metadata-mutability', implies: 'the token metadata can be rewritten' },
+  { signature: 'setName(bytes32)', capability: 'metadata-mutability', implies: 'the token name can be rewritten, in the bytes32 style older tokens use' },
+  { signature: 'setSymbol(bytes32)', capability: 'metadata-mutability', implies: 'the token symbol can be rewritten, in the bytes32 style older tokens use' },
+  { signature: 'setNameAndSymbol(bytes32,bytes32)', capability: 'metadata-mutability', implies: 'the token name and symbol can be rewritten, in the bytes32 style' },
+  { signature: 'setURI(string)', capability: 'metadata-mutability', implies: 'the metadata URI can be repointed' },
+  { signature: 'setBaseUri(string)', capability: 'metadata-mutability', implies: 'the metadata base URI can be repointed' },
+  { signature: 'setBaseTokenURI(string)', capability: 'metadata-mutability', implies: 'the metadata base URI can be repointed' },
+  { signature: 'updateBaseURI(string)', capability: 'metadata-mutability', implies: 'the metadata base URI can be repointed' },
+  { signature: 'updateTokenURI(string)', capability: 'metadata-mutability', implies: 'the token metadata URI can be repointed' },
+  { signature: 'setContractUri(string)', capability: 'metadata-mutability', implies: 'contract-level metadata can be rewritten' },
+  { signature: 'setMetadataURI(string)', capability: 'metadata-mutability', implies: 'the metadata URI can be repointed' },
+  { signature: 'updateMetadata(string)', capability: 'metadata-mutability', implies: 'the token metadata can be rewritten' },
+  { signature: 'setMetadataAddress(address)', capability: 'metadata-mutability', implies: 'the account metadata is read from can be repointed' },
+  { signature: 'setMetadataContract(address)', capability: 'metadata-mutability', implies: 'the contract metadata is read from can be repointed' },
+  { signature: 'setDescription(string)', capability: 'metadata-mutability', implies: 'the token description can be rewritten' },
+  { signature: 'setLogo(string)', capability: 'metadata-mutability', implies: 'the token logo can be repointed' },
+  { signature: 'setImage(string)', capability: 'metadata-mutability', implies: 'the token image can be repointed' },
+  { signature: 'rebase()', capability: 'metadata-mutability', implies: 'every holder’s displayed balance can be rescaled in one call' },
+  { signature: 'setScalingFactor(uint256)', capability: 'metadata-mutability', implies: 'the factor every displayed balance is scaled by can be set' },
+  { signature: 'setRebaseFactor(uint256)', capability: 'metadata-mutability', implies: 'the factor every displayed balance is scaled by can be set' },
+  { signature: 'setSharesPerToken(uint256)', capability: 'metadata-mutability', implies: 'the ratio every displayed balance is derived from can be set' },
 ];
 
 /**

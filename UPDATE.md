@@ -14,6 +14,57 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.7.0, 2026-09-15
+
+What the 0.6.0 reading was actually worth, measured. 0.6.0 licensed a scored `ABSENT` on a 52-token scan and a list of eight spellings, and said in METHODOLOGY §7 and LIMITATIONS §5 that the list could not be proved complete. Three 400-token rounds later it is longer, still not complete, and the difference is now measurable on demand instead of arguable.
+
+Every number below is in `docs/samples/metadata-sweep-2026-09.json`, round by round.
+
+No weight, axis mapping or formula changed. The methodology version stays 0.3.0: the rule is the same rule, the list it reads against is longer.
+
+### Fixed
+
+**Four tokens published a verified clean absence that was false.** Round one, against the table 0.6.0 shipped, scanned 400 tokens and found 16 carrying a metadata setter and four spellings the table had never heard of. Two of those tokens had fixed bytecode and were caught by nothing: OFC (`0x9cb7a4ef…`) dispatches `setTokenURI(string)`, and PANDORA (`0x9e9fbde7…`) dispatches `setNameSymbol(string,string)` and `setTokenURI(string)`. Both read metadata mutability ABSENT, scored transparency 0 at 7 of 7 coverage, and reported no gap at all.
+
+Round two adopted those four spellings and swept a fresh sample. It found three more spellings and two more such tokens: ROBO and IMD, through `updateNameAndSymbol(string,string)` and `updateName`/`updateSymbol`. All four now read UNKNOWN at 6 of 7 with the setter named in `dictionaryGaps`.
+
+**The list was being extended four spellings at a time, and was not converging.** Two consecutive rounds each produced spellings nobody had written down. So the whole watchlist the sweep had been carrying moved into the table rather than sitting beside it. For licensing an absence the widest list is strictly safest: a signature no contract dispatches costs one line, and a missing one costs a published "cannot be present" on a token whose name can be rewritten. Entries are still limited to names that unambiguously mean metadata; a generic numeric setter could be anything and stays on the watchlist.
+
+The metadata list goes from 8 signatures to 54. Round three, over another fresh sample: 400 tokens, 14 carrying a mutator, all 14 caught, **no false clean reading**. One of them, DAO, was caught by `changeName(string)` — a promoted guess that had never been observed until it was.
+
+### Added
+
+**`npm run sweep`.** The list cannot be proved complete, so it is measured instead. The command samples tokens from recent mainnet blocks by call frequency, filtered to ERC-20 shape — our own reading, not a third-party token list — and scans each one's whole dispatch surface against the shipped table plus a watchlist of spellings nobody has adopted. A watchlist entry that fires is the finding, and earns its place in the table. Like the census it is a measuring instrument and never a gate: it exits 0 whatever it finds.
+
+It decides "can this code be replaced" from the dictionary's own upgradeability patterns rather than a local copy, so it cannot quietly disagree with the reading it audits. A read it could not make is reported as unreadable rather than counted as a clean token, because a rate limit must not be able to manufacture an all-clear.
+
+```
+npm run sweep                    150 blocks, up to 400 tokens
+npm run sweep -- --blocks 300    look further back
+npm run sweep -- --json          machine-readable, for diffing across runs
+```
+
+**`docs/samples/metadata-sweep-2026-09.json`**, all three rounds, with every hit and every false clean reading named.
+
+### Which scores move
+
+Only tokens carrying a metadata-mutating function under one of the 46 newly adopted spellings, and only those whose bytecode is fixed. Across the sampled rounds that is four tokens, each moving the same way:
+
+| Tokens | 0.6.0 | 0.7.0 | Why |
+|---|---|---|---|
+| OFC, PANDORA, ROBO, IMD | transparency **0**, 7/7, no gap | transparency **n/a**, 6/7, setter reported as a gap | the spelling is in the table now, so the absence is refused |
+| every other token sampled | unchanged | unchanged | no reading, hash or value changed |
+
+This is a coverage and transparency regression on those four, and it is the correct direction: 6 of 7 with the gap named is the honest reading, and 7 of 7 with transparency 0 was not. No control or exit value moves anywhere. No Solana reading changes. Snapshot hashes are unaffected — the table feeds gap reporting and the absence rule, neither of which is in the hash.
+
+### Not done
+
+The list is longer, not complete, and nothing here can make it complete. Two rounds each yielded new spellings and a third yielded none, which is evidence and not proof; a fourth may well find more. What changed is that finding out is one command instead of a research project, and LIMITATIONS §5 says plainly that the staleness rate is not zero and not known.
+
+The transparency axis still rests on one capability. Third-party corroboration is still not wired.
+
+---
+
 ## 0.6.0, 2026-09-14
 
 The transparency axis becomes readable on Ethereum. Until now `metadata-mutability` was its only capability, no EVM pattern read it, and every Ethereum token published an n/a transparency axis at 6 of 7 coverage: a third of the output blank on the larger chain. Methodology 0.3.0.
