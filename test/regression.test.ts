@@ -204,9 +204,14 @@ describeLive('the transparency axis on Ethereum', () => {
 
 describeLive('0.7.0: the spellings the sweep found', () => {
   // The guard in 0.6.0 was right in shape and wrong in reach: the absence is
-  // only as good as the list it is an absence of, and two 400-token sweeps
-  // each turned up spellings nobody had written down. These four tokens are
-  // the proof, and the reason the list is measured rather than reasoned about.
+  // only as good as the list it is an absence of, and two consecutive
+  // 400-token rounds each turned up spellings nobody had written down. These
+  // are the fixed-bytecode tokens that published a false clean reading as a
+  // result, one per round-one and round-two spelling, and they are why the
+  // list is measured rather than reasoned about. LBTC carries
+  // changeNameAndSymbol and sUSN rebase(uint256), the other two round-one
+  // finds; both are proxies, so they read UNKNOWN either way and make weaker
+  // locks than these.
   const cases: [string, string, string][] = [
     ['OFC', OFC_ETH, 'setTokenURI(string)'],
     ['PANDORA', PANDORA_ETH, 'setNameSymbol(string,string)'],

@@ -19,11 +19,14 @@
  * metadata can be rewritten and which, until that spelling is adopted, reads as
  * a verified clean absence.
  *
- * 0.6.0 shipped the reading on a 52-token scan. The first run of this command
- * looked at 400 and found four spellings it had missed, two of which were
- * producing exactly that false clean reading on mainnet. The lesson is not that
- * the list is now right; it is that the list goes stale and the only remedy is
- * to measure again.
+ * 0.6.0 shipped the reading on a 52-token scan against a list of eight
+ * spellings. Three 400-token rounds followed. The first found four spellings
+ * the list had missed and two tokens publishing a false clean reading on
+ * mainnet; the second, run after those four were adopted, found three more
+ * spellings and two more such tokens; the third, after the whole watchlist was
+ * promoted into the table, found none. The lesson is not that the list is now
+ * right. It is that two consecutive rounds each produced spellings nobody had
+ * written down, so the list goes stale and measuring again is the only remedy.
  *
  * Like the census, this is a measuring instrument and never a gate. It needs
  * live RPC.
@@ -35,7 +38,7 @@
  */
 
 import { RpcClient, DEFAULT_EVM_ENDPOINTS, ethCall, ethGetCode, ethGetStorageAt, wordToAddress } from '../sources/rpc.js';
-import { extractSelectors, metadataMutatorSignatures } from '../patterns/selectors.js';
+import { extractSelectors, metadataMutatorSignatures, dispatchesUpgradeFunction } from '../patterns/selectors.js';
 import { selectorOf } from '../sources/keccak.js';
 import { loadPatterns } from '../patterns/resolve.js';
 import { decodeSymbol } from '../pipeline.js';
@@ -56,8 +59,8 @@ const PAUSE_MS = 60;
  * These are guesses on purpose. A guess in this list costs nothing: it is never
  * scored, never reported as a gap, and only ever prints here if a real contract
  * turns out to dispatch it. A guess that fires has earned a place in
- * `PRIVILEGED_FUNCTIONS`, and the four that fired on the first run are already
- * there. Anything still listed here has been looked for and not yet found.
+ * `PRIVILEGED_FUNCTIONS`; every spelling the 2026-09 rounds turned up is
+ * already there. Anything still listed here has been looked for and not found.
  *
  * Adding to this list is cheap and strictly reduces the chance of a false clean
  * reading going unnoticed. Adding to the shipped table is the consequential
@@ -71,8 +74,8 @@ const WATCHLIST: readonly string[] = [
   'setIndex(uint256)', 'setMultiplier(uint256)', 'updateMultiplier(uint256)',
   'setRate(uint256)', 'setFactor(uint256)', 'updateIndex(uint256)',
   // Untried spellings for the next round. None has been seen yet; any that
-  // fires earns a place in PRIVILEGED_FUNCTIONS, which is how the four found
-  // in 0.6.0's sweep and the three found in 0.7.0's got there.
+  // fires earns a place in PRIVILEGED_FUNCTIONS, which is how the seven that
+  // the 2026-09 rounds turned up got there.
   'setTokenInfo(string,string)', 'updateInfo(string,string)', 'setLabel(string)',
   'setDisplayName(string)', 'renameToken(string,string)', 'setBrand(string)',
   'setTokenMetadata(string,string)', 'updateBrand(string)', 'setAvatar(string)',
@@ -80,19 +83,24 @@ const WATCHLIST: readonly string[] = [
   'setExternalURL(string)', 'setWebsite(string)', 'setProjectURI(string)',
 ];
 
-/** Proxy slots the dictionary knows. A hit on any of them means the code can move. */
-const PROXY_SLOTS = {
-  eip1967: '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
-  zeppelinos: '0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3',
-  beacon: '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50',
-  admin: '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103',
-};
-/** A beacon holds the beacon, and an admin slot an admin. Neither is the code. */
-const SLOTS_HOLDING_CODE = [PROXY_SLOTS.eip1967, PROXY_SLOTS.zeppelinos];
-
-const UPGRADE_FUNCTIONS = [
-  'upgradeTo(address)', 'upgradeToAndCall(address,bytes)', 'setImplementation(address)', 'changeAdmin(address)',
-];
+/**
+ * The upgradeability surface, read out of the dictionary rather than copied.
+ *
+ * This command audits a reading the pipeline makes, so it must decide
+ * "can this code be replaced" exactly as the pipeline does. A local copy of
+ * the slots would agree today and drift the first time a proxy shape is added,
+ * and the drift would show up as a false all-clear here rather than as a
+ * failure — the worst direction for a measuring instrument.
+ *
+ * `pointsTo: 'implementation'` marks the slots that hold the code itself; a
+ * beacon slot holds the beacon and an admin slot an admin, so those prove the
+ * contract is proxied without giving us more bytecode to scan.
+ */
+function upgradeabilitySlots(patterns: { capability: string; method: { kind: string; storageSlot?: string; pointsTo?: string } }[]): { slot: string; holdsCode: boolean }[] {
+  return patterns
+    .filter((p) => p.capability === 'upgradeability' && p.method.kind === 'storage-slot' && p.method.storageSlot)
+    .map((p) => ({ slot: p.method.storageSlot as string, holdsCode: p.method.pointsTo === 'implementation' }));
+}
 
 const SYMBOL = '0x95d89b41';
 const DECIMALS = '0x313ce567';
@@ -110,11 +118,22 @@ export interface SweepHit {
 }
 
 export interface SweepResult {
-  fromBlock: number;
+  /** Newest block sampled. The range runs back `blocks` from here. */
+  latestBlock: number;
+  /** Oldest block sampled, so a reader knows the range without recomputing it. */
+  oldestBlock: number;
   blocks: number;
   tokensScanned: number;
   bytecodeFixed: number;
   upgradeable: number;
+  /**
+   * Tokens dropped because a read behind them failed.
+   *
+   * Reported rather than swallowed: every one is a token this run could not
+   * classify, and a sweep that quietly counted them as clean would be the same
+   * absence-is-safety mistake the thing it audits exists to prevent.
+   */
+  unreadable: number;
   hits: SweepHit[];
   /** Tokens reading a clean absence that should not: fixed bytecode, only novel spellings. */
   falseCleanCount: number;
@@ -150,7 +169,12 @@ async function sampleTokens(client: RpcClient, blocks: number, want: number, qui
     } catch {
       block = null;
     }
-    if (!block?.transactions) continue;
+    if (!block?.transactions) {
+      // A block we could not fetch contributes no addresses. Say so rather
+      // than letting a short sample look like a quiet chain.
+      if (!quiet) process.stderr.write('x');
+      continue;
+    }
     for (const tx of block.transactions) {
       if (!tx.to) continue;
       const to = tx.to.toLowerCase();
@@ -161,27 +185,47 @@ async function sampleTokens(client: RpcClient, blocks: number, want: number, qui
   if (!quiet) process.stderr.write('\n');
 
   const tokens: { address: string; symbol: string; calls: number }[] = [];
+  let probeFailures = 0;
   for (const [address, count] of [...calls.entries()].sort((a, b) => b[1] - a[1])) {
     if (tokens.length >= want) break;
     // decimals and totalSupply together separate a token from a router, a
     // multisig or a wallet; symbol gives the report something to print.
+    // A revert means "not an ERC-20", which is an answer. A transport failure
+    // means we do not know, and must not be read as the same thing: a
+    // rate-limited run would otherwise quietly return a short sample and call
+    // it a clean measurement.
+    let probeFailed = false;
     const answered = async (selector: string): Promise<string | null> => {
-      const result = await ethCall(client, address, selector).catch(() => null);
-      return result && result.ok && result.data !== '0x' ? result.data : null;
+      try {
+        const result = await ethCall(client, address, selector);
+        return result.ok && result.data !== '0x' ? result.data : null;
+      } catch {
+        probeFailed = true;
+        return null;
+      }
     };
 
+    await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
+
     const decimals = await answered(DECIMALS);
+    if (probeFailed) { probeFailures += 1; continue; }
     if (decimals === null) continue;
     const places = parseInt(decimals.slice(2), 16);
     if (!Number.isFinite(places) || places > 36) continue;
-    if ((await answered(TOTAL_SUPPLY)) === null) continue;
+    const supply = await answered(TOTAL_SUPPLY);
+    if (probeFailed) { probeFailures += 1; continue; }
+    if (supply === null) continue;
     const symbolData = await answered(SYMBOL);
+    if (probeFailed) { probeFailures += 1; continue; }
     if (symbolData === null) continue;
     const symbol = (decodeSymbol(symbolData) ?? '?').replace(/[^\x20-\x7e]/g, '').slice(0, 24) || '?';
     tokens.push({ address, symbol, calls: count });
     if (!quiet) process.stderr.write('+');
   }
   if (!quiet) process.stderr.write('\n');
+  if (probeFailures > 0 && !quiet) {
+    process.stderr.write(`note: ${probeFailures} address(es) could not be probed; the sample is short by that much\n`);
+  }
   return { latest, tokens };
 }
 
@@ -189,12 +233,13 @@ export async function sweep(options: { blocks: number; tokens: number; quiet: bo
   const client = new RpcClient({ endpoints: DEFAULT_EVM_ENDPOINTS });
   // Loading the dictionary is not strictly needed to scan, but a sweep that
   // silently ran against a broken install would report a reassuring zero.
-  await loadPatterns();
+  const patterns = await loadPatterns();
 
   const shipped = new Set(metadataMutatorSignatures());
   const candidates = new Map<string, string>();
   for (const signature of [...shipped, ...WATCHLIST]) candidates.set(selectorOf(signature), signature);
-  const upgradeSelectors = new Set(UPGRADE_FUNCTIONS.map(selectorOf));
+
+  const slots = upgradeabilitySlots(patterns as never);
 
   const { latest, tokens } = await sampleTokens(client, options.blocks, options.tokens, options.quiet);
 
@@ -202,25 +247,54 @@ export async function sweep(options: { blocks: number; tokens: number; quiet: bo
   let scanned = 0;
   let fixed = 0;
   let upgradeableCount = 0;
+  let unreadable = 0;
 
   for (const token of tokens) {
     const code = await ethGetCode(client, token.address).catch(() => null);
-    if (code === null || code === '0x') continue;
+    if (code === null || code === '0x') {
+      unreadable += 1;
+      if (!options.quiet) process.stderr.write('x');
+      continue;
+    }
 
     const selectors = new Set<string>(extractSelectors(code));
     let proxied = false;
-    for (const [, slot] of Object.entries(PROXY_SLOTS)) {
-      const word = await ethGetStorageAt(client, token.address, slot).catch(() => null);
-      const target = word === null ? null : wordToAddress(word);
+    // A slot that could not be read is not a slot that is empty. Treating a
+    // failed read as "no proxy here" would push this token into the fixed
+    // column and could invent a false clean reading out of a rate limit, which
+    // is precisely the confusion this command exists to catch.
+    let slotUnread = false;
+    for (const { slot, holdsCode } of slots) {
+      let word: string | null;
+      try {
+        word = await ethGetStorageAt(client, token.address, slot);
+      } catch {
+        slotUnread = true;
+        break;
+      }
+      const target = wordToAddress(word);
       if (!target) continue;
       proxied = true;
-      if (!SLOTS_HOLDING_CODE.includes(slot)) continue;
+      if (!holdsCode) continue;
       const implementation = await ethGetCode(client, target).catch(() => null);
-      if (implementation && implementation !== '0x') {
+      if (implementation === null) {
+        slotUnread = true;
+        break;
+      }
+      if (implementation !== '0x') {
         for (const selector of extractSelectors(implementation)) selectors.add(selector);
       }
     }
-    const upgradeable = proxied || [...upgradeSelectors].some((selector) => selectors.has(selector));
+    if (slotUnread) {
+      unreadable += 1;
+      if (!options.quiet) process.stderr.write('x');
+      await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
+      continue;
+    }
+
+    // dispatchesUpgradeFunction comes from the same table the pipeline uses,
+    // so "can this code be replaced" is decided here exactly as it is there.
+    const upgradeable = proxied || dispatchesUpgradeFunction(selectors);
 
     const found: string[] = [];
     for (const [selector, signature] of candidates) if (selectors.has(selector)) found.push(signature);
@@ -240,11 +314,13 @@ export async function sweep(options: { blocks: number; tokens: number; quiet: bo
   if (!options.quiet) process.stderr.write('\n');
 
   return {
-    fromBlock: latest,
+    latestBlock: latest,
+    oldestBlock: latest - options.blocks + 1,
     blocks: options.blocks,
     tokensScanned: scanned,
     bytecodeFixed: fixed,
     upgradeable: upgradeableCount,
+    unreadable,
     hits,
     falseCleanCount: hits.filter(isFalseClean).length,
     signaturesChecked: candidates.size,
@@ -253,12 +329,15 @@ export async function sweep(options: { blocks: number; tokens: number; quiet: bo
 
 function render(result: SweepResult): void {
   console.log();
-  console.log(`${BOLD}Metadata-mutator sweep${RESET}  ${DIM}${result.tokensScanned} tokens from ${result.blocks} blocks ending ${result.fromBlock}${RESET}`);
+  console.log(`${BOLD}Metadata-mutator sweep${RESET}  ${DIM}${result.tokensScanned} tokens from blocks ${result.oldestBlock}-${result.latestBlock}${RESET}`);
   console.log(`${DIM}${result.signaturesChecked} signatures checked: the shipped table plus the watchlist${RESET}`);
   console.log();
   console.log(`  bytecode fixed      ${result.bytecodeFixed}   ${DIM}an absence is readable on these${RESET}`);
   console.log(`  upgradeable         ${result.upgradeable}   ${DIM}the absence is refused, so a missed spelling costs nothing${RESET}`);
   console.log(`  carrying a mutator  ${result.hits.length}`);
+  if (result.unreadable > 0) {
+    console.log(`  ${YELLOW}unreadable${RESET}          ${result.unreadable}   ${DIM}a read behind these failed; they are not counted either way${RESET}`);
+  }
   console.log();
 
   if (result.hits.length === 0) {
