@@ -32,6 +32,14 @@ Round two adopted those four spellings and swept a fresh sample. It found three 
 
 The metadata list goes from 8 signatures to 54. Round three, over another fresh sample: 400 tokens, 14 carrying a mutator, all 14 caught, **no false clean reading**. One of them, DAO, was caught by `changeName(string)` — a promoted guess that had never been observed until it was.
 
+**Two ways the absence could be licensed off a surface nobody read.** Both shipped in 0.6.0 and both could publish "cannot be present" about a token that can rewrite its metadata, which is the failure the reading was built to avoid.
+
+A throttled `eth_getStorageAt` records `value: undefined`, and `evmSurface` was treating that exactly like a slot that read zero — so a rate limit could report a proxy as having bytecode that cannot be replaced. The surface is now refused whenever an upgradeability probe could not be made, which is what its own docstring already claimed.
+
+A contract that delegates through a shape the dictionary does not read has fixed bytecode dispatching none of the token's functions: a minimal EIP-1167 clone has no dispatch table at all, and the Aragon proxy behind stETH, which `meta-share-balance` already notes neither slot pattern follows, dispatches its own functions and not the token's. The scan enumerated a surface that was complete and irrelevant. The absence is now refused unless the bytecode dispatches at least part of the ERC-20 surface the token answers on, which is the one question that matters: did we scan the code that answers for this token.
+
+**A `uint256` was read from the whole return payload rather than its first word**, so a function returning more than one word rendered a magnitude no contract reported, and a non-hex payload threw and downgraded a probe that had answered to UNKNOWN.
+
 ### Added
 
 **`npm run sweep`.** The list cannot be proved complete, so it is measured instead. The command samples tokens from recent mainnet blocks by call frequency, filtered to ERC-20 shape — our own reading, not a third-party token list — and scans each one's whole dispatch surface against the shipped table plus a watchlist of spellings nobody has adopted. A watchlist entry that fires is the finding, and earns its place in the table. Like the census it is a measuring instrument and never a gate: it exits 0 whatever it finds.

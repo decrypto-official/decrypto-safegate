@@ -813,3 +813,96 @@ describe('the sweep that keeps the metadata list honest', () => {
     expect(SHIPPED.size).toBeGreaterThan(8);
   });
 });
+
+describe('an absence needs a surface that was actually read', () => {
+  const addr = '0x' + '1'.repeat(40);
+  const SYMBOL = '0x95d89b41';
+
+  /** A minimal contract dispatching only the selectors given. */
+  function codeDispatching(selectors: string[]): string {
+    return '0x' + selectors.map((s) => '63' + s.replace(/^0x/, '')).join('') + '00';
+  }
+
+  async function scoreWith(handler: (method: string, params: any[]) => unknown): Promise<any> {
+    globalThis.fetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      const out = handler(body.method, body.params);
+      if (out instanceof Error) {
+        return jsonResponse({ jsonrpc: '2.0', id: 1, error: { code: -32005, message: out.message } });
+      }
+      return jsonResponse({ jsonrpc: '2.0', id: 1, result: out });
+    }) as typeof fetch;
+    const { analyse } = await import('../src/pipeline.js');
+    return analyse('ethereum', addr, { evmEndpoints: ['https://a.invalid'] });
+  }
+
+  function metadataOf(result: any) {
+    return Object.values(result.axes)
+      .flatMap((a: any) => a.signals)
+      .find((s: any) => s.capability === 'metadata-mutability');
+  }
+
+  it('refuses the absence when an upgradeability probe could not be read', async () => {
+    // A throttled eth_getStorageAt records value: undefined, which is not a
+    // slot that read zero. Counting the two alike let a rate limit publish
+    // "its bytecode cannot be replaced" about a proxy.
+    const result = await scoreWith((method) => {
+      if (method === 'eth_getCode') return codeDispatching([SYMBOL]);
+      if (method === 'eth_getStorageAt') return new Error('rate limit exceeded');
+      return '0x';
+    });
+    expect(metadataOf(result).state).toBe('UNKNOWN');
+    expect(result.axes.transparency.assessed).toBe(false);
+  });
+
+  it('refuses the absence when the bytecode dispatches none of the token surface', async () => {
+    // An EIP-1167 clone has fixed bytecode and no dispatch table: the code
+    // answering symbol() is somewhere we never scanned, so the selectors we
+    // did enumerate are an absence of nothing.
+    const result = await scoreWith((method) => {
+      if (method === 'eth_getCode') return '0x363d3d373d3d3d363d73' + 'ab'.repeat(20) + '5af43d82803e903d91602b57fd5bf3';
+      if (method === 'eth_getStorageAt') return ZERO_WORD;
+      return '0x';
+    });
+    expect(metadataOf(result).state).toBe('UNKNOWN');
+    expect(result.axes.transparency.assessed).toBe(false);
+  });
+
+  it('still reads the absence on a contract whose own surface was scanned', async () => {
+    const result = await scoreWith((method) => {
+      if (method === 'eth_getCode') return codeDispatching([SYMBOL, '0xa9059cbb']);
+      if (method === 'eth_getStorageAt') return ZERO_WORD;
+      return '0x';
+    });
+    expect(metadataOf(result).state).toBe('ABSENT');
+    expect(result.axes.transparency.assessed).toBe(true);
+  });
+});
+
+describe('a uint256 reading is the first word, not the whole payload', () => {
+  const addr = '0x' + '1'.repeat(40);
+  const client = () => new RpcClient({ endpoints: ['https://a.invalid'] });
+  const scaled = () =>
+    pattern({
+      capability: 'metadata-mutability',
+      presenceIndicatedBy: 'call-success',
+      method: { kind: 'call-selector', callSelector: '0xb1bf962d', signature: 'scaledTotalSupply() returns (uint256)', returnType: 'uint256' },
+    });
+
+  it('reads a multi-word return as the number the contract reported', async () => {
+    // Two words. Reading the payload as one integer renders a magnitude that
+    // is not any value the function returned.
+    const twoWords = '0x' + '0'.repeat(60) + '2710' + 'f'.repeat(64);
+    globalThis.fetch = vi.fn(async () => jsonResponse({ jsonrpc: '2.0', id: 1, result: twoWords })) as typeof fetch;
+    const [obs] = await applyEvmPatterns(client(), addr, [scaled()]);
+    expect(String(obs!.value)).toMatch(/currently 10000$/);
+  });
+
+  it('does not downgrade an answered probe to UNKNOWN on an odd payload', async () => {
+    // Formatting must never turn a call that answered into "could not look".
+    globalThis.fetch = vi.fn(async () => jsonResponse({ jsonrpc: '2.0', id: 1, result: '0xzzzz' + '0'.repeat(60) })) as typeof fetch;
+    const [obs] = await applyEvmPatterns(client(), addr, [scaled()]);
+    expect(obs!.value).not.toBeUndefined();
+    expect(normalise([obs!], null).signals[0]!.state).not.toBe('UNKNOWN');
+  });
+});

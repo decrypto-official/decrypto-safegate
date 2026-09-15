@@ -205,15 +205,28 @@ export async function analyse(chain: Chain, address: string, options: AnalyseOpt
 /**
  * The contract's complete dispatch surface, or undefined if it is not complete.
  *
- * Undefined whenever anything behind it failed to read: no bytecode, or an
- * implementation we know about but could not fetch. A surface with a hole in
- * it looks exactly like a surface with nothing in it, and the difference is
- * the whole value of the absence it would license.
+ * Undefined whenever anything behind it failed to read, and "failed to read" is
+ * broader than it first looks. Three separate ways the surface can have a hole:
  *
- * `bytecodeFixed` is deliberately pessimistic. Three independent things each
- * make it false, because each is a way the code that runs could change, and
- * being wrong in this direction only costs coverage while being wrong in the
- * other publishes a clean reading of a token that can rewrite itself.
+ *  1. The bytecode itself, or an implementation we know about, could not be
+ *     fetched.
+ *  2. An upgradeability probe could not be made. A throttled `eth_getStorageAt`
+ *     records `value: undefined`, which is not the same as a slot that read
+ *     zero, and treating the two alike lets a rate limit publish "its bytecode
+ *     cannot be replaced" about a proxy.
+ *  3. The bytecode dispatches nothing we recognise as this token. A minimal
+ *     EIP-1167 clone has fixed bytecode and no dispatch table at all; an Aragon
+ *     proxy, which `meta-share-balance` notes neither slot pattern follows,
+ *     dispatches its own functions and not the token's. Either way the code
+ *     answering `symbol()` is code we never scanned, and an absence read off
+ *     that surface is an absence of nothing.
+ *
+ * Each of these costs coverage when it fires and prevents a false clean
+ * reading when it matters, which is the trade this whole reading is built on.
+ *
+ * `bytecodeFixed` is deliberately pessimistic for the same reason: being wrong
+ * in that direction only costs coverage, while being wrong in the other
+ * publishes a clean reading of a token that can rewrite itself.
  */
 function evmSurface(
   bytecode: string | null,
@@ -223,10 +236,19 @@ function evmSurface(
 ): EvmSurface | undefined {
   if (bytecode === null || implementationUnread) return undefined;
 
+  // An upgradeability probe that could not be made leaves us unable to say
+  // whether the code can move, so nothing may be concluded from its silence.
+  const upgradeabilityUnread = patternReads.some(
+    (o) => o.capability === 'upgradeability' && o.value === undefined
+  );
+  if (upgradeabilityUnread) return undefined;
+
   const selectors = new Set<string>(extractSelectors(bytecode));
   for (const impl of implementations) {
     for (const selector of extractSelectors(impl.bytecode)) selectors.add(selector);
   }
+
+  if (!dispatchesItsOwnErc20Surface(selectors)) return undefined;
 
   const upgradeable =
     implementations.length > 0 ||
@@ -234,6 +256,30 @@ function evmSurface(
     dispatchesUpgradeFunction(selectors);
 
   return { selectors, bytecodeFixed: !upgradeable };
+}
+
+/**
+ * Does this surface look like the token's own code, rather than a forwarder's?
+ *
+ * We only reach here for an address that answered `symbol()` well enough to be
+ * scored, so the ERC-20 surface exists somewhere. If none of it is dispatched
+ * by the bytecode we scanned, that code is somewhere we did not look, and the
+ * selectors we did enumerate say nothing about what the token can do.
+ *
+ * Deliberately a low bar. It is not trying to recognise proxy shapes, which is
+ * a losing game; it asks the one question that matters for licensing an
+ * absence — did we scan the code that answers for this token.
+ */
+function dispatchesItsOwnErc20Surface(selectors: ReadonlySet<string>): boolean {
+  const ERC20_SURFACE = [
+    '0x95d89b41', // symbol()
+    '0x313ce567', // decimals()
+    '0x18160ddd', // totalSupply()
+    '0x70a08231', // balanceOf(address)
+    '0x06fdde03', // name()
+    '0xa9059cbb', // transfer(address,uint256)
+  ];
+  return ERC20_SURFACE.some((selector) => selectors.has(selector));
 }
 
 /**
