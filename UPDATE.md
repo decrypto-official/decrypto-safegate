@@ -14,6 +14,34 @@ Grouped under **Added / Changed / Fixed / Removed**, following [Keep a Changelog
 
 ---
 
+## 0.7.1, 2026-09-17
+
+The review pass on 0.7.0, which merged without it. Both bugs below shipped in 0.6.0, survived 0.7.0, and can publish the exact false clean reading those versions were written to prevent: a scored `ABSENT` on metadata mutability, transparency 0 at 7 of 7, on a token whose metadata can be rewritten.
+
+Neither is reachable by the sweep, which scans the same surface and would report the same all-clear.
+
+### Fixed
+
+**A rate limit could manufacture "its bytecode cannot be replaced".** `applyEvmPatterns` records a throttled `eth_getStorageAt` as `value: undefined`, and `evmSurface` was treating that identically to a slot that read zero: `isPositive(undefined)` is false, so the contract landed in the fixed column and the absence was licensed. `sweep.ts` was fixed for the identical case in 0.7.0; the pipeline was not, and `evmSurface`'s own docstring claimed it was. The surface is now refused whenever an upgradeability probe could not be made.
+
+**A delegating contract licensed an absence off an empty surface.** A minimal EIP-1167 clone has fixed bytecode and no dispatch table at all; the Aragon proxy behind stETH, which `meta-share-balance` already notes neither slot pattern follows, dispatches its own functions and not the token's. In both the scan enumerated a surface that was complete and irrelevant. The absence now requires the bytecode to dispatch at least part of the ERC-20 surface the token answers on — a deliberately low bar, asking only whether we scanned the code that answers for this token rather than trying to recognise proxy shapes.
+
+**A `uint256` was read from the whole return payload rather than its first word**, so a function returning more than one word rendered a magnitude no contract reported, and a non-hex payload threw and downgraded a probe that had answered to UNKNOWN.
+
+**The sweep's sampling probe failures were stderr-only and suppressed under `--json`**, hiding how short a sample was in the mode meant for diffing runs. `probeFailures` is on the result now, alongside `unreadable`.
+
+### Which scores move
+
+None that anyone is measuring. Both guards fire only where a read failed or the scanned bytecode is not the token's, and neither is true of any token in the seed set or the sweep samples: UNI, USDT and ENS still read ABSENT at 7 of 7, AMPL and stETH PRESENT, USDC UNKNOWN at 6 of 7.
+
+What moves is the case nobody had measured — a throttled run, and a token behind a proxy shape the dictionary cannot follow. Both now read UNKNOWN and cost coverage, which is the honest answer and the reason this is a fix rather than a regression.
+
+### Added
+
+**`CLAUDE.md`**, recording the review-before-landing rule and the two failures this repository keeps producing: prose that disagrees with the committed measurement, and a failed read that looks downstream like a clean result.
+
+---
+
 ## 0.7.0, 2026-09-15
 
 What the 0.6.0 reading was actually worth, measured. 0.6.0 licensed a scored `ABSENT` on a 52-token scan and a list of eight spellings, and said in METHODOLOGY §7 and LIMITATIONS §5 that the list could not be proved complete. Three 400-token rounds later it is longer, still not complete, and the difference is now measurable on demand instead of arguable.

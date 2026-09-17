@@ -682,9 +682,17 @@ function summarise(data: string, returnType?: string): string {
   // go to exponential rather than seventy-odd digits: stETH's share total and
   // AMPL's gon supply are proof the call answered, not figures to read off.
   if (returnType === 'uint256') {
-    const n = BigInt(`0x${clean}`);
-    if (n === 0n) return '0';
-    return n < 10n ** 15n ? n.toString() : `≈${Number(n).toExponential(2)}`;
+    // The first word only. A function can return more than one, and reading the
+    // whole payload as a single integer renders a magnitude that is not any
+    // number the contract reported. Non-hex payloads fall through to the
+    // generic branch rather than throwing, because a probe that answered must
+    // not be downgraded to "could not look" by a formatting choice.
+    const word = clean.slice(0, 64);
+    if (/^[0-9a-fA-F]+$/.test(word)) {
+      const n = BigInt(`0x${word}`);
+      if (n === 0n) return '0';
+      return n < 10n ** 15n ? n.toString() : `≈${Number(n).toExponential(2)}`;
+    }
   }
 
   if (/^0+$/.test(clean)) return 'false/zero';

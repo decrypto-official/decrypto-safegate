@@ -134,6 +134,14 @@ export interface SweepResult {
    * absence-is-safety mistake the thing it audits exists to prevent.
    */
   unreadable: number;
+  /**
+   * Addresses dropped during sampling because a probe failed in transport.
+   *
+   * On the result rather than only on stderr: --json is the mode meant for
+   * diffing runs, and a short sample that does not say it was short is the
+   * same swallowed failure `unreadable` exists to surface.
+   */
+  probeFailures: number;
   hits: SweepHit[];
   /** Tokens reading a clean absence that should not: fixed bytecode, only novel spellings. */
   falseCleanCount: number;
@@ -157,7 +165,7 @@ export function isFalseClean(hit: SweepHit): boolean {
   return !hit.upgradeable && hit.known.length === 0 && hit.novel.length > 0;
 }
 
-async function sampleTokens(client: RpcClient, blocks: number, want: number, quiet: boolean): Promise<{ latest: number; tokens: { address: string; symbol: string; calls: number }[] }> {
+async function sampleTokens(client: RpcClient, blocks: number, want: number, quiet: boolean): Promise<{ latest: number; probeFailures: number; tokens: { address: string; symbol: string; calls: number }[] }> {
   const latestHex = await client.call<string>('eth_blockNumber', []);
   const latest = parseInt(latestHex, 16);
 
@@ -226,7 +234,7 @@ async function sampleTokens(client: RpcClient, blocks: number, want: number, qui
   if (probeFailures > 0 && !quiet) {
     process.stderr.write(`note: ${probeFailures} address(es) could not be probed; the sample is short by that much\n`);
   }
-  return { latest, tokens };
+  return { latest, probeFailures, tokens };
 }
 
 export async function sweep(options: { blocks: number; tokens: number; quiet: boolean }): Promise<SweepResult> {
@@ -241,7 +249,7 @@ export async function sweep(options: { blocks: number; tokens: number; quiet: bo
 
   const slots = upgradeabilitySlots(patterns as never);
 
-  const { latest, tokens } = await sampleTokens(client, options.blocks, options.tokens, options.quiet);
+  const { latest, probeFailures, tokens } = await sampleTokens(client, options.blocks, options.tokens, options.quiet);
 
   const hits: SweepHit[] = [];
   let scanned = 0;
@@ -321,6 +329,7 @@ export async function sweep(options: { blocks: number; tokens: number; quiet: bo
     bytecodeFixed: fixed,
     upgradeable: upgradeableCount,
     unreadable,
+    probeFailures,
     hits,
     falseCleanCount: hits.filter(isFalseClean).length,
     signaturesChecked: candidates.size,
@@ -335,6 +344,9 @@ function render(result: SweepResult): void {
   console.log(`  bytecode fixed      ${result.bytecodeFixed}   ${DIM}an absence is readable on these${RESET}`);
   console.log(`  upgradeable         ${result.upgradeable}   ${DIM}the absence is refused, so a missed spelling costs nothing${RESET}`);
   console.log(`  carrying a mutator  ${result.hits.length}`);
+  if (result.probeFailures > 0) {
+    console.log(`  ${YELLOW}unprobed${RESET}            ${result.probeFailures}   ${DIM}sampling could not reach these; the sample is short by that much${RESET}`);
+  }
   if (result.unreadable > 0) {
     console.log(`  ${YELLOW}unreadable${RESET}          ${result.unreadable}   ${DIM}a read behind these failed; they are not counted either way${RESET}`);
   }
